@@ -1,0 +1,37 @@
+// Settings > Labeling's classification sets and policies (server/README.md, "Premade security labels").
+// To change them, copy this file to labeling-definitions.local.json in the emcc folder, or name a file with
+// emc2.labeling.definitions in settings/emcc.properties; that file replaces this one whole.
+// Comments like these (// to the line's end, or /* ... */) are allowed (ADR-0060).
+{
+  // Each set: an id the policies name, a name shown in Settings, and its classifications, highest first,
+  // each with the colour of its marking.
+  "classificationSets": [
+    {
+      "id": "nato",
+      "name": "NATO",
+      "classifications": [
+        { "name": "COSMIC TOP SECRET", "color": "#c7702a" },
+        { "name": "SECRET", "color": "#b8423a" },
+        { "name": "CONFIDENTIAL", "color": "#3d6fb6" },
+        { "name": "RESTRICTED", "color": "#8a7a3a" },
+        { "name": "UNCLASSIFIED", "color": "#3f9a5c" }
+      ]
+    },
+    {
+      "id": "swe",
+      "name": "Swedish national",
+      "classifications": [
+        { "name": "KVALIFICERAT HEMLIG", "color": "#c7702a" },
+        { "name": "HEMLIG", "color": "#b8423a" },
+        { "name": "KONFIDENTIELL", "color": "#3d6fb6" },
+        { "name": "BEGRÄNSAT HEMLIG", "color": "#8a7a3a" },
+        { "name": "EJ SEKRETESS", "color": "#3f9a5c" }
+      ]
+    }
+  ],
+  // Each policy: its name in a label, and the sets it offers, in their order.
+  "policies": [
+    { "name": "NATO", "classificationSets": ["nato"] },
+    { "name": "SWE", "classificationSets": ["swe", "nato"] }
+  ]
+}

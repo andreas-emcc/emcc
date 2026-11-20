@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:emc2:schema:map-object",
+  "title": "emc2 map object",
+  "description": "An object on the map, as held by the object store and sent to clients. '$defs/content' is the part a change request carries; id, version and meta are added by the object store. Data model 1.9.0 (PDA), see model/README.md.",
+  "type": "object",
+  "$ref": "#/$defs/content",
+  "properties": {
+    "id": { "$ref": "urn:emc2:schema:common#/$defs/uuid" },
+    "version": { "$ref": "urn:emc2:schema:common#/$defs/version" },
+    "meta": { "$ref": "urn:emc2:schema:common#/$defs/meta" }
+  },
+  "required": ["id", "version", "meta"],
+  "unevaluatedProperties": false,
+  "$defs": {
+    "content": {
+      "description": "The fields of a map object that its creator controls.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "Object type. Core types: core.symbol (single-point APP-6 symbol), core.multipoint (APP-6 tactical graphic defined by control points), core.shape (geometry drawn with a style), and from data model 1.6.0 core.text (a text at a point, with text). Plugins may define '<plugin-id>.<name>' types, but should prefer core types plus an extension so that every plugin can show the object.",
+          "$ref": "urn:emc2:schema:common#/$defs/typeName"
+        },
+        "dataType": {
+          "description": "What kind of information the object is (ADR-0023), e.g. core.general or cot-in.cot: one of the data types ECore lists from the plugins' manifests (model rule 14). Not the same as type, which says what the object is on the map.",
+          "$ref": "urn:emc2:schema:common#/$defs/typeName"
+        },
+        "dataSource": { "$ref": "urn:emc2:schema:common#/$defs/dataSource" },
+        "time": { "$ref": "#/$defs/time" },
+        "layerId": { "$ref": "urn:emc2:schema:common#/$defs/uuid" },
+        "geometry": { "$ref": "urn:emc2:schema:geometry" },
+        "symbol": { "$ref": "#/$defs/symbol" },
+        "text": { "$ref": "#/$defs/text" },
+        "displayClass": { "description": "Data model 1.6.0 (CR-0041 part D; T-182, owner Q58 A): what the object is for the user's display filters, from a fixed list; the map view hides it while the user's switch for the class is off. Absent: no class. Editors forward it.", "enum": ["dwell-area", "sensor-coverage"] },
+        "style": { "$ref": "#/$defs/style" },
+        "properties": { "$ref": "#/$defs/properties" },
+        "label": { "$ref": "urn:emc2:schema:security-label" },
+        "extensions": { "$ref": "urn:emc2:schema:common#/$defs/extensions" },
+        "fieldSets": {
+          "description": "Data model 1.4.0 (ADR-0050, CR-0030 part 3): the field sets the object carries, by their full ids '<plugin-id>.<set>', each once. Empty means absent (rule 13). On update an absent list keeps the stored one and a listed set is added; nothing removes a set (rule 5's third exception). A set that a request adds must be declared by a loaded plugin (rule 18). The fields' values stay in extensions.<plugin-id>.<name>.",
+          "type": "array",
+          "items": { "$ref": "urn:emc2:schema:common#/$defs/typeName" },
+          "uniqueItems": true,
+          "maxItems": 64
+        },
+        "relations": {
+          "description": "Data model 1.4.0 (ADR-0051, CR-0031): the object's relations to other objects, each a kind and the other object's id, each entry once, at most 1 024. Empty means absent (rule 13). Replaced as a whole on update, as the core fields are (rule 5). Each kind is checked as rule 17 says; the other object is never checked (it may not exist, or be in another layer or workspace), and a delete never cascades.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/relation" },
+          "uniqueItems": true,
+          "maxItems": 1024
+        }
+      },
+      "required": ["type", "dataType", "dataSource", "layerId", "geometry", "label"],
+      "allOf": [
+        {
+          "if": { "type": "object", "properties": { "type": { "const": "core.symbol" } }, "required": ["type"] },
+          "then": {
+            "type": "object",
+            "required": ["symbol"],
+            "properties": { "geometry": { "type": "object", "properties": { "type": { "const": "Point" } } } }
+          }
+        },
+        {
+          "if": { "type": "object", "properties": { "type": { "const": "core.multipoint" } }, "required": ["type"] },
+          "then": {
+            "type": "object",
+            "required": ["symbol"],
+            "properties": { "geometry": { "type": "object", "properties": { "type": { "enum": ["LineString", "Polygon", "MultiPoint"] } } } }
+          }
+        },
+        {
+          "if": { "type": "object", "properties": { "type": { "const": "core.shape" } }, "required": ["type"] },
+          "then": { "not": { "type": "object", "required": ["symbol"] } }
+        },
+        {
+          "if": { "type": "object", "properties": { "type": { "const": "core.text" } }, "required": ["type"] },
+          "then": {
+            "type": "object",
+            "required": ["text"],
+            "not": { "type": "object", "required": ["symbol"] },
+            "properties": { "geometry": { "type": "object", "properties": { "type": { "const": "Point" } } } }
+          },
+          "else": { "not": { "type": "object", "required": ["text"] } }
+        }
+      ]
+    },
+    "text": {
+      "description": "Data model 1.6.0 (CR-0041 part A; ADR-0055 point 4): the text of a core.text object, centred on its Point. Its colour is style.strokeColor, else the map view's label colour.",
+      "type": "object",
+      "properties": {
+        "value": { "description": "1 to 1 024 characters; a line break starts a new line.", "type": "string", "minLength": 1, "maxLength": 1024 },
+        "rotation": { "description": "Degrees clockwise from true north at the point; absent means 0.", "type": "number", "minimum": 0, "exclusiveMaximum": 360 },
+        "size": { "description": "CSS pixels; absent means 14.", "type": "integer", "minimum": 8, "maximum": 48 }
+      },
+      "required": ["value"],
+      "additionalProperties": false
+    },
+    "relation": {
+      "description": "Data model 1.4.0 (ADR-0051 point 1): one relation, e.g. a GMTI sensor's pairing with a track it detected.",
+      "type": "object",
+      "properties": {
+        "kind": { "description": "A kind a loaded plugin declares in its manifest's relationKinds, '<plugin-id>.<name>' (rule 17).", "$ref": "urn:emc2:schema:common#/$defs/typeName" },
+        "objectId": { "description": "The other object's id.", "$ref": "urn:emc2:schema:common#/$defs/uuid" }
+      },
+      "required": ["kind", "objectId"],
+      "additionalProperties": false
+    },
+    "time": {
+      "description": "Time attributes of the information (model rule 15), e.g. from CoT's time, start and stale. All optional; what happens after the expiry is configured per data type (ADR-0023).",
+      "type": "object",
+      "properties": {
+        "observed": { "description": "When the information was observed or reported by its source.", "$ref": "urn:emc2:schema:common#/$defs/timestamp" },
+        "validFrom": { "description": "From when the information is valid. Not after expires.", "$ref": "urn:emc2:schema:common#/$defs/timestamp" },
+        "expires": { "description": "When the information becomes stale.", "$ref": "urn:emc2:schema:common#/$defs/timestamp" }
+      },
+      "additionalProperties": false
+    },
+    "symbol": {
+      "description": "A symbol: APP-6, or (data model 1.4.0, ADR-0047) emc2's own vessel symbol. Rendered by the symbology plugin.",
+      "type": "object",
+      "properties": {
+        "standard": { "enum": ["APP-6B", "APP-6D", "APP-6E", "vessel"] },
+        "sidc": { "description": "Symbol identification code. Its form depends on the standard (see below).", "type": "string" },
+        "modifiers": { "$ref": "#/$defs/modifiers" }
+      },
+      "required": ["standard", "sidc"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "type": "object", "properties": { "standard": { "const": "APP-6B" } } },
+          "then": { "type": "object", "properties": { "sidc": { "description": "APP-6B: 15 characters, letter-based.", "type": "string", "pattern": "^[A-Z0-9*-]{15}$" } } }
+        },
+        {
+          "if": { "type": "object", "properties": { "standard": { "const": "APP-6D" } } },
+          "then": { "type": "object", "properties": { "sidc": { "description": "APP-6D: 20 digits. The version (digits 1-2) is 10, 11 or 12.", "type": "string", "pattern": "^1[0-2][0-9]{18}$" } } }
+        },
+        {
+          "if": { "type": "object", "properties": { "standard": { "const": "APP-6E" } } },
+          "then": { "type": "object", "properties": { "sidc": { "description": "APP-6E: 30 digits; 20 digits mean the 30-digit code with digits 21-30 all zero (writers write the 20-digit form then). The version (digits 1-2) is 13 or 14.", "type": "string", "pattern": "^1[34][0-9]{18}([0-9]{10})?$" } } }
+        },
+        {
+          "if": { "type": "object", "properties": { "standard": { "const": "vessel" } } },
+          "then": { "type": "object", "properties": { "sidc": { "description": "Data model 1.4.0, vessel (ADR-0047, CR-0030 part 3b): 4 digits: APP-6D's context (0 reality, 1 exercise, 2 simulation), APP-6D's standard identity (0 pending to 6 hostile), then the AIS ship and cargo type 00 to 99 (ITU-R M.1371; 00 not available). E.g. 0470, a real neutral cargo ship.", "type": "string", "pattern": "^[0-2][0-6][0-9]{2}$" } } }
+        }
+      ]
+    },
+    "modifiers": {
+      "description": "Amplifiers of a symbol, named as in milsymbol's options (camelCase). A closed list: adding a name is a minor model change. direction, speed, distances and azimuths are machine values; all others are text as displayed. Data model 1.4.0 (CR-0030 part 2, ADR-0043 point 9) adds the amplifiers that tactical graphics (core.multipoint) use beyond milsymbol's names: distances (AM), azimuths (AN), targetNumber (AP), uniqueDesignation1 (T1), uniqueDesignation2 (T2) and dtg1 (W1), as in mil-sym-ts's amplifier table for the APP-6 D and E graphics. Single-point symbols ignore them.",
+      "type": "object",
+      "properties": {
+        "additionalInformation": { "$ref": "#/$defs/amplifierText" },
+        "altitudeDepth": { "$ref": "#/$defs/amplifierText" },
+        "auxiliaryEquipmentIndicator": { "$ref": "#/$defs/amplifierText" },
+        "combatEffectiveness": { "$ref": "#/$defs/amplifierText" },
+        "commonIdentifier": { "$ref": "#/$defs/amplifierText" },
+        "country": { "$ref": "#/$defs/amplifierText" },
+        "azimuths": { "description": "Data model 1.4.0, amplifier AN of tactical graphics: azimuths in degrees clockwise from true north, 0 to 360, in the order the graphic defines (e.g. a sector range fan's left and right limits, ring by ring). Machine values; the symbology plugin formats them.", "type": "array", "items": { "type": "number", "minimum": 0, "maximum": 360 }, "minItems": 1, "maxItems": 64 },
+        "direction": { "description": "Direction of movement: degrees clockwise from true north. Drawn as an arrow.", "type": "number", "minimum": 0, "exclusiveMaximum": 360 },
+        "distances": { "description": "Data model 1.4.0, amplifier AM of tactical graphics: distances in metres, 0 to 20 000 000, in the order the graphic defines (e.g. a circle's radius, a range fan's ranges, a corridor's width). Machine values; the symbology plugin formats them.", "type": "array", "items": { "type": "number", "minimum": 0, "maximum": 20000000 }, "minItems": 1, "maxItems": 64 },
+        "dtg": { "description": "Date-time group, as displayed.", "$ref": "#/$defs/amplifierText" },
+        "dtg1": { "description": "Data model 1.4.0, amplifier W1 of tactical graphics: the second date-time group (e.g. the end of a period), as displayed.", "$ref": "#/$defs/amplifierText" },
+        "engagementBar": { "$ref": "#/$defs/amplifierText" },
+        "engagementType": { "$ref": "#/$defs/amplifierText" },
+        "equipmentTeardownTime": { "$ref": "#/$defs/amplifierText" },
+        "evaluationRating": { "$ref": "#/$defs/amplifierText" },
+        "guardedUnit": { "$ref": "#/$defs/amplifierText" },
+        "headquartersElement": { "$ref": "#/$defs/amplifierText" },
+        "higherFormation": { "$ref": "#/$defs/amplifierText" },
+        "hostile": { "$ref": "#/$defs/amplifierText" },
+        "iffSif": { "$ref": "#/$defs/amplifierText" },
+        "installationComposition": { "$ref": "#/$defs/amplifierText" },
+        "location": { "description": "Location as displayed. The real position is the geometry.", "$ref": "#/$defs/amplifierText" },
+        "platformType": { "$ref": "#/$defs/amplifierText" },
+        "quantity": { "$ref": "#/$defs/amplifierText" },
+        "reinforcedReduced": { "$ref": "#/$defs/amplifierText" },
+        "sigint": { "$ref": "#/$defs/amplifierText" },
+        "signatureEquipment": { "$ref": "#/$defs/amplifierText" },
+        "specialDesignator": { "$ref": "#/$defs/amplifierText" },
+        "specialHeadquarters": { "$ref": "#/$defs/amplifierText" },
+        "speed": { "description": "Speed over ground in metres per second. The symbology plugin formats it for display.", "type": "number", "minimum": 0 },
+        "staffComments": { "$ref": "#/$defs/amplifierText" },
+        "targetNumber": { "description": "Data model 1.4.0, amplifier AP of tactical graphics: a target number, as displayed.", "$ref": "#/$defs/amplifierText" },
+        "type": { "$ref": "#/$defs/amplifierText" },
+        "uniqueDesignation": { "$ref": "#/$defs/amplifierText" },
+        "uniqueDesignation1": { "description": "Data model 1.4.0, amplifier T1 of tactical graphics: the second unique designation (e.g. a boundary's unit on the other side).", "$ref": "#/$defs/amplifierText" },
+        "uniqueDesignation2": { "description": "Data model 1.4.0, amplifier T2 of tactical graphics (APP-6 E): the third unique designation.", "$ref": "#/$defs/amplifierText" }
+      },
+      "additionalProperties": false
+    },
+    "amplifierText": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "style": {
+      "description": "How a core.shape (or a symbol's outline, where supported) is drawn.",
+      "type": "object",
+      "properties": {
+        "strokeColor": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+        "strokeWidth": { "description": "Screen pixels.", "type": "number", "minimum": 0, "maximum": 50 },
+        "strokeOpacity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "strokeDash": { "enum": ["solid", "dash", "dot"] },
+        "fillColor": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+        "fillOpacity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "fillPattern": { "description": "Data model 1.1.0. How an area is filled: solid (the default when absent) or hatch, diagonal lines in fillColor and fillOpacity with the rest of the area transparent. Applies to Polygon, Circle, Ellipse, Corridor and ArcBand; elsewhere valid and not drawn.", "enum": ["solid", "hatch"] },
+        "arrowhead": { "description": "Data model 1.1.0. none (the default when absent) or end: an arrowhead at a LineString's last point, along its last segment, in strokeColor. Elsewhere valid and not drawn.", "enum": ["none", "end"] },
+        "pointMarkers": { "description": "Data model 1.1.0. none (the default when absent) or circle: a small filled circle at every point of a LineString, in strokeColor. Elsewhere valid and not drawn.", "enum": ["none", "circle"] }
+      },
+      "additionalProperties": false
+    },
+    "properties": {
+      "description": "Core descriptive properties. Plugin-specific data belongs in extensions.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 256 },
+        "description": { "type": "string", "maxLength": 4096 }
+      },
+      "additionalProperties": false
+    }
+  }
+}

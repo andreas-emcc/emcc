@@ -1,0 +1,60 @@
+/* Plugin styles: every class starts with the plugin id, and every colour, font, size and space
+   comes from the shell's design tokens (ADR-0029, ADR-0034). No element selectors at top level, no
+   :root, nothing global. The shared components bring their own CSS; this file only arranges content.
+   The panels work in every pane: content wraps, nothing has a fixed width or height. */
+.draw-shapes-content {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--emc2-space-gap);
+  color: var(--emc2-color-text);
+}
+
+/* The Close button at the top of the edit panel's body, where the heading's actions used to be. */
+.draw-shapes-close {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.draw-shapes-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--emc2-space-gap);
+}
+
+.draw-shapes-hint {
+  margin: 0;
+  color: var(--emc2-color-muted);
+  font-size: var(--emc2-size-text-small);
+}
+
+.draw-shapes-style {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+}
+
+.draw-shapes-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--emc2-space-gap);
+}
+
+.draw-shapes-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--emc2-space-gap) var(--emc2-space-padding);
+  margin: 0;
+  font-size: var(--emc2-size-text-small);
+}
+
+.draw-shapes-facts dt {
+  color: var(--emc2-color-muted);
+}
+
+.draw-shapes-facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

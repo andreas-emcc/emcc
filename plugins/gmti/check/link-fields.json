@@ -1,0 +1,26 @@
+{
+  "description": "Criterion 30 (M6, T-160): links the settings schema's if/then and the Java Link both accept, and links both refuse at the missing field. Read by check/manifest.test.mjs and LinkFieldsTest.",
+  "accepted": [
+    { "why": "a tcp-client in link needs only the peer", "link": { "name": "vista", "mode": "tcp-client", "direction": "in", "host": "127.0.0.1", "port": 8113 } },
+    { "why": "a link of the default mode and direction needs only the peer", "link": { "name": "vista", "host": "127.0.0.1", "port": 8113 } },
+    { "why": "a tcp-client out link needs only the peer", "link": { "name": "vista-out", "mode": "tcp-client", "direction": "out", "host": "127.0.0.1", "port": 8114 } },
+    { "why": "a udp in link needs only the listen port", "link": { "name": "rc1", "mode": "udp", "direction": "in", "listen": { "port": 46002 } } },
+    { "why": "a udp link of the default direction needs only the listen port", "link": { "name": "rc1", "mode": "udp", "listen": { "port": 46002 } } },
+    { "why": "a udp out link needs only the peer", "link": { "name": "out", "mode": "udp", "direction": "out", "host": "127.0.0.1", "port": 46001 } },
+    { "why": "a tcp-server in link needs only the listen port", "link": { "name": "srv", "mode": "tcp-server", "direction": "in", "listen": { "port": 8120 } } },
+    { "why": "a tcp-server out link needs only the listen port", "link": { "name": "srv", "mode": "tcp-server", "direction": "out", "listen": { "port": 8120 } } },
+    { "why": "a hidden peer keeps its value", "link": { "name": "srv", "mode": "tcp-server", "listen": { "port": 8120 }, "host": "kept", "port": 1 } },
+    { "why": "a hidden listen address keeps its value", "link": { "name": "cli", "mode": "tcp-client", "host": "127.0.0.1", "port": 8113, "listen": { "port": 8120 } } }
+  ],
+  "refused": [
+    { "why": "the owner's RC1 case: a udp in link with a peer but no listen port", "missing": "listen", "link": { "name": "rc1", "mode": "udp", "direction": "in", "host": "127.0.0.1", "port": 46002 } },
+    { "why": "a udp link of the default direction without a listen port", "missing": "listen", "link": { "name": "rc1", "mode": "udp" } },
+    { "why": "a tcp-server in link without a listen port", "missing": "listen", "link": { "name": "srv", "mode": "tcp-server" } },
+    { "why": "a tcp-server out link without a listen port", "missing": "listen", "link": { "name": "srv", "mode": "tcp-server", "direction": "out", "host": "127.0.0.1", "port": 8120 } },
+    { "why": "a tcp-client link without its host", "missing": "host", "link": { "name": "cli", "mode": "tcp-client", "port": 8113 } },
+    { "why": "a link of the default mode without its host", "missing": "host", "link": { "name": "cli", "port": 8113 } },
+    { "why": "a tcp-client link without its port", "missing": "port", "link": { "name": "cli", "mode": "tcp-client", "host": "127.0.0.1" } },
+    { "why": "a udp out link without its host", "missing": "host", "link": { "name": "out", "mode": "udp", "direction": "out", "port": 46001, "listen": { "port": 46001 } } },
+    { "why": "a udp out link without its port", "missing": "port", "link": { "name": "out", "mode": "udp", "direction": "out", "host": "127.0.0.1" } }
+  ]
+}

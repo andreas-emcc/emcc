@@ -1,0 +1,60 @@
+{
+  "id": "gmti",
+  "name": "GMTI",
+  "version": "0.2.0",
+  "sdkVersion": "^1.4.0",
+  "kind": "general",
+  "dataTypes": [
+    {
+      "id": "gmti.detection",
+      "name": "GMTI detection",
+      "defaults": {
+        "expiresAfterSeconds": 60,
+        "fadeWhenExpired": true,
+        "removeAfterExpirySeconds": 300
+      },
+      "fieldSets": [
+        "report"
+      ],
+      "manual": false,
+      "sensorReport": true
+    },
+    {
+      "id": "gmti.platform",
+      "name": "GMTI platform",
+      "defaults": {
+        "expiresAfterSeconds": 120,
+        "fadeWhenExpired": true,
+        "removeAfterExpirySeconds": 600
+      },
+      "manual": false
+    }
+  ],
+  "fields": [
+    {
+      "name": "classification",
+      "type": "text",
+      "label": "Classification",
+      "maxLength": 64
+    },
+    {
+      "name": "radialVelocity",
+      "type": "number",
+      "label": "Radial velocity",
+      "unit": "m/s"
+    }
+  ],
+  "fieldSets": [
+    {
+      "id": "report",
+      "label": "GMTI report",
+      "fields": [
+        "classification",
+        "radialVelocity"
+      ]
+    }
+  ],
+  "server": {
+    "entryClass": "dev.emcc.plugins.gmti.GmtiPlugin"
+  }
+}

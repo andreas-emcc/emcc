@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>emcc mockup · Settings</title>
+<link rel="stylesheet" href="../../../web/shell/src/tokens.css">
+<link rel="stylesheet" href="../../../web/plugin-sdk/src/components/components.css">
+<link rel="stylesheet" href="directions.css">
+<link rel="stylesheet" href="mock.css">
+<script src="mock.js"></script>
+</head>
+<body>
+<div class="ux-app">
+  <header class="ux-top"></header>
+  <div class="ux-settings">
+
+    <!-- The list: a filter, an icon per entry, a count of unsaved changes instead of a bare dot -->
+    <nav class="ux-snav">
+      <div class="ux-bar" style="padding:8px"><div class="ux-search ux-grow"><i data-i="search"></i><input class="emc2-input" id="filter" placeholder="Find a setting" aria-label="Find a setting"></div></div>
+      <div class="ux-snav-list" id="nav"></div>
+    </nav>
+
+    <!-- ===== A page with a list: GMTI links, in three variants ===== -->
+    <section class="ux-spage" id="p-links" style="position:relative">
+      <header class="ux-spage-head">
+        <i data-i="radio"></i><h1>GMTI</h1>
+        <span class="ux-muted ux-grow">STANAG 4607 links: each receives into a layer, or sends the simulator's sensor reports.</span>
+        <span class="ux-chip ux-ok"><i data-i="ok"></i>2 links up</span>
+      </header>
+
+      <!-- Variant 1: table + side form -->
+      <div class="ux-spage-body ux-split" data-variant="side">
+        <div class="ux-scroll"><div class="js-table"></div></div>
+        <aside class="ux-form js-form" data-surface></aside>
+      </div>
+
+      <!-- Variant 2: table + dialog -->
+      <div class="ux-spage-body" data-variant="dialog" hidden>
+        <div class="js-table"></div>
+        <div class="ux-modal"><div class="ux-form js-form" data-surface></div></div>
+      </div>
+
+      <!-- Variant 3: folded rows -->
+      <div class="ux-spage-body" data-variant="fold" hidden>
+        <div class="ux-row"><span class="ux-grow ux-muted">3 links. One row open at a time.</span><button class="emc2-button"><i data-i="plus"></i>New link</button></div>
+        <div id="folds"></div>
+      </div>
+    </section>
+
+    <!-- ===== A page with a table edited in place: Data types. One Save for the page. ===== -->
+    <section class="ux-spage" id="p-types" data-surface hidden>
+      <header class="ux-spage-head"><i data-i="clock"></i><h1>Data types</h1><span class="ux-muted ux-grow">How long each kind of object lives without an update, and what happens then.</span></header>
+      <div class="ux-spage-body">
+        <table class="ux-table ux-form-max"><thead><tr><th>Data type</th><th>From</th><th style="width:110px">Expires after</th><th style="width:110px">Unit</th><th style="width:150px">When expired</th><th></th></tr></thead><tbody id="types"></tbody></table>
+      </div>
+      <footer class="ux-savebar">
+        <span class="ux-state"></span><span class="ux-grow"></span>
+        <button class="emc2-button">Use defaults for all</button>
+        <button class="emc2-button" data-reset>Discard</button>
+        <button class="emc2-button emc2-button-primary" data-reset>Save</button>
+      </footer>
+    </section>
+
+    <!-- ===== A plain page: Simulator. Groups side by side, help on demand, one Save. ===== -->
+    <section class="ux-spage" id="p-plain" data-surface hidden>
+      <header class="ux-spage-head"><i data-i="play"></i><h1>Simulator</h1><span class="ux-muted ux-grow">Applies at once when saved; no restart.</span></header>
+      <div class="ux-spage-body"><div class="ux-form-max" id="plain" style="display:flex;flex-direction:column;gap:14px"></div></div>
+      <footer class="ux-savebar" data-demo="3">
+        <span class="ux-state"></span><span class="ux-grow"></span>
+        <button class="emc2-button" data-reset>Discard</button>
+        <button class="emc2-button emc2-button-primary" data-reset>Save</button>
+      </footer>
+    </section>
+  </div>
+</div>
+<script>
+  // ---- The list ----
+  const NAV = [
+    ['Data links', [['ADS-B aircraft', 'plane'], ['AIS', 'ship'], ['Cursor on Target', 'radio'], ['GMTI', 'radio', 'p-links', 2], ['NVG', 'share']]],
+    ['Geo', [['Natural Earth background', 'map'], ['OpenStreetMap background', 'map'], ['Terrain', 'mountain'], ['WMS background maps', 'map']]],
+    ['Map and symbols', [['2D map view', 'map'], ['Coordinates', 'cross'], ['Symbology', 'unit']]],
+    ['Drawing', [['Draw shapes', 'shapes'], ['Draw symbols', 'unit'], ['Draw tactical graphics', 'cross']]],
+    ['Simulation', [['Simulator', 'play', 'p-plain', 3]]],
+    ['General', [['General', 'sliders'], ['Display', 'eye'], ['Data types', 'clock', 'p-types'], ['Layers', 'layers'], ['Labeling', 'tag'], ['Bookmarks', 'bookmark'], ['Objects', 'list']]],
+  ];
+  const nav = document.getElementById('nav');
+  nav.innerHTML = NAV.map(([g, es]) => `<div class="js-g"><h3>${g}</h3>` + es.map(([t, i, p, n]) =>
+    `<button class="emc2-list-row ${p === 'p-links' ? 'emc2-list-row-selected' : ''}" data-p="${p || ''}">${uxIcon(i)}<span class="ux-grow">${t}</span>${n ? `<span class="ux-count" title="${n} unsaved">${n}</span>` : ''}</button>`).join('') + '</div>').join('');
+  nav.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || !b.dataset.p) return;
+    nav.querySelectorAll('.emc2-list-row-selected').forEach((x) => x.classList.remove('emc2-list-row-selected'));
+    b.classList.add('emc2-list-row-selected');
+    document.querySelectorAll('.ux-spage').forEach((s) => { s.hidden = s.id !== b.dataset.p; });
+  });
+  document.getElementById('filter').addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase();
+    nav.querySelectorAll('.js-g').forEach((g) => {
+      let any = false;
+      g.querySelectorAll('button').forEach((b) => { b.hidden = !b.textContent.toLowerCase().includes(q); any = any || !b.hidden; });
+      g.hidden = !any;
+    });
+  });
+
+  // ---- The links ----
+  const LINKS = [['vista-north', 'in', 'tcp-client', '10.20.1.14:4607', 'GMTI north', 'ok', 'Up'], ['replay', 'in', 'udp', '127.0.0.1:5004', 'GMTI replay', 'ok', 'Up'], ['sim-out', 'out', 'tcp-server', ':4610', '–', 'off', 'Off']];
+  const table = (sel) => `<div class="ux-row" style="margin-bottom:8px"><span class="ux-grow ux-muted">3 links</span><button class="emc2-button">${uxIcon('plus')}New link</button></div>
+    <table class="ux-table"><thead><tr><th>Name</th><th>Direction</th><th>Mode</th><th>Peer</th><th>Layer</th><th>State</th></tr></thead><tbody>` +
+    LINKS.map((l, i) => `<tr ${i === sel ? 'aria-selected="true"' : ''}><td><b>${l[0]}</b></td><td>${l[1]}</td><td>${l[2]}</td><td class="emc2-data">${l[3]}</td><td>${l[4]}</td><td><span class="ux-chip ux-${l[5]}">${uxIcon(l[5])}${l[6]}</span></td></tr>`).join('') + '</tbody></table>';
+  const body = () => `
+    <details class="ux-group" open><summary>${uxIcon('chevron', 'ux-chev')}Connection</summary><div class="ux-grid3">
+      ${uxField('Name', uxInput('vista-north'), '', "Lowercase words separated by hyphens, at most 64 characters. It is the data source of what the link receives, and names its output channel. 'manual' is reserved.", 'ux-span2')}
+      ${uxField('Enabled', '<span class="emc2-checkbox"><input type="checkbox" checked> Runs</span>')}
+      ${uxField('Direction', uxSelect(['in', 'out']), '', 'in: receives 4607 and writes the platforms, their dwell areas and the detections into the target layer. out: sends the simulator’s GMTI sensor reports as 4607.')}
+      ${uxField('Mode', uxSelect(['tcp-client', 'tcp-server', 'udp']), '', 'tcp-client: connects to a sensor, a ground station or a replay. tcp-server: peers connect to this server. udp: one packet per datagram.')}
+      <span></span>
+      ${uxField('Host', uxInput('10.20.1.14', 'emc2-data'), 'The peer’s host', '', 'ux-span2')}
+      ${uxField('Port', uxInput('4607', 'emc2-data'), '1 to 65535')}
+    </div></details>
+    <details class="ux-group" open><summary>${uxIcon('chevron', 'ux-chev')}Target</summary><div class="ux-grid3">
+      ${uxField('Target layer', uxSelect(['GMTI north', 'New layer…']), '', 'Where received objects go: an existing layer, or a new one named like the link.', 'ux-span2')}
+      ${uxField('Classification', uxSelect(['UNCLASSIFIED', 'RESTRICTED']))}
+    </div></details>
+    <details class="ux-group"><summary>${uxIcon('chevron', 'ux-chev')}Advanced<span class="ux-n">6 settings, all default</span></summary><div class="ux-grid3">
+      ${uxField('Idle seconds', uxInput('120', 'emc2-data'), '0: never reconnect')}
+    </div></details>`;
+  const foot = `<footer class="ux-savebar" data-demo="2">
+      <button class="emc2-button emc2-button-danger">${uxIcon('trash')}Delete</button>
+      <span class="ux-grow"></span><span class="ux-state ux-small"></span>
+      <button class="emc2-button" data-reset>Discard</button>
+      <button class="emc2-button emc2-button-primary" data-reset>Save link</button></footer>`;
+  document.querySelectorAll('.js-table').forEach((t) => { t.innerHTML = table(0); });
+  document.querySelectorAll('.js-form').forEach((f) => {
+    f.innerHTML = `<header class="ux-form-head">${uxIcon('radio')}<h2 class="ux-grow">vista-north</h2><span class="ux-chip ux-ok">${uxIcon('ok')}Up</span><button class="emc2-icon-button" aria-label="Close">${uxIcon('x')}</button></header><div class="ux-form-body">${body()}</div>${foot}`;
+  });
+  document.getElementById('folds').innerHTML = LINKS.map((l, i) =>
+    `<details class="ux-fold" name="link" ${i === 0 ? 'open' : ''} data-surface><summary>${uxIcon('chevron', 'ux-chev')}<b style="width:110px">${l[0]}</b><span style="width:40px">${l[1]}</span><span style="width:90px">${l[2]}</span><span class="emc2-data ux-grow">${l[3]}</span><span class="ux-chip ux-${l[5]}">${uxIcon(l[5])}${l[6]}</span></summary>${i === 0 ? `<div class="ux-form-body">${body()}</div>${foot}` : '<div class="ux-form-body ux-muted">The same form.</div>'}</details>`).join('');
+
+  // ---- Data types ----
+  const T = [['core.general', 'Core', '', '–'], ['core.shape', 'Core', '', '–'], ['cot.cot', 'Cursor on Target', '5', 'minutes'], ['ais.vessel', 'AIS', '10', 'minutes'], ['adsb.aircraft', 'ADS-B', '60', 'seconds'], ['gmti.detection', 'GMTI', '30', 'seconds'], ['gmti.dwell', 'GMTI', '10', 'seconds'], ['sim.track', 'Simulator', '', '–']];
+  document.getElementById('types').innerHTML = T.map((t) => `<tr><td><b>${t[0]}</b></td><td class="ux-muted">${t[1]}</td><td><input class="emc2-input emc2-data" value="${t[2]}" placeholder="never" aria-label="Expires after"></td><td>${uxSelect([t[3], 'seconds', 'minutes', 'hours'])}</td><td>${uxSelect(['Remove', 'Fade, then remove', 'Keep'])}</td><td><button class="emc2-icon-button" title="Back to the default" aria-label="Back to the default">${uxIcon('refresh')}</button></td></tr>`).join('');
+
+  // ---- A plain page ----
+  document.getElementById('plain').innerHTML = `
+    <details class="ux-group" open><summary>${uxIcon('chevron', 'ux-chev')}Clock</summary><div class="ux-grid3">
+      ${uxField('Tick', uxInput('1.0', 'emc2-data'), 'seconds, 0.1 to 10', 'How often every simulated object moves. Smaller is smoother and costs more.')}
+      ${uxField('Speed factor', uxInput('1', 'emc2-data'), '1 is real time')}
+      ${uxField('At the end of a route', uxSelect(['Stop', 'Loop', 'Reverse']))}
+    </div></details>
+    <details class="ux-group" open><summary>${uxIcon('chevron', 'ux-chev')}Sensors</summary><div class="ux-grid3">
+      ${uxField('Coverage colour', '<span class="emc2-color-row"><input type="color" class="emc2-color-swatch" value="#d03030"><input class="emc2-input emc2-data" value="#d03030"></span>', '', 'Simulation’s own coverage. gmti’s dwells follow the gmti settings.')}
+      ${uxField('Dwell colour', '<span class="emc2-color-row"><input type="color" class="emc2-color-swatch" value="#2e9a4a"><input class="emc2-input emc2-data" value="#2e9a4a"></span>')}
+      ${uxField('Dwell opacity', uxInput('80', 'emc2-data'), 'percent')}
+      ${uxField('Revisit', uxInput('0.2', 'emc2-data'), 'seconds')}
+      ${uxField('Detection chance', uxInput('90', 'emc2-data'), 'percent')}
+    </div></details>
+    <details class="ux-group"><summary>${uxIcon('chevron', 'ux-chev')}Advanced<span class="ux-n">3 settings, all default</span></summary></details>`;
+
+  // ---- The mockup's variant switch ----
+  addEventListener('DOMContentLoaded', () => {
+    const V = [['side', 'Table + side form'], ['dialog', 'Table + dialog'], ['fold', 'Folded rows']];
+    const x = document.getElementById('mockextra');
+    x.innerHTML = '<span>GMTI list</span>' + V.map(([v, t], i) => `<button data-var="${v}" aria-pressed="${i === 0}">${t}</button>`).join('');
+    const set = (v) => {
+      document.querySelectorAll('[data-variant]').forEach((d) => { d.hidden = d.dataset.variant !== v; });
+      x.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.var === v)));
+    };
+    x.addEventListener('click', (e) => { if (e.target.dataset.var) set(e.target.dataset.var); });
+    const q = new URLSearchParams(location.search);
+    if (q.get('var')) set(q.get('var'));
+    if (q.get('page')) nav.querySelector(`[data-p="${q.get('page')}"]`).click();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "emc2-ux-shots",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The UXA's screenshots of a running emcc in every look, scheme and density (agents/uxa.md rule 7). Dev-only, never shipped.",
+  "license": "Apache-2.0",
+  "scripts": {
+    "shots": "node shots.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "1.63.0"
+  }
+}

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Server part of the plugin template (owned by the PDA). A copy renames the artifactId to
+  emc2-plugin-<id>; Maven refuses two modules with the same artifactId, so a forgotten rename fails
+  the build. Registered with one line in server/pom.xml: <module>../plugins/<id>/server</module>.
+  Its parent is the SDK's stand-alone emc2-plugin-parent (M9, D3), which pins the SDK, the test kit
+  and the build. In the repository the relativePath finds it; outside, built from the SDK kit, Maven
+  does not find that path and takes the parent from the local repository, where the kit installs it.
+  A bundled library pins its version here.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>dev.emcc</groupId>
+    <artifactId>emc2-plugin-parent</artifactId>
+    <version>1.9.0</version>
+    <relativePath>../../../server/plugin-sdk/plugin-parent/pom.xml</relativePath>
+  </parent>
+
+  <artifactId>emc2-plugin-template</artifactId>
+  <!-- The plugin's own version, as in plugin.json; the parent's is the SDK's. -->
+  <version>0.1.0-SNAPSHOT</version>
+  <name>emc2 plugin: template</name>
+
+  <dependencies>
+    <!-- ECore supplies the SDK at runtime; the jar holds only the plugin's own classes. -->
+    <dependency>
+      <groupId>dev.emcc</groupId>
+      <artifactId>emc2-plugin-sdk</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jspecify</groupId>
+      <artifactId>jspecify</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>dev.emcc</groupId>
+      <artifactId>emc2-plugin-sdk-testkit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- InstalledPluginIT checks the packaged jar, so it runs after package (mvn verify), not in mvn test. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>packaged-plugin</id>
+            <phase>integration-test</phase>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <includes>
+                <include>**/*IT.java</include>
+              </includes>
+              <systemPropertyVariables>
+                <emc2.plugin.jar>${project.build.directory}/${project.build.finalName}.jar</emc2.plugin.jar>
+              </systemPropertyVariables>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

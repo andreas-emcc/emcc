@@ -1,0 +1,24 @@
+{
+  "mission": "EMCC DEMO",
+  "platform": "DEMO-UAV",
+  "speed": 45,
+  "waypoints": [
+    { "lat": 62.3500, "lon": 17.2300, "alt": 4000 },
+    { "lat": 62.3500, "lon": 17.4200, "alt": 4000 },
+    { "lat": 62.4350, "lon": 17.4200, "alt": 4100 },
+    { "lat": 62.4350, "lon": 17.2300, "alt": 4100 },
+    { "lat": 62.3500, "lon": 17.2300, "alt": 4000 }
+  ],
+  "gimbal": { "mode": "track", "lat": 62.3920, "lon": 17.3250 },
+  "hfov": 45,
+  "width": 1280,
+  "height": 720,
+  "fps": 25,
+  "seconds": 900,
+  "gridStep": 8,
+  "encoder": "h264_mf",
+  "bitrate": "4M",
+  "klvEveryFrames": 5,
+  "hazeMetres": 30000,
+  "startEpochSeconds": 1794700000
+}

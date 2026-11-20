@@ -1,0 +1,204 @@
+/* Layer panel styles: every class starts with the plugin id. Design tokens only (ADR-0034): every
+   colour, font, size, space and radius is a --emc2- token; besides them only 0, percentages and
+   1px hairlines. No element selectors at top level, no :root, nothing global. */
+.layer-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  min-width: 0;
+  color: var(--emc2-color-text);
+  font-family: var(--emc2-font-text);
+  font-size: var(--emc2-size-text);
+}
+
+.layer-panel-hint {
+  margin: 0;
+  color: var(--emc2-color-muted);
+}
+
+.layer-panel-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* "New layer" stays reachable while the list scrolls under it, also in the low bottom pane. */
+.layer-panel-toolbar-fixed {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--emc2-color-pane);
+}
+
+.layer-panel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--emc2-color-border);
+  border-radius: var(--emc2-radius);
+}
+
+.layer-panel-row {
+  /* Two lines: eye, name and buttons; then classification and count under the name. Where the name
+     would get less than 30 % of the row (a narrow pane in the comfortable density), the buttons
+     wrap to a line of their own under the name, on the right (owner, 2026-10-21). */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--emc2-space-gap);
+  min-height: var(--emc2-size-row);
+  padding: 0 var(--emc2-space-padding);
+  border-left: var(--emc2-focus-width) solid transparent;
+  /* A click anywhere on the row makes the layer active. */
+  cursor: pointer;
+}
+
+.layer-panel-row + .layer-panel-row {
+  border-top: 1px solid var(--emc2-color-border);
+}
+
+/* Hover as the shared list rows (looks.md): a 6 % tint of the text colour. */
+.layer-panel-row:hover {
+  background: color-mix(in srgb, var(--emc2-color-text) 6%, transparent);
+}
+
+/* The active layer as a selected row (Accent soft), with an accent bar. */
+.layer-panel-row-active,
+.layer-panel-row-active:hover {
+  background: var(--emc2-color-accent-soft);
+  border-left-color: var(--emc2-color-accent);
+}
+
+.layer-panel-eye {
+  display: flex;
+  flex: none;
+}
+
+.layer-panel-name,
+.layer-panel-name-input {
+  flex: 1 1 0;
+  min-width: 30%;
+}
+
+.layer-panel-name,
+.layer-panel-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.layer-panel-name {
+  cursor: pointer;
+  border-radius: var(--emc2-radius);
+}
+
+/* As the shared text field. */
+.layer-panel-name-input {
+  cursor: text;
+  height: var(--emc2-size-field);
+  padding: 0 var(--emc2-space-padding);
+  border: 1px solid var(--emc2-color-field-border);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-ground);
+  color: var(--emc2-color-text);
+  font: inherit;
+}
+
+.layer-panel-meta {
+  flex: 0 0 100%;
+  /* Under the name: past the eye and the gap. */
+  padding-left: calc(var(--emc2-size-field) + var(--emc2-space-gap));
+  box-sizing: border-box;
+  color: var(--emc2-color-muted);
+  font-size: var(--emc2-size-text-small);
+}
+
+/* Under the name of a row with a lock: past the eye, the lock and their gaps (brief, function 22). */
+.layer-panel-meta-wide {
+  padding-left: calc(var(--emc2-size-field) + var(--emc2-space-gap) + var(--emc2-size-field) + var(--emc2-space-gap));
+}
+
+/* Counts in the data font (looks.md). */
+.layer-panel-count {
+  font-family: var(--emc2-font-data);
+}
+
+.layer-panel-actions {
+  display: flex;
+  flex: none;
+  margin-left: auto;
+}
+
+/* The new-layer dialog's fields, one under the other (brief, function 23). */
+.layer-panel-new {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+}
+
+/* The active layer over the map (brief, function 24): framed as an icon over the map is (design
+   pattern), one line of small text that the overlay's 40 % of the Map Pane cuts with "…". */
+.layer-panel-active {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 0 var(--emc2-space-padding);
+  border: 1px solid var(--emc2-color-border);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-pane);
+  box-shadow: var(--emc2-shadow-card);
+  color: var(--emc2-color-text);
+  font-family: var(--emc2-font-text);
+  font-size: var(--emc2-size-text-small);
+  line-height: var(--emc2-size-row);
+  white-space: nowrap;
+  cursor: default;
+}
+
+.layer-panel-active-label {
+  flex: none;
+  /* Keeps the space after the colon, which a flex item would drop. */
+  white-space: pre;
+}
+
+.layer-panel-active-lock {
+  display: flex;
+  flex: none;
+  margin-right: var(--emc2-space-gap);
+}
+
+.layer-panel-active-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* View's layers in a declared workspace (brief, function 20): a heading over a list that changes
+   nothing, so no pointer and no hover. */
+.layer-panel-reference {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+}
+
+.layer-panel-heading {
+  margin: 0;
+  color: var(--emc2-color-muted);
+  font-size: var(--emc2-size-text-small);
+}
+
+.layer-panel-row-reference,
+.layer-panel-row-reference:hover {
+  cursor: default;
+  background: transparent;
+}
+
+.layer-panel-name-reference {
+  cursor: default;
+}
+
+/* Focus (looks.md): the accent outline outside the element. */
+.layer-panel-name:focus-visible,
+.layer-panel-name-input:focus-visible {
+  outline: var(--emc2-focus-width) solid var(--emc2-focus-color);
+  outline-offset: var(--emc2-focus-offset);
+}

@@ -1,0 +1,247 @@
+{
+  "id": "gmti",
+  "name": "GMTI",
+  "version": "0.1.0",
+  "sdkVersion": "^1.8.0",
+  "kind": "general",
+  "category": "data-links",
+  "icon": "Radar",
+  "properties": ["ingoing", "outgoing"],
+  "server": { "entryClass": "dev.emcc.plugins.gmti.GmtiPlugin" },
+  "connections": [
+    {
+      "kinds": ["tcp-client", "tcp-server", "udp", "multicast"],
+      "direction": "both",
+      "settings": "/links",
+      "reason": "STANAG 4607 (GMTI) from radars and their ground stations, and the simulator's sensor reports to other systems: a TCP client, a TCP server or UDP (a multicast group allowed), in or out, as each link in the settings names it. A server or receiver binds to loopback unless an admin sets another address. The hosts, ports, groups and interfaces come only from the links."
+    }
+  ],
+  "internet": {
+    "hosts": [],
+    "reason": "An admin may point a link at a sensor or a ground station on another network. No host is contacted by default; the hosts come only from the links."
+  },
+  "dataTypes": [
+    {
+      "id": "gmti.detection",
+      "name": "GMTI detection",
+      "description": "One target report of a ground moving target indicator radar (STANAG 4607): a detection, not a track.",
+      "defaults": { "expiresAfterSeconds": 60, "fadeWhenExpired": true, "removeAfterExpirySeconds": 120 },
+      "fieldSets": ["report"],
+      "manual": false,
+      "sensorReport": true,
+      "fadeSetting": "/detectionFade"
+    },
+    {
+      "id": "gmti.platform",
+      "name": "GMTI platform",
+      "description": "The platform of a GMTI radar (STANAG 4607) and its coverage.",
+      "defaults": { "expiresAfterSeconds": 300, "fadeWhenExpired": true, "removeAfterExpirySeconds": 600 },
+      "manual": false
+    },
+    {
+      "id": "gmti.dwell-area",
+      "name": "GMTI dwell area",
+      "description": "The area a GMTI radar (STANAG 4607) looked at in one dwell, one per dwell. It fades in steps and goes at its expiry.",
+      "defaults": { "expiresAfterSeconds": 15, "fadeWhenExpired": false, "removeAfterExpirySeconds": 0 },
+      "manual": false,
+      "fadeSetting": "/dwellAreaFade"
+    }
+  ],
+  "fields": [
+    { "name": "radialVelocity", "type": "number", "label": "Radial velocity", "description": "Speed along the radar's line of sight, away from the sensor positive (D32.7).", "unit": "m/s" },
+    { "name": "wrapVelocity", "type": "number", "label": "Wrap velocity", "description": "Half the velocity aliasing period: the true radial velocity may differ by a multiple of twice this (D32.8).", "unit": "m/s" },
+    { "name": "snr", "type": "number", "label": "Signal to noise", "description": "The detection's signal-to-noise ratio (D32.9).", "unit": "dB" },
+    { "name": "classification", "type": "text", "label": "Classification", "description": "The sensor's target class, its name with its number (D32.10).", "maxLength": 64 },
+    { "name": "classProbability", "type": "integer", "label": "Class probability", "description": "How likely the class is right (D32.11).", "unit": "%", "minimum": 0, "maximum": 255 },
+    { "name": "slantRangeError", "type": "number", "label": "Slant range error", "description": "One standard deviation along the radar's slant range (D32.12, else the job's nominal value).", "unit": "m", "minimum": 0 },
+    { "name": "crossRangeError", "type": "number", "label": "Cross range error", "description": "One standard deviation across the radar's line of sight (D32.13).", "unit": "m", "minimum": 0 },
+    { "name": "heightError", "type": "number", "label": "Height error", "description": "One standard deviation of the height (D32.14).", "unit": "m", "minimum": 0 },
+    { "name": "radialVelocityError", "type": "number", "label": "Radial velocity error", "description": "One standard deviation of the radial velocity (D32.15, else the job's nominal value).", "unit": "m/s", "minimum": 0 },
+    { "name": "rcs", "type": "number", "label": "Radar cross section", "description": "The target's radar cross section (D32.18).", "unit": "dBsm" },
+    { "name": "truthTag", "type": "text", "label": "Truth tag", "description": "For simulated targets: the DIS application and entity of the target (D32.16, D32.17).", "maxLength": 64 },
+    { "name": "jobId", "type": "integer", "label": "Job", "description": "The radar job (P10).", "minimum": 0, "maximum": 4294967295 },
+    { "name": "revisitIndex", "type": "integer", "label": "Revisit", "description": "The revisit of the job's area (D2).", "minimum": 0, "maximum": 65535 },
+    { "name": "dwellIndex", "type": "integer", "label": "Dwell", "description": "The dwell within the revisit (D3).", "minimum": 0, "maximum": 65535 },
+    { "name": "reportIndex", "type": "integer", "label": "Report", "description": "The report within the dwell (D32.1).", "minimum": 0, "maximum": 65535 }
+  ],
+  "fieldSets": [
+    {
+      "id": "report",
+      "label": "GMTI report",
+      "fields": [
+        "radialVelocity", "wrapVelocity", "snr", "classification", "classProbability", "slantRangeError", "crossRangeError",
+        "heightError", "radialVelocityError", "rcs", "truthTag", "jobId", "revisitIndex", "dwellIndex", "reportIndex"
+      ]
+    }
+  ],
+  "relationKinds": [
+    { "id": "gmti.pairing", "label": "GMTI Pairing", "line": { "strokeColor": "#FFFF00", "strokeWidth": 1, "strokeColorSetting": "/pairingColour" }, "defaultOn": true }
+  ],
+  "settings": {
+    "type": "object",
+    "x-emc2": {
+      "groups": [
+        { "id": "colours", "label": "Colours", "description": "The colours of the dwell areas, the coverage and the pairing lines, the same for every user and link.", "properties": ["dwellAreaColour", "coverageColour", "pairingColour"] },
+        { "id": "fading", "label": "Fading", "description": "How the detections and the dwell areas fade in steps on every user's map.", "properties": ["detectionFade", "dwellAreaFade"] }
+      ]
+    },
+    "properties": {
+      "links": {
+        "title": "Links",
+        "description": "The GMTI links, one entry per link: each receives STANAG 4607 into a layer (in), or sends the simulator's GMTI sensor reports (out). Without an entry the plugin does nothing. The form shows the fields the link's mode and direction use.",
+        "type": "array",
+        "x-emc2": { "hint": "Each link receives STANAG 4607 (in) or sends the simulator's reports (out)", "item": {"name": "name", "noun": "link", "state": "enabled", "columns": ["direction", "mode", "host", "port"]} },
+        "default": [],
+        "items": {
+          "type": "object",
+          "required": ["name"],
+          "additionalProperties": false,
+          "x-emc2": {
+            "groups": [
+              { "id": "connection", "label": "Connection", "description": "The peer the link connects to or sends to, or the address it listens on, with the multicast group.", "properties": ["host", "port", "listen", "multicastGroup", "multicastInterface"] },
+              { "id": "picture", "label": "Picture", "description": "Where an in link's objects go, how its platform is drawn, its times and its coverage.", "properties": ["targetLayer", "platformSymbol", "platformIdentity", "time", "coverage"] },
+              { "id": "classification", "label": "Classification", "description": "The security label of the link's objects, how a packet's classification maps to it, and what an out link marks its packets with.", "properties": ["label", "classification", "classificationNames", "highestClassification", "nationality", "exercise"] },
+              { "id": "advanced", "label": "Advanced", "description": "When a silent link connects again, and limits on the reports per dwell and per segment.", "properties": ["idleSeconds", "maxReportsPerDwell", "maxReportsPerSegment", "oneSegmentPerPacket"], "advanced": true }
+            ]
+          },
+          "allOf": [
+            { "if": { "properties": { "mode": { "const": "tcp-server" } }, "required": ["mode"] }, "then": { "required": ["listen"] } },
+            { "if": { "properties": { "mode": { "const": "udp" }, "direction": { "const": "in" } }, "required": ["mode"] }, "then": { "required": ["listen"] } },
+            { "if": { "properties": { "mode": { "const": "udp" }, "direction": { "const": "out" } }, "required": ["mode", "direction"] }, "then": { "required": ["host", "port"] } },
+            { "if": { "properties": { "mode": { "const": "tcp-client" } } }, "then": { "required": ["host", "port"] } }
+          ],
+          "properties": {
+            "name": { "title": "Name", "description": "The link's name: lowercase words separated by hyphens, at most 64 characters (e.g. vista). It is the data source of what the link receives, and names its output channel. 'manual' is reserved.", "type": "string", "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$", "maxLength": 64, "x-emc2": { "hint": "Lower case words with hyphens, e.g. vista; also its data source and channel" } },
+            "mode": { "title": "Mode", "description": "tcp-client: connects to a sensor, a ground station or a replay that serves 4607 packets over TCP. tcp-server: peers connect to this server. udp: one packet per datagram.", "enum": ["tcp-client", "tcp-server", "udp"], "default": "tcp-client", "x-emc2": { "hint": "A TCP client of a sender, a TCP server for peers, or UDP" } },
+            "direction": { "title": "Direction", "description": "in: receives 4607 and writes the platforms, their dwell areas and the detections into the target layer. out: an output channel that sends the simulator's GMTI sensor reports as 4607.", "enum": ["in", "out"], "default": "in", "x-emc2": { "hint": "in: draws what it receives; out: sends the simulator's sensor reports" } },
+            "host": { "title": "Host", "description": "tcp-client: the peer's host. udp out: where to send (a multicast group allowed).", "type": "string", "minLength": 1, "maxLength": 253, "x-emc2": { "visibleWhen": { "property": "mode", "in": ["tcp-client", "udp"] } } },
+            "port": { "title": "Port", "description": "The peer's port (tcp-client, udp out).", "type": "integer", "minimum": 1, "maximum": 65535, "x-emc2": { "visibleWhen": { "property": "mode", "in": ["tcp-client", "udp"] } } },
+            "listen": {
+              "title": "Listen on",
+              "description": "tcp-server and udp in: where to listen. The address defaults to 127.0.0.1 (only this computer); an administrator sets another address, or 0.0.0.0, to listen on the network.",
+              "type": "object",
+              "x-emc2": { "hint": "127.0.0.1 listens on this computer only; 0.0.0.0 on the network", "visibleWhen": { "property": "mode", "in": ["tcp-server", "udp"] } },
+              "required": ["port"],
+              "additionalProperties": false,
+              "properties": {
+                "address": { "title": "Address", "description": "The local address to listen on.", "type": "string", "minLength": 1, "maxLength": 253, "default": "127.0.0.1" },
+                "port": { "title": "Port", "description": "The local port to listen on.", "type": "integer", "minimum": 1, "maximum": 65535 }
+              }
+            },
+            "multicastGroup": { "title": "Multicast group", "description": "udp in: the multicast group to join (224.0.0.0 to 239.255.255.255), received on the listen port. Absent: unicast.", "type": "string", "minLength": 7, "maxLength": 45, "x-emc2": { "hint": "A group to join, 224.0.0.0 to 239.255.255.255; empty for unicast", "visibleWhen": { "property": "mode", "in": ["udp"] } } },
+            "multicastInterface": { "title": "Multicast interface", "description": "udp: the network interface that joins the group (in) or sends to it (out), by name or address, e.g. 127.0.0.1 for this computer only. Absent: the system's choice.", "type": "string", "minLength": 1, "maxLength": 256, "x-emc2": { "hint": "The interface for the group, by name or address; empty: the system's", "visibleWhen": { "property": "mode", "in": ["udp"] } } },
+            "idleSeconds": { "title": "Reconnect when idle", "description": "in over TCP: the link connects again when nothing has come for this long. 0: never.", "type": "integer", "minimum": 0, "maximum": 86400, "default": 120, "x-emc2": { "hint": "Over TCP: connect again after this long without data; 0: never", "unit": "s" } },
+            "enabled": { "title": "Enabled", "description": "Whether the plugin runs this link.", "type": "boolean", "default": true },
+            "targetLayer": {
+              "title": "Layer",
+              "description": "in: where received objects go: an existing layer, or \"New layer\" with a name. Absent: a new layer named like the link. Two links that name the same new layer share one.",
+              "type": "object",
+              "x-emc2": { "hint": "Where the objects go; empty: a new layer named like the link", "kind": "layer", "visibleWhen": { "property": "direction", "in": ["in"] } },
+              "properties": {
+                "id": { "type": "string", "format": "uuid" },
+                "name": { "type": "string", "minLength": 1, "maxLength": 256 }
+              },
+              "required": ["name"]
+            },
+            "label": {
+              "title": "Security label",
+              "description": "in: the label of the link's layer, and of objects whose packet's classification is not mapped. out: the least classification a packet says, so that an empty dwell gets it. Default: the server's default label.",
+              "type": "object",
+              "x-emc2": { "hint": "The layer's label, and an object's when its packet's is not mapped" },
+              "properties": {
+                "policy": { "title": "Policy", "description": "The security policy, e.g. NATO.", "type": "string", "minLength": 1, "maxLength": 64 },
+                "classification": { "title": "Classification", "description": "The classification the policy defines, e.g. UNCLASSIFIED.", "type": "string", "minLength": 1, "maxLength": 64 }
+              },
+              "required": ["policy", "classification"],
+              "additionalProperties": false
+            },
+            "platformSymbol": { "title": "Platform symbol", "description": "in: the sensor platform's APP-6D symbol code (20 digits); its context follows the packets and its identity the setting below. Absent: from the platform type (fixed wing for aircraft, a sensor for ground based, unknown otherwise).", "type": "string", "pattern": "^[0-9]{20}$", "x-emc2": { "hint": "The platform's APP-6D code, 20 digits; empty: from the platform type", "visibleWhen": { "property": "direction", "in": ["in"] } } },
+            "platformIdentity": { "title": "Platform identity", "description": "in: the standard identity of the sensor platform's symbol and the colour of its dwell area.", "enum": ["pending", "unknown", "assumed-friend", "friend", "neutral", "suspect", "hostile"], "default": "unknown", "x-emc2": { "hint": "The standard identity of the platform's symbol", "visibleWhen": { "property": "direction", "in": ["in"] } } },
+            "maxReportsPerDwell": { "title": "Most reports per dwell", "description": "in: at most this many target reports of one dwell become detections; the rest are skipped and counted.", "type": "integer", "minimum": 1, "maximum": 65535, "default": 1000, "x-emc2": { "hint": "A dwell's reports beyond this are skipped and counted", "unit": "reports", "visibleWhen": { "property": "direction", "in": ["in"] } } },
+            "time": { "title": "Time", "description": "in: as-recorded keeps the packets' times; as-received shifts every time of the link by one offset, so that its newest dwell is now (for replays of old recordings).", "enum": ["as-recorded", "as-received"], "default": "as-recorded", "x-emc2": { "hint": "as-received shifts a recording's times so that its newest dwell is now", "visibleWhen": { "property": "direction", "in": ["in"] } } },
+            "classification": { "title": "Classification", "description": "in: map gives the objects the packet's classification (P4), named by the names below; link-label gives every object the link's label.", "enum": ["map", "link-label"], "default": "map", "x-emc2": { "hint": "map: the packet's classification by the names below; link-label: the link's", "visibleWhen": { "property": "direction", "in": ["in"] } } },
+            "classificationNames": { "title": "Classification names", "description": "The policy's classifications for the packet's classification 1 (top secret) to 5 (unclassified). Default: NATO's.", "type": "array", "minItems": 5, "maxItems": 5, "items": { "type": "string", "minLength": 1, "maxLength": 64 }, "default": ["COSMIC TOP SECRET", "SECRET", "CONFIDENTIAL", "RESTRICTED", "UNCLASSIFIED"], "x-emc2": { "hint": "The names of classifications 1 (top secret) to 5 (unclassified)", "visibleWhen": { "property": "direction", "in": ["in"] } } },
+            "coverage": { "title": "Coverage", "description": "in: draws each sensor's coverage, the job definition's bounding area, as a dashed outline beside its dwell area. Off: none is drawn, and a drawn one is removed.", "type": "boolean", "default": true, "x-emc2": { "hint": "Draws each sensor's coverage, its job's bounding area, dashed", "visibleWhen": { "property": "direction", "in": ["in"] } } },
+            "highestClassification": {
+              "title": "Highest classification",
+              "description": "out: detections above it are not sent. Absent: the highest classification of the label's policy.",
+              "type": "object",
+              "x-emc2": { "hint": "Detections above it are not sent; empty: the policy's highest", "visibleWhen": { "property": "direction", "in": ["out"] } },
+              "properties": {
+                "policy": { "title": "Policy", "description": "The security policy, e.g. NATO.", "type": "string", "minLength": 1 },
+                "classification": { "title": "Classification", "description": "The classification the policy defines, e.g. UNCLASSIFIED.", "type": "string", "minLength": 1, "maxLength": 64 }
+              },
+              "required": ["policy", "classification"]
+            },
+            "nationality": { "title": "Nationality", "description": "out: the nationality and classification system of the packets (P3, P5), two capital letters; XN is NATO.", "type": "string", "pattern": "^[A-Z]{2}$", "default": "XN", "x-emc2": { "hint": "Two capital letters: the packets' nationality and system; XN is NATO", "width": "short", "visibleWhen": { "property": "direction", "in": ["out"] } } },
+            "exercise": { "title": "Exercise", "description": "out: marks the packets as exercise data (P7 129) instead of operation (P7 1); simulated either way.", "type": "boolean", "default": false, "x-emc2": { "hint": "Marks the packets as exercise data instead of operation", "visibleWhen": { "property": "direction", "in": ["out"] } } },
+            "maxReportsPerSegment": { "title": "Most reports per segment", "description": "out: at most this many target reports per dwell segment; a larger dwell goes as several segments of the same dwell.", "type": "integer", "minimum": 1, "maximum": 65535, "default": 120, "x-emc2": { "hint": "A larger dwell goes as several segments of the same dwell", "unit": "reports", "visibleWhen": { "property": "direction", "in": ["out"] } } },
+            "oneSegmentPerPacket": { "title": "One segment per packet", "description": "out: sends each segment (the mission, the job definition, each dwell segment) in a packet of its own with its own packet header, for receivers that read only a packet's first segment. Off: one packet per sensor report.", "type": "boolean", "default": true, "x-emc2": { "hint": "Each segment in a packet of its own, for receivers that read only one", "visibleWhen": { "property": "direction", "in": ["out"] } } }
+          }
+        }
+      },
+      "dwellAreaColour": {
+        "title": "Dwell area colour",
+        "description": "The colour of the solid outline of the dwell areas the GMTI links receive: fixed, the colour below, by default #7EF26A; identity, the platform identity's colour, as each link's platformIdentity gives it. The same for every user and link; a change applies from each sensor's next dwell, not to the areas already drawn. The Simulation's own dwells follow Settings › Simulator.",
+        "type": "object",
+        "x-emc2": { "hint": "The dwell areas' outline, for every user, from each sensor's next dwell" },
+        "additionalProperties": false,
+        "default": { "use": "fixed", "colour": "#7EF26A" },
+        "properties": {
+          "use": { "title": "Use", "description": "fixed or identity.", "enum": ["fixed", "identity"], "default": "fixed" },
+          "colour": { "title": "Colour", "description": "The fixed colour, #RRGGBB, e.g. #FF00FF.", "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$", "default": "#7EF26A", "x-emc2": { "kind": "colour", "visibleWhen": { "property": "use", "in": ["fixed"] } } }
+        }
+      },
+      "coverageColour": {
+        "title": "Coverage colour",
+        "description": "The colour of the dashed outline of the coverage the GMTI links receive, a job's bounding area: fixed, the colour below, by default #BDCF3D; identity, the platform identity's colour, as each link's platformIdentity gives it. The same for every user and link; a change applies from each coverage's next write, within 30 s while its sensor sends. The Simulation's own coverage follows Settings › Simulator.",
+        "type": "object",
+        "x-emc2": { "hint": "The coverage's dashed outline, a job's bounding area, for every user" },
+        "additionalProperties": false,
+        "default": { "use": "fixed", "colour": "#BDCF3D" },
+        "properties": {
+          "use": { "title": "Use", "description": "fixed or identity.", "enum": ["fixed", "identity"], "default": "fixed" },
+          "colour": { "title": "Colour", "description": "The fixed colour, #RRGGBB, e.g. #FF00FF.", "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$", "default": "#BDCF3D", "x-emc2": { "kind": "colour", "visibleWhen": { "property": "use", "in": ["fixed"] } } }
+        }
+      },
+      "pairingColour": {
+        "title": "Pairing line colour",
+        "description": "The colour of every GMTI Pairing line, from a sensor to what it detected: the GMTI links' and the Simulation's sensors' alike. #RRGGBB. The same for every user; the map follows a change at once, without a reload. Whether a user sees the lines is the user's display setting GMTI Pairing.",
+        "type": "string",
+        "pattern": "^#[0-9A-Fa-f]{6}$",
+        "default": "#FFFF00",
+        "x-emc2": { "kind": "colour", "hint": "Every GMTI Pairing line, the Simulation's too; the map follows at once" }
+      },
+      "detectionFade": {
+        "title": "Detection fade",
+        "description": "The detections fade in steps on every user's map, from each detection's time: fully drawn until From, then one Step less every (Invisible at − From) × Step / 100 s, not drawn from Invisible at, which must be above From. Defaults: 95 % from 14.5 s, 50 % from 55 s, gone at 100 s. An invisible detection stays until its data type removes it. A change shows at once. Off: only the data type's fade at expiry. A link whose time is as recorded gives old detections their old times: invisible at once.",
+        "type": "object",
+        "x-emc2": { "hint": "How the detections fade in steps on every map, counted from their time" },
+        "additionalProperties": false,
+        "default": { "on": true, "fromSeconds": 10, "stepPercent": 5, "invisibleAtSeconds": 100 },
+        "required": ["on", "fromSeconds", "stepPercent", "invisibleAtSeconds"],
+        "properties": {
+          "on": { "title": "Fade in steps", "description": "On: the detections fade in steps as set below.", "type": "boolean", "default": true },
+          "fromSeconds": { "title": "From (s)", "description": "Seconds after a detection's time at which it starts to fade.", "type": "integer", "minimum": 0, "maximum": 86400, "default": 10, "x-emc2": { "unit": "s", "visibleWhen": { "property": "on", "in": [true] } } },
+          "stepPercent": { "title": "Step (%)", "description": "How much less each step draws, in percent of full.", "type": "integer", "enum": [1, 2, 4, 5, 10, 20, 25, 50], "default": 5, "x-emc2": { "unit": "%", "visibleWhen": { "property": "on", "in": [true] } } },
+          "invisibleAtSeconds": { "title": "Invisible at (s)", "description": "Seconds after a detection's time from which it is not drawn; above From.", "type": "integer", "minimum": 1, "maximum": 86400, "default": 100, "x-emc2": { "unit": "s", "visibleWhen": { "property": "on", "in": [true] } } }
+        }
+      },
+      "dwellAreaFade": {
+        "title": "Dwell area fade",
+        "description": "The dwell areas fade in steps on every user's map, from each dwell's time, as Detection fade does: fully drawn until From, then one Step less every (Invisible at − From) × Step / 100 s, not drawn from Invisible at, which must be above From. Each dwell has its own area. Defaults: 95 % from 5.5 s, 50 % from 10 s, gone at 15 s. An invisible area stays until its data type removes it. A change shows at once. Off: only the data type's fade at expiry. The platform and its coverage do not fade in steps.",
+        "type": "object",
+        "x-emc2": { "hint": "How the dwell areas fade in steps on every map, from their dwell's time" },
+        "additionalProperties": false,
+        "default": { "on": true, "fromSeconds": 5, "stepPercent": 5, "invisibleAtSeconds": 15 },
+        "required": ["on", "fromSeconds", "stepPercent", "invisibleAtSeconds"],
+        "properties": {
+          "on": { "title": "Fade in steps", "description": "On: the dwell areas fade in steps as set below.", "type": "boolean", "default": true },
+          "fromSeconds": { "title": "From (s)", "description": "Seconds after a dwell's time at which its area starts to fade.", "type": "integer", "minimum": 0, "maximum": 86400, "default": 5, "x-emc2": { "unit": "s", "visibleWhen": { "property": "on", "in": [true] } } },
+          "stepPercent": { "title": "Step (%)", "description": "How much less each step draws, in percent of full.", "type": "integer", "enum": [1, 2, 4, 5, 10, 20, 25, 50], "default": 5, "x-emc2": { "unit": "%", "visibleWhen": { "property": "on", "in": [true] } } },
+          "invisibleAtSeconds": { "title": "Invisible at (s)", "description": "Seconds after a dwell's time from which its area is not drawn; above From.", "type": "integer", "minimum": 1, "maximum": 86400, "default": 15, "x-emc2": { "unit": "s", "visibleWhen": { "property": "on", "in": [true] } } }
+        }
+      }
+    }
+  }
+}

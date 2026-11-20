@@ -1,0 +1,10 @@
+{
+  "requestId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e62",
+  "entityType": "object",
+  "operation": "create",
+  "entityId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e63",
+  "code": "LAYER_LOCKED",
+  "message": "The layer Own forces, planned is locked.",
+  "details": [{ "path": "/data/layerId", "problem": "layer 0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e61 is locked" }],
+  "at": "2026-10-30T09:00:00.000Z"
+}

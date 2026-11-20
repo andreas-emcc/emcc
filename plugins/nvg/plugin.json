@@ -1,0 +1,125 @@
+{
+  "id": "nvg",
+  "name": "NVG",
+  "version": "0.1.0",
+  "sdkVersion": "^1.8.0",
+  "kind": "general",
+  "category": "data-links",
+  "icon": "Network",
+  "properties": ["ingoing", "outgoing"],
+  "server": { "entryClass": "dev.emcc.plugins.nvg.NvgPlugin" },
+  "web": { "entry": "index.js", "css": ["nvg.css"] },
+  "internet": {
+    "hosts": [],
+    "reason": "A soap-consumer link calls the NVG web service (GetNvg, GetCapabilities) of the provider its settings name, which may be on another network or the internet. No host is contacted by default; the hosts come only from the links' url."
+  },
+  "relationKinds": [
+    { "id": "nvg.part", "label": "NVG composite", "line": { "strokeColor": "#808080", "strokeWidth": 1 }, "defaultOn": false }
+  ],
+  "settings": {
+    "type": "object",
+    "properties": {
+      "links": {
+        "title": "Links",
+        "description": "The NVG web service links, one entry per link: a soap-consumer polls another system's NVG web service (GetNvg) and writes its items into a layer; a soap-provider answers other systems' GetCapabilities and GetNvg with its source layers. Files are imported and exported in the NVG panel, not here. The form shows the fields the link's kind uses.",
+        "type": "array",
+        "x-emc2": { "hint": "Each link calls another system's NVG service or answers other systems", "item": { "name": "name", "noun": "link", "state": "enabled", "columns": ["kind", "url"] } },
+        "default": [],
+        "items": {
+          "type": "object",
+          "required": ["name"],
+          "additionalProperties": false,
+          "x-emc2": {
+            "groups": [
+              { "id": "calls", "label": "Calls", "description": "A consumer's calls to the provider: where, with which token, how often, and the answers to its filter.", "properties": ["url", "credential", "intervalSeconds", "timeoutSeconds", "filter"] },
+              { "id": "picture", "label": "Picture", "description": "Where a consumer's items go, their label, and what an empty answer does.", "properties": ["targetLayer", "label", "clearOnEmpty"] },
+              { "id": "serving", "label": "Serving", "description": "What a provider serves to other systems, up to which classification, and how callers are checked.", "properties": ["sourceLayers", "highestClassification", "authentication"] }
+            ]
+          },
+          "allOf": [
+            { "if": { "properties": { "kind": { "const": "soap-consumer" } } }, "then": { "required": ["url"] } }
+          ],
+          "properties": {
+            "name": { "title": "Name", "description": "The link's name: lowercase words separated by hyphens, at most 64 characters (e.g. anet). It is the data source of what the link receives, the system of its objects' external identity, its status entry, and the last part of a provider's address. 'manual' and 'nvg-file' are reserved.", "type": "string", "pattern": "^(?!(manual|nvg-file)$)[a-z][a-z0-9]*(-[a-z0-9]+)*$", "maxLength": 64, "x-emc2": { "hint": "Lower case words with hyphens, e.g. anet; also its data source and address" } },
+            "enabled": { "title": "Enabled", "description": "Whether the plugin runs this link.", "type": "boolean", "default": true },
+            "kind": { "title": "Kind", "description": "soap-consumer: calls the provider at url every intervalSeconds and keeps the target layer equal to its answer. soap-provider: answers GetCapabilities and GetNvg at /api/services/nvg/nvg/<name> with the source layers.", "enum": ["soap-consumer", "soap-provider"], "default": "soap-consumer", "x-emc2": { "hint": "soap-consumer calls a provider; soap-provider answers other systems" } },
+            "url": { "title": "Provider address", "description": "soap-consumer: the provider's NVG web service endpoint, http or https, e.g. http://localhost:8380/cxf/nvg/20.", "type": "string", "pattern": "^https?://[^\\s]+$", "maxLength": 2048, "x-emc2": { "hint": "The provider's NVG service, http or https, e.g. http://host:8380/cxf/nvg/20", "visibleWhen": { "property": "kind", "in": ["soap-consumer"] } } },
+            "credential": { "title": "Access token", "description": "soap-consumer: the name of an access token in the server's local configuration, sent as Authorization: Bearer. Empty: no Authorization header. The token itself is never a setting.", "type": "string", "pattern": "^([A-Za-z0-9][A-Za-z0-9._-]{0,63})?$", "default": "", "x-emc2": { "hint": "A token's name in the server's local configuration; empty: none", "width": "short", "visibleWhen": { "property": "kind", "in": ["soap-consumer"] } } },
+            "intervalSeconds": { "title": "Call interval", "description": "soap-consumer: seconds between two GetNvg calls.", "type": "integer", "minimum": 10, "maximum": 3600, "default": 60, "x-emc2": { "unit": "s", "visibleWhen": { "property": "kind", "in": ["soap-consumer"] } } },
+            "timeoutSeconds": { "title": "Call timeout", "description": "soap-consumer: how long a call may take before it counts as failed.", "type": "integer", "minimum": 5, "maximum": 55, "default": 30, "x-emc2": { "unit": "s", "visibleWhen": { "property": "kind", "in": ["soap-consumer"] } } },
+            "filter": {
+              "title": "Filter",
+              "description": "soap-consumer: the answers sent in GetNvg's nvg_filter, each the id of one of the provider's filter items (GetCapabilities, in the NVG panel) and its value, e.g. pastDays and 1. Empty: an empty filter.",
+              "type": "array",
+              "default": [],
+              "maxItems": 64,
+              "x-emc2": { "hint": "Answers to the provider's filter items (Get capabilities in the panel)", "item": { "name": "refid", "noun": "filter answer", "columns": ["value"] }, "visibleWhen": { "property": "kind", "in": ["soap-consumer"] } },
+              "items": {
+                "type": "object",
+                "required": ["refid", "value"],
+                "additionalProperties": false,
+                "properties": {
+                  "refid": { "title": "Filter item", "description": "The filter item's id.", "type": "string", "minLength": 1, "maxLength": 256 },
+                  "value": { "title": "Value", "description": "The answer.", "type": "string", "maxLength": 4096 }
+                }
+              }
+            },
+            "targetLayer": {
+              "title": "Layer",
+              "description": "soap-consumer: where received items go: an existing layer, or a new one. Absent: a new layer named like the link. Two links that name the same new layer share one.",
+              "type": "object",
+              "x-emc2": { "hint": "Where received items go; empty: a new layer named like the link", "kind": "layer", "visibleWhen": { "property": "kind", "in": ["soap-consumer"] } },
+              "properties": {
+                "id": { "type": "string", "format": "uuid" },
+                "name": { "type": "string", "minLength": 1, "maxLength": 256 }
+              },
+              "required": ["name"]
+            },
+            "label": {
+              "title": "Security label",
+              "description": "soap-consumer: the label of the link's layer and of items that carry none, when the document carries none either. Default: the server's default label.",
+              "type": "object",
+              "x-emc2": { "hint": "For items when the document has no label; empty: the server's default", "visibleWhen": { "property": "kind", "in": ["soap-consumer"] } },
+              "properties": {
+                "policy": { "title": "Policy", "description": "The security policy, e.g. NATO.", "type": "string", "minLength": 1, "maxLength": 64 },
+                "classification": { "title": "Classification", "description": "The classification the policy defines, e.g. UNCLASSIFIED.", "type": "string", "minLength": 1, "maxLength": 64 }
+              },
+              "required": ["policy", "classification"],
+              "additionalProperties": false
+            },
+            "clearOnEmpty": { "title": "Clear on an empty answer", "description": "soap-consumer: an empty document (no items) deletes the link's objects. Off: an empty document changes nothing, so that a bad reply cannot wipe the layer.", "type": "boolean", "default": false, "x-emc2": { "hint": "An empty answer deletes the link's objects; off: it changes nothing", "visibleWhen": { "property": "kind", "in": ["soap-consumer"] } } },
+            "sourceLayers": {
+              "title": "Source layers",
+              "description": "soap-provider: the layers whose objects this link serves: existing layers only. Every object in them is written out.",
+              "type": "array",
+              "default": [],
+              "x-emc2": { "hint": "The layers this link serves, with every object in them", "item": { "name": "name", "noun": "layer" }, "visibleWhen": { "property": "kind", "in": ["soap-provider"] } },
+              "items": {
+                "type": "object",
+                "x-emc2": { "kind": "layer", "allowNew": false },
+                "properties": {
+                  "id": { "type": "string", "format": "uuid" },
+                  "name": { "type": "string", "minLength": 1, "maxLength": 256 }
+                },
+                "required": ["name"]
+              }
+            },
+            "highestClassification": {
+              "title": "Highest classification",
+              "description": "soap-provider: objects above it are not served. Absent: the highest classification of the server's default label's policy.",
+              "type": "object",
+              "x-emc2": { "hint": "Objects above it are not served; empty: the policy's highest", "visibleWhen": { "property": "kind", "in": ["soap-provider"] } },
+              "properties": {
+                "policy": { "title": "Policy", "description": "The security policy, e.g. NATO.", "type": "string", "minLength": 1 },
+                "classification": { "title": "Classification", "description": "The classification the policy defines, e.g. UNCLASSIFIED.", "type": "string", "minLength": 1, "maxLength": 64 }
+              },
+              "required": ["policy", "classification"]
+            },
+            "authentication": { "title": "Authentication", "description": "soap-provider: how callers are checked. Only none in this version: turning this link on makes its source layers readable by any system that reaches this server.", "enum": ["none"], "default": "none", "x-emc2": { "hint": "Only none: any system that reaches this server may read the layers", "visibleWhen": { "property": "kind", "in": ["soap-provider"] } } }
+          }
+        }
+      },
+      "maxDocumentMegabytes": { "title": "Largest document", "description": "The largest NVG document the plugin reads or writes, in MiB: imported files, a consumer's answers and a provider's answers.", "type": "integer", "minimum": 1, "maximum": 16, "default": 16, "x-emc2": { "hint": "The largest file or answer the plugin reads or writes", "unit": "MiB" } }
+    }
+  }
+}

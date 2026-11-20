@@ -1,0 +1,35 @@
+{
+  "name": "@emc2/plugin-nvg",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "Web part of the nvg plugin (PCA-nvg): the NVG panel with Import and Export.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit -p . && vite build",
+    "test": "eslint . && tsc --noEmit -p . && vitest run"
+  },
+  "peerDependencies": {
+    "@emc2/plugin-sdk": "1.9.0",
+    "lucide-react": "1.49.0",
+    "react": "19.3.0"
+  },
+  "devDependencies": {
+    "@emc2/plugin-sdk": "1.9.0",
+    "@eslint/js": "10.0.1",
+    "@testing-library/react": "16.3.3",
+    "@types/node": "24.19.1",
+    "@types/react": "19.3.0",
+    "eslint": "10.12.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.13.0",
+    "jsdom": "30.1.2",
+    "lucide-react": "1.49.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.0",
+    "vite": "8.3.5",
+    "vitest": "5.0.3"
+  }
+}

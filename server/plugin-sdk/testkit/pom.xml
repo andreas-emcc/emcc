@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Plugin SDK test kit: a deterministic fake plugin context, the ArchUnit rule set every plugin build
+  runs, and the codec contract test for ECore. Used with <scope>test</scope> only; never shipped.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>dev.emcc</groupId>
+    <artifactId>emc2-plugin-sdk-parent</artifactId>
+    <version>1.9.0</version>
+  </parent>
+
+  <artifactId>emc2-plugin-sdk-testkit</artifactId>
+  <!-- The test kit has the SDK's version (1.9.0); it may get patch fixes without a change of the frozen API. -->
+  <version>1.9.0</version>
+  <name>emc2 Plugin SDK test kit</name>
+
+  <dependencies>
+    <dependency>
+      <groupId>dev.emcc</groupId>
+      <artifactId>emc2-plugin-sdk</artifactId>
+      <version>${project.parent.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jspecify</groupId>
+      <artifactId>jspecify</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.tngtech.archunit</groupId>
+      <artifactId>archunit</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

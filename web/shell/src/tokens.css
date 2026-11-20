@@ -1,0 +1,267 @@
+/*
+ * The design tokens' values (ADR-0029, ADR-0034; the names are the SDK's TOKENS): the three looks,
+ * Night Watch, Chart Room and Signal, each in light and dark, and the two densities, from
+ * docs/architecture/looks.md. The shell's theme (ui/theme.ts) sets the attributes on the page root:
+ * data-look (night-watch, chart-room, signal), data-scheme (light, dark) and data-density (compact,
+ * comfortable), and a change applies at once. Before it has run, the page is Night Watch, compact,
+ * light or dark as the computer is. Fonts are the computer's own: nothing is loaded (ADR-0030).
+ */
+
+/* ---- In every look ---- */
+:root {
+  --emc2-color-backdrop: rgba(0, 0, 0, 0.45);
+  --emc2-font-text: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+  --emc2-font-data: 'Cascadia Mono', Consolas, ui-monospace, 'SF Mono', monospace;
+  --emc2-focus-color: var(--emc2-color-accent);
+  --emc2-focus-width: 2px;
+  --emc2-focus-offset: 2px;
+
+  /* SDK 1.0.0's names (TOKEN_ALIASES), so plugins built for 1.0.0 follow the look. */
+  --shell-bg: var(--emc2-color-ground);
+  --shell-fg: var(--emc2-color-text);
+  --pane-border: var(--emc2-color-border);
+  --control-pane-bg: var(--emc2-color-pane);
+  --muted: var(--emc2-color-muted);
+  --ok: var(--emc2-color-ok);
+  --warning: var(--emc2-color-warning);
+  --error: var(--emc2-color-error);
+  --notification-bg: var(--emc2-color-panel);
+
+  color-scheme: light dark;
+}
+
+:root[data-scheme='light'] {
+  color-scheme: light;
+}
+
+:root[data-scheme='dark'] {
+  color-scheme: dark;
+}
+
+/* ---- Shape and headings, per look ---- */
+
+/* look: night-watch */
+:root,
+:root[data-look='night-watch'] {
+  --emc2-radius: 2px;
+  --emc2-shadow-card: none;
+  --emc2-shadow-menu: none;
+  --emc2-font-heading: var(--emc2-font-text);
+  --emc2-heading-case: uppercase;
+  --emc2-heading-letter-spacing: 0.06em;
+  --emc2-heading-weight: 600;
+  --emc2-radius-control: 2px;
+  --emc2-edge-width: 1px;
+  --emc2-font-label: var(--emc2-font-text);
+  --emc2-label-case: none;
+  --emc2-label-letter-spacing: normal;
+  --emc2-label-weight: 400;
+}
+
+/* look: chart-room */
+:root[data-look='chart-room'] {
+  --emc2-radius: 6px;
+  --emc2-shadow-card: 0 1px 2px rgba(20, 30, 40, 0.1), 0 2px 8px rgba(20, 30, 40, 0.08);
+  --emc2-shadow-menu: 0 8px 24px rgba(20, 30, 40, 0.18);
+  --emc2-font-heading: var(--emc2-font-text);
+  --emc2-heading-case: none;
+  --emc2-heading-letter-spacing: normal;
+  --emc2-heading-weight: 600;
+  --emc2-radius-control: 999px;
+  --emc2-edge-width: 1px;
+  --emc2-font-label: var(--emc2-font-text);
+  --emc2-label-case: none;
+  --emc2-label-letter-spacing: normal;
+  --emc2-label-weight: 400;
+}
+
+/* look: signal (menus get a 1 px border only: their border is the components') */
+:root[data-look='signal'] {
+  --emc2-radius: 0px;
+  --emc2-shadow-card: none;
+  --emc2-shadow-menu: none;
+  --emc2-font-heading: Bahnschrift, 'DIN Alternate', 'Arial Narrow', sans-serif;
+  --emc2-heading-case: uppercase;
+  --emc2-heading-letter-spacing: 0.1em;
+  --emc2-heading-weight: 700;
+  --emc2-radius-control: 0px;
+  --emc2-edge-width: 2px;
+  --emc2-font-label: var(--emc2-font-data);
+  --emc2-label-case: uppercase;
+  --emc2-label-letter-spacing: 0.04em;
+  --emc2-label-weight: 400;
+}
+
+/* ---- Colours, per look and scheme ---- */
+
+/* colours: night-watch light */
+:root,
+:root[data-look='night-watch'][data-scheme='light'] {
+  --emc2-color-ground: #e4ebe9;
+  --emc2-color-pane: #f2f6f5;
+  --emc2-color-panel: #ffffff;
+  --emc2-color-border: #bfcdca;
+  --emc2-color-field-border: #6a7f7b;
+  --emc2-color-text: #121c1a;
+  --emc2-color-muted: #4f625e;
+  --emc2-color-accent: #0a6b5f;
+  --emc2-color-on-accent: #ffffff;
+  --emc2-color-accent-soft: #d3eee8;
+  --emc2-color-ok: #1c764a;
+  --emc2-color-warning: #8e5c0a;
+  --emc2-color-error: #b3261e;
+  --emc2-color-edge: #667b77;
+  --emc2-color-edge-card: #667b77;
+  --emc2-color-raised: #ffffff;
+}
+
+/* Before the theme has set the attributes: Night Watch as dark as the computer is. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-scheme]) {
+    --emc2-color-ground: #070e0e;
+    --emc2-color-pane: #0f1a1a;
+    --emc2-color-panel: #172525;
+    --emc2-color-border: #2a3d3b;
+    --emc2-color-field-border: #5f7673;
+    --emc2-color-text: #e0ebe8;
+    --emc2-color-muted: #8ba39e;
+    --emc2-color-accent: #45d0b5;
+    --emc2-color-on-accent: #03201b;
+    --emc2-color-accent-soft: #123631;
+    --emc2-color-ok: #4cc38a;
+    --emc2-color-warning: #e5a84b;
+    --emc2-color-error: #f2776b;
+    --emc2-color-edge: #5f7673;
+    --emc2-color-edge-card: #5f7673;
+    --emc2-color-raised: #1c2c2b;
+  }
+}
+
+/* colours: night-watch dark */
+:root[data-look='night-watch'][data-scheme='dark'] {
+  --emc2-color-ground: #070e0e;
+  --emc2-color-pane: #0f1a1a;
+  --emc2-color-panel: #172525;
+  --emc2-color-border: #2a3d3b;
+  --emc2-color-field-border: #5f7673;
+  --emc2-color-text: #e0ebe8;
+  --emc2-color-muted: #8ba39e;
+  --emc2-color-accent: #45d0b5;
+  --emc2-color-on-accent: #03201b;
+  --emc2-color-accent-soft: #123631;
+  --emc2-color-ok: #4cc38a;
+  --emc2-color-warning: #e5a84b;
+  --emc2-color-error: #f2776b;
+  --emc2-color-edge: #5f7673;
+  --emc2-color-edge-card: #5f7673;
+  --emc2-color-raised: #1c2c2b;
+}
+
+/* colours: chart-room light */
+:root[data-look='chart-room'][data-scheme='light'] {
+  --emc2-color-ground: #eeece3;
+  --emc2-color-pane: #f9f8f2;
+  --emc2-color-panel: #ffffff;
+  --emc2-color-border: #d6d2c3;
+  --emc2-color-field-border: #7b8078;
+  --emc2-color-text: #1c2830;
+  --emc2-color-muted: #57666c;
+  --emc2-color-accent: #1f4e79;
+  --emc2-color-on-accent: #ffffff;
+  --emc2-color-accent-soft: #dce7f1;
+  --emc2-color-ok: #2c784c;
+  --emc2-color-warning: #8f5f0b;
+  --emc2-color-error: #a83229;
+  --emc2-color-edge: #74786f;
+  --emc2-color-edge-card: #74786f;
+  --emc2-color-raised: #ffffff;
+}
+
+/* colours: chart-room dark */
+:root[data-look='chart-room'][data-scheme='dark'] {
+  --emc2-color-ground: #091016;
+  --emc2-color-pane: #14202a;
+  --emc2-color-panel: #1e2c38;
+  --emc2-color-border: #30424f;
+  --emc2-color-field-border: #667781;
+  --emc2-color-text: #e4ebee;
+  --emc2-color-muted: #90a1aa;
+  --emc2-color-accent: #86b8e8;
+  --emc2-color-on-accent: #0b1a28;
+  --emc2-color-accent-soft: #1c3248;
+  --emc2-color-ok: #5dc48a;
+  --emc2-color-warning: #e2ad55;
+  --emc2-color-error: #ee8379;
+  --emc2-color-edge: #6a7b86;
+  --emc2-color-edge-card: #6a7b86;
+  --emc2-color-raised: #263746;
+}
+
+/* colours: signal light */
+:root[data-look='signal'][data-scheme='light'] {
+  --emc2-color-ground: #f1f1ee;
+  --emc2-color-pane: #ffffff;
+  --emc2-color-panel: #f4f4f0;
+  --emc2-color-border: #8a8a85;
+  --emc2-color-field-border: #262626;
+  --emc2-color-text: #111111;
+  --emc2-color-muted: #545450;
+  --emc2-color-accent: #c2410c;
+  --emc2-color-on-accent: #ffffff;
+  --emc2-color-accent-soft: #fdefe5;
+  --emc2-color-ok: #1e7a47;
+  --emc2-color-warning: #8a6100;
+  --emc2-color-error: #b42318;
+  --emc2-color-edge: #111111;
+  --emc2-color-edge-card: #111111;
+  --emc2-color-raised: #ffffff;
+}
+
+/* colours: signal dark */
+:root[data-look='signal'][data-scheme='dark'] {
+  --emc2-color-ground: #000000;
+  --emc2-color-pane: #101010;
+  --emc2-color-panel: #1d1d1d;
+  --emc2-color-border: #474747;
+  --emc2-color-field-border: #6c6c69;
+  --emc2-color-text: #f4f4f2;
+  --emc2-color-muted: #a6a6a0;
+  --emc2-color-accent: #ff7a1a;
+  --emc2-color-on-accent: #1a0b00;
+  --emc2-color-accent-soft: #3a2410;
+  --emc2-color-ok: #62d196;
+  --emc2-color-warning: #f2c14e;
+  --emc2-color-error: #ff6b5e;
+  --emc2-color-edge: #8c8c88;
+  --emc2-color-edge-card: #6c6c69;
+  --emc2-color-raised: #2a2a2a;
+}
+
+/* ---- Density (looks.md, "Density"): the plugin sizes, and the shell's own ---- */
+
+/* density: compact */
+:root,
+:root[data-density='compact'] {
+  --emc2-size-text: 12.5px;
+  --emc2-size-text-small: 11px;
+  --emc2-size-row: 26px;
+  --emc2-size-field: 26px;
+  --emc2-size-icon: 16px;
+  --emc2-space-padding: 8px;
+  --emc2-space-gap: 6px;
+  --shell-panel-head: 28px;
+  --shell-top-bar: 38px;
+}
+
+/* density: comfortable */
+:root[data-density='comfortable'] {
+  --emc2-size-text: 14px;
+  --emc2-size-text-small: 12px;
+  --emc2-size-row: 34px;
+  --emc2-size-field: 34px;
+  --emc2-size-icon: 18px;
+  --emc2-space-padding: 12px;
+  --emc2-space-gap: 10px;
+  --shell-panel-head: 36px;
+  --shell-top-bar: 48px;
+}

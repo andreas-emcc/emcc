@@ -1,0 +1,9 @@
+{
+  "id": "ita-probe",
+  "name": "ITA test probe",
+  "version": "0.1.0",
+  "sdkVersion": "^1.0.0",
+  "kind": "utility",
+  "requires": ["emc2.symbols", "emc2.map-view"],
+  "web": { "entry": "index.js" }
+}

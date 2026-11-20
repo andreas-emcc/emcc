@@ -1,0 +1,84 @@
+{
+  "id": "gmti",
+  "name": "STANAG 4607 GMTI",
+  "version": "0.4.0",
+  "sdkVersion": "^1.5.0",
+  "kind": "general",
+  "properties": [
+    "ingoing",
+    "outgoing"
+  ],
+  "settings": {
+    "type": "object",
+    "properties": {
+      "links": {
+        "description": "SDK 1.5.0 part 4 (CR-0039 point 8; T-160; the owner's Q45 A): the peer's fields are shown for the modes that use them, the listen address for the modes that listen; the schema's own if/then requires what each mode and direction needs.",
+        "type": "array",
+        "default": [],
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$", "maxLength": 64 },
+            "mode": { "enum": ["tcp-client", "tcp-server", "udp"], "default": "tcp-client" },
+            "direction": { "enum": ["in", "out"], "default": "in" },
+            "host": {
+              "description": "The peer: where a TCP client connects, and where UDP sends.",
+              "type": "string", "minLength": 1, "maxLength": 253,
+              "x-emc2": { "visibleWhen": { "property": "mode", "in": ["tcp-client", "udp"] } }
+            },
+            "port": {
+              "type": "integer", "minimum": 1, "maximum": 65535,
+              "x-emc2": { "visibleWhen": { "property": "mode", "in": ["tcp-client", "udp"] } }
+            },
+            "listen": {
+              "description": "Where a TCP server or a receiving UDP link binds; loopback unless an admin sets another address.",
+              "type": "object",
+              "x-emc2": { "visibleWhen": { "property": "mode", "in": ["tcp-server", "udp"] } },
+              "properties": {
+                "address": { "type": "string", "default": "127.0.0.1" },
+                "port": { "type": "integer", "minimum": 1, "maximum": 65535 }
+              },
+              "required": ["port"],
+              "additionalProperties": false
+            },
+            "multicastInterface": {
+              "type": "string",
+              "x-emc2": { "visibleWhen": { "property": "mode", "in": ["udp"] }, "enabledWhen": { "property": "direction", "in": ["in"] } }
+            },
+            "targetLayer": {
+              "type": "object",
+              "x-emc2": { "kind": "layer", "visibleWhen": { "property": "direction", "in": ["in"] } },
+              "properties": {
+                "id": { "type": "string", "format": "uuid" },
+                "name": { "type": "string", "minLength": 1, "maxLength": 256 }
+              },
+              "required": ["name"]
+            }
+          },
+          "required": ["name"],
+          "allOf": [
+            {
+              "if": { "properties": { "mode": { "const": "tcp-server" } }, "required": ["mode"] },
+              "then": { "required": ["listen"] }
+            },
+            {
+              "if": { "properties": { "mode": { "const": "udp" }, "direction": { "const": "in" } }, "required": ["mode"] },
+              "then": { "required": ["listen"] }
+            },
+            {
+              "if": { "properties": { "mode": { "const": "udp" }, "direction": { "const": "out" } }, "required": ["mode", "direction"] },
+              "then": { "required": ["host", "port"] }
+            },
+            {
+              "if": { "properties": { "mode": { "const": "tcp-client" } } },
+              "then": { "required": ["host", "port"] }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "server": {
+    "entryClass": "dev.emcc.plugins.gmti.GmtiPlugin"
+  }
+}

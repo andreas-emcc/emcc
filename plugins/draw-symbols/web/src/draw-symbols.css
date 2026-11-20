@@ -1,0 +1,159 @@
+/* Draw symbols styles: every class starts with the plugin id. Colours, sizes, spacing, corner radii and
+   shadows come from the shell's design tokens (--emc2-*, ADR-0029 and ADR-0034); this file only arranges
+   the content. The controls themselves (buttons, fields, selects, notices) are the shared components of the
+   web SDK. No element selectors at top level, no :root, nothing global. */
+.draw-symbols-panel {
+  color: var(--emc2-color-text);
+  font-size: var(--emc2-size-text);
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  min-width: 0;
+}
+
+/* Fields that stand side by side when there is room, one under the other in a narrow pane. */
+.draw-symbols-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--emc2-space-gap);
+}
+
+.draw-symbols-row > * {
+  flex: 1 1 calc(var(--emc2-size-row) * 4);
+  min-width: 0;
+}
+
+/* The properties form: its fields use the room a wide pane has (the bottom pane) and stand one under the other in a narrow one.
+   A column is never wider than the form (min(100%, ...)): in comfortable density a column's minimum is wider than the left pane. */
+.draw-symbols-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--emc2-size-row) * 8)), 1fr));
+  align-items: start;
+}
+
+.draw-symbols-form > .draw-symbols-wide {
+  grid-column: 1 / -1;
+}
+
+.draw-symbols-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  min-width: 0;
+}
+
+/* A number field with the select of its unit beside it. */
+.draw-symbols-unit-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, calc(var(--emc2-size-row) * 3));
+  gap: var(--emc2-space-gap);
+  align-items: start;
+}
+
+.draw-symbols-hint {
+  margin: 0;
+  color: var(--emc2-color-muted);
+  font-size: var(--emc2-size-text);
+}
+
+/* The grid of symbols grows its columns with the density (a column is about four rows wide) and scrolls in
+   its own box, so a low bottom pane shows the other controls too. */
+.draw-symbols-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(var(--emc2-size-row) * 3)), 1fr));
+  gap: var(--emc2-space-gap);
+  max-height: calc(var(--emc2-size-row) * 8);
+  overflow-y: auto;
+  border: 1px solid var(--emc2-color-border);
+  border-radius: var(--emc2-radius);
+  padding: var(--emc2-space-gap);
+  background: var(--emc2-color-pane);
+}
+
+.draw-symbols-entity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--emc2-space-gap);
+  padding: var(--emc2-space-gap);
+  font: inherit;
+  color: var(--emc2-color-text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--emc2-radius);
+  cursor: pointer;
+}
+
+.draw-symbols-entity:hover {
+  border-color: var(--emc2-color-border);
+}
+
+.draw-symbols-entity:focus-visible {
+  outline: var(--emc2-focus-width) solid var(--emc2-focus-color);
+  outline-offset: var(--emc2-focus-offset);
+}
+
+/* The chosen symbol: Accent soft and an accent border, never a colour of the map. */
+.draw-symbols-entity[aria-pressed='true'] {
+  background: var(--emc2-color-accent-soft);
+  border-color: var(--emc2-color-accent);
+}
+
+.draw-symbols-entity-name {
+  font-size: var(--emc2-size-text-small);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.draw-symbols-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--emc2-space-gap);
+  flex-wrap: wrap;
+}
+
+.draw-symbols-preview code {
+  font-family: var(--emc2-font-data);
+  font-size: var(--emc2-size-text-small);
+  overflow-wrap: anywhere;
+}
+
+.draw-symbols-picture-missing {
+  color: var(--emc2-color-muted);
+}
+
+.draw-symbols-advanced > summary {
+  cursor: pointer;
+  padding: var(--emc2-space-gap) 0;
+}
+
+.draw-symbols-advanced > summary:focus-visible {
+  outline: var(--emc2-focus-width) solid var(--emc2-focus-color);
+  outline-offset: var(--emc2-focus-offset);
+}
+
+.draw-symbols-place {
+  align-self: flex-start;
+}
+
+.draw-symbols-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: calc(var(--emc2-space-gap) / 2) var(--emc2-space-padding);
+  margin: 0;
+  color: var(--emc2-color-muted);
+  font-size: var(--emc2-size-text-small);
+}
+
+.draw-symbols-facts > dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* A group of vessel symbols in the picker: the symbol, and its ship type chosen under it. */
+.draw-symbols-vessel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  min-width: 0;
+}

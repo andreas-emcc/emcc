@@ -1,0 +1,73 @@
+{
+  "id": "gmti",
+  "name": "GMTI",
+  "version": "0.6.0",
+  "sdkVersion": "^1.7.0",
+  "kind": "general",
+  "settings": {
+    "type": "object",
+    "properties": {
+      "detectionFade": {
+        "type": "object",
+        "properties": {
+          "on": {
+            "type": "boolean"
+          },
+          "fromSeconds": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 86400
+          },
+          "stepPercent": {
+            "enum": [
+              1,
+              2,
+              4,
+              5,
+              10,
+              20,
+              25,
+              50
+            ]
+          },
+          "invisibleAtSeconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 86400
+          }
+        },
+        "required": [
+          "on",
+          "fromSeconds",
+          "stepPercent",
+          "invisibleAtSeconds"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "default": {
+      "detectionFade": {
+        "on": true,
+        "fromSeconds": 10,
+        "stepPercent": 5,
+        "invisibleAtSeconds": 100
+      }
+    }
+  },
+  "dataTypes": [
+    {
+      "id": "gmti.detection",
+      "name": "GMTI detection",
+      "defaults": {
+        "expiresAfterSeconds": 60,
+        "fadeWhenExpired": true,
+        "removeAfterExpirySeconds": 120
+      },
+      "fadeSetting": "detectionFade",
+      "manual": false
+    }
+  ],
+  "server": {
+    "entryClass": "dev.emcc.plugins.gmti.GmtiPlugin"
+  }
+}

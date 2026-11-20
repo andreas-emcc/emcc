@@ -1,0 +1,23 @@
+{
+  "id": "gmti",
+  "name": "GMTI",
+  "version": "0.1.0",
+  "sdkVersion": "^1.4.0",
+  "kind": "general",
+  "relationKinds": [
+    {
+      "id": "gmti.pairing",
+      "label": "GMTI Pairing",
+      "line": {
+        "strokeColor": "#FFFF00",
+        "strokeWidth": 1,
+        "strokeDash": "solid",
+        "arrowhead": "none"
+      },
+      "defaultOn": false
+    }
+  ],
+  "server": {
+    "entryClass": "dev.emcc.plugins.gmti.GmtiPlugin"
+  }
+}

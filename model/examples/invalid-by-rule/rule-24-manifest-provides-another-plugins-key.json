@@ -1,0 +1,11 @@
+{
+  "id": "acme-tracks",
+  "name": "Acme tracks",
+  "version": "1.0.0",
+  "sdkVersion": "^1.9.0",
+  "kind": "general",
+  "provides": ["map-view-2d.layers"],
+  "web": {
+    "entry": "index.js"
+  }
+}

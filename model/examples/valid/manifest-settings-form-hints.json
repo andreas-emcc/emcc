@@ -1,0 +1,56 @@
+{
+  "id": "gmti",
+  "name": "STANAG 4607 GMTI",
+  "version": "0.8.0",
+  "sdkVersion": "^1.8.0",
+  "kind": "general",
+  "category": "data-links",
+  "icon": "Radar",
+  "settings": {
+    "type": "object",
+    "properties": {
+      "pairingColour": {
+        "title": "Pairing colour",
+        "description": "A short description is the hint when there is no hint.",
+        "type": "string",
+        "pattern": "^#[0-9A-Fa-f]{6}$",
+        "default": "#FFFF00",
+        "x-emc2": { "kind": "colour" }
+      },
+      "links": {
+        "title": "Links",
+        "type": "array",
+        "x-emc2": { "item": { "name": "name", "noun": "link", "state": "enabled", "columns": ["direction", "mode"], "id": "id" } },
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": { "title": "Id", "description": "The link's stable id, which ECore fills in (part F).", "type": "string", "readOnly": true },
+            "name": { "title": "Name", "type": "string", "maxLength": 64, "examples": ["AFSERS north"] },
+            "enabled": { "title": "Enabled", "type": "boolean", "default": true },
+            "direction": { "title": "Direction", "enum": ["in", "out"], "default": "in" },
+            "mode": { "title": "Mode", "enum": ["tcp-client", "tcp-server", "udp"], "default": "tcp-client" },
+            "host": {
+              "title": "Host",
+              "description": "The peer's host name or address. A long description goes behind the info button, and the hint shows under the field.",
+              "type": "string",
+              "x-emc2": { "hint": "The peer's host name or address", "visibleWhen": { "property": "mode", "in": ["tcp-client", "udp"] } }
+            },
+            "port": { "title": "Port", "type": "integer", "minimum": 1, "maximum": 65535, "x-emc2": { "width": "short", "enabledWhen": { "property": "mode", "in": ["tcp-client", "udp"] } } },
+            "idleSeconds": { "title": "Idle", "type": "number", "minimum": 0, "default": 60, "x-emc2": { "unit": "s" } },
+            "jobId": { "title": "Job id", "type": "integer", "readOnly": true }
+          },
+          "required": ["id", "name"],
+          "x-emc2": {
+            "groups": [
+              { "id": "connection", "label": "Connection", "properties": ["mode", "host", "port"] },
+              { "id": "advanced", "label": "Advanced", "properties": ["idleSeconds", "jobId"], "advanced": true }
+            ]
+          }
+        },
+        "default": []
+      }
+    },
+    "default": { "pairingColour": "#FFFF00", "links": [] }
+  },
+  "server": { "entryClass": "dev.emcc.plugins.gmti.GmtiPlugin" }
+}

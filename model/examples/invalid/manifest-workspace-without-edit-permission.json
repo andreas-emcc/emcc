@@ -1,0 +1,20 @@
+{
+  "id": "simulator",
+  "name": "Simulator",
+  "version": "0.1.0",
+  "sdkVersion": "^1.2.0",
+  "kind": "general",
+  "permissions": [
+    "plugin.simulator.view"
+  ],
+  "workspaces": [
+    {
+      "id": "simulator.simulation",
+      "name": "Simulation",
+      "viewPermission": "plugin.simulator.view"
+    }
+  ],
+  "server": {
+    "entryClass": "dev.emcc.plugins.simulator.SimulatorPlugin"
+  }
+}

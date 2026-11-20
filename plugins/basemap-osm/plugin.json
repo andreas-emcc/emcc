@@ -1,0 +1,61 @@
+{
+  "id": "basemap-osm",
+  "name": "OpenStreetMap background",
+  "version": "0.1.0",
+  "sdkVersion": "^1.8.0",
+  "kind": "background-map",
+  "category": "geometoc",
+  "icon": "Map",
+  "properties": ["ingoing"],
+  "provides": ["emc2.background-map"],
+  "internet": {
+    "hosts": ["tile.openstreetmap.org"],
+    "reason": "The server part fetches OpenStreetMap tiles for the tile proxy. For development and demonstrations only; not used in disconnected installations."
+  },
+  "server": { "entryClass": "dev.emcc.plugins.basemaposm.BasemapOsmPlugin" },
+  "web": { "entry": "index.js" },
+  "settings": {
+    "type": "object",
+    "x-emc2": {
+      "groups": [
+        { "id": "upstream", "label": "Upstream", "description": "The tile server the plugin fetches from, and how long it waits for a tile.", "properties": ["upstreamUrl", "upstreamTimeoutSeconds"] },
+        { "id": "tiles", "label": "Tiles served", "description": "The zoom levels the plugin offers the map, and how many tiles it keeps in memory.", "properties": ["maxZoom", "cacheTiles"] }
+      ]
+    },
+    "properties": {
+      "upstreamUrl": {
+        "title": "Tile URL",
+        "description": "Upstream tile URL template with {z}, {x} and {y}. Its host need not be listed in internet.hosts: that field declares that the plugin goes online (default host and reason).",
+        "type": "string",
+        "default": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "x-emc2": { "hint": "Tile URL with {z}, {x} and {y}; any host, set by an administrator", "width": "full" }
+      },
+      "maxZoom": {
+        "title": "Highest zoom level",
+        "description": "Highest zoom level served and offered to the map view.",
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 19,
+        "default": 19
+      },
+      "cacheTiles": {
+        "title": "Tiles in the cache",
+        "description": "Number of tiles kept in the in-memory cache of the tile proxy (least recently used are dropped).",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10000,
+        "default": 2000,
+        "x-emc2": { "hint": "Tiles kept in memory; the least recently used go first", "unit": "tiles" }
+      },
+      "upstreamTimeoutSeconds": {
+        "title": "Tile request timeout",
+        "description": "How long one upstream tile request may take before it is cut off.",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 30,
+        "default": 5,
+        "x-emc2": { "unit": "s" }
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "cot",
+  "name": "Cursor on Target",
+  "version": "0.3.0",
+  "sdkVersion": "^1.2.0",
+  "kind": "general",
+  "fields": [
+    {
+      "name": "call-sign",
+      "type": "text",
+      "label": "Callsign"
+    }
+  ],
+  "server": {
+    "entryClass": "dev.emcc.plugins.cot.CotPlugin"
+  }
+}

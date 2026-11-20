@@ -1,0 +1,21 @@
+{
+  "id": "draw-symbols",
+  "name": "Draw symbols",
+  "version": "0.1.0",
+  "sdkVersion": "^1.0.0",
+  "kind": "general",
+  "requires": ["emc2.map-view", "emc2.symbols", "emc2.coordinates"],
+  "web": {
+    "entry": "index.js",
+    "css": ["style.css"],
+    "shared": { "react": "19.3.0", "react-dom": "19.3.0", "@emc2/plugin-sdk": "1.0.0" }
+  },
+  "settings": {
+    "type": "object",
+    "properties": {
+      "standard": { "enum": ["APP-6B", "APP-6D", "APP-6E"], "default": "APP-6D" },
+      "pickerSymbolSize": { "type": "integer", "minimum": 16, "maximum": 96, "default": 40 }
+    }
+  },
+  "permissions": ["objects.edit"]
+}

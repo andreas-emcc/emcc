@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>emcc mockup · Monitor</title>
+<link rel="stylesheet" href="../../../web/shell/src/tokens.css">
+<link rel="stylesheet" href="../../../web/plugin-sdk/src/components/components.css">
+<link rel="stylesheet" href="directions.css">
+<link rel="stylesheet" href="mock.css">
+<script src="mock.js"></script>
+</head>
+<body>
+<div class="ux-app">
+  <header class="ux-top"></header>
+  <div class="ux-monitor">
+    <!-- The core: one tile per number, instead of a list of text lines -->
+    <div class="ux-stat-row">
+      <div class="ux-stat"><span class="ux-muted ux-small">ECore</span><b>Running</b><span class="ux-chip ux-ok"><i data-i="ok"></i>up 2 h 14 min</span></div>
+      <div class="ux-stat"><span class="ux-muted ux-small">Live picture</span><b>18 objects</b><span class="ux-muted ux-small">7 layers · change 25</span></div>
+      <div class="ux-stat"><span class="ux-muted ux-small">Browser sessions</span><b>1</b><span class="ux-muted ux-small">Local user</span></div>
+      <div class="ux-stat"><span class="ux-muted ux-small">Java heap</span><b>66.8 MiB</b><div class="ux-meter"><i style="width:8%"></i></div><span class="ux-muted ux-small">of 12 504 MiB</span></div>
+      <div class="ux-stat"><span class="ux-muted ux-small">Threads</span><b>42</b><span class="ux-muted ux-small">12 processors</span></div>
+    </div>
+
+    <!-- The plugins: state as a chip with an icon; problems first, and a filter for them -->
+    <div class="ux-card">
+      <div class="ux-bar">
+        <b>Plugins</b>
+        <div class="emc2-tabs" style="margin-left:10px"><button class="emc2-tab emc2-tab-active">All <span class="ux-count">19</span></button><button class="emc2-tab">Problems <span class="ux-count">1</span></button></div>
+        <span class="ux-grow"></span>
+        <div class="ux-search" style="width:200px"><i data-i="search"></i><input class="emc2-input" placeholder="Find a plugin" aria-label="Find a plugin"></div>
+        <span class="ux-muted ux-small">Updated 16:19:27 · every 2 s</span>
+      </div>
+      <div class="ux-scroll">
+        <table class="ux-table"><thead><tr><th>Plugin</th><th>Server</th><th>Web part here</th><th class="ux-num">Workers</th><th class="ux-num">Messages/s</th><th class="ux-num">Queued</th><th class="ux-num">Refused</th><th>Links</th></tr></thead><tbody id="rows"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  const P = [
+    ['2D map view', 'ok', 'OK', 'warn', 'Degraded: no GPU', 0, '0.0', 0, 0, '–'],
+    ['GMTI', 'ok', 'OK', '', '–', 1, '41.5', 0, 0, '2 up · 1 off'],
+    ['Cursor on Target', 'off', 'No link', '', '–', 1, '–', 0, 0, '–'],
+    ['ADS-B aircraft', 'off', 'No link', '', '–', 1, '–', 0, 0, '–'],
+    ['AIS', 'off', 'No link', '', '–', 1, '–', 0, 0, '–'],
+    ['Simulator', 'ok', 'Running', 'ok', 'Ready', 2, '12.0', 0, 0, '–'],
+    ['Natural Earth background', 'ok', 'OK', 'ok', 'Ready', 0, '0.0', 0, 0, '–'],
+    ['OpenStreetMap background', 'ok', 'Ready', 'ok', 'Ready', 1, '–', 0, 0, '–'],
+    ['Bookmarks', 'ok', 'OK', 'ok', 'Ready', 0, '0.0', 0, 0, '–'],
+    ['Coordinates', 'ok', 'OK', 'ok', 'Ready', 0, '0.0', 0, 0, '–'],
+    ['Draw shapes', 'ok', 'OK', 'ok', 'Ready', 0, '0.0', 0, 0, '–'],
+    ['Layers', 'ok', 'OK', 'ok', 'Ready', 0, '0.0', 0, 0, '–'],
+  ];
+  const chip = (k, t) => (k ? `<span class="ux-chip ux-${k}">${uxIcon(k)}${t}</span>` : `<span class="ux-muted">${t}</span>`);
+  document.getElementById('rows').innerHTML = P.map((p) => `<tr><td><b>${p[0]}</b></td><td>${chip(p[1], p[2])}</td><td>${chip(p[3], p[4])}</td><td class="ux-num">${p[5]}</td><td class="ux-num">${p[6]}</td><td class="ux-num">${p[7]}</td><td class="ux-num">${p[8]}</td><td>${p[9]}</td></tr>`).join('');
+</script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The Windows service's entry (ADR-0063 point 4, M9 C4): procrun's start and stop methods, outside the Spring Boot jar
+     so that procrun's class loader sees them. The JDK only: no dependency, nothing of Spring. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>dev.emcc</groupId>
+    <artifactId>emc2-server</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>emcc-service</artifactId>
+  <name>emcc service entry (procrun)</name>
+
+  <dependencies>
+    <!-- Tests only: the stop test runs the app's built jar, so the app is built first. -->
+    <dependency>
+      <groupId>dev.emcc</groupId>
+      <artifactId>emc2-app</artifactId>
+      <version>${project.version}</version>
+      <type>pom</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>emcc-service</finalName>
+  </build>
+</project>

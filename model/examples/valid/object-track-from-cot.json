@@ -1,0 +1,27 @@
+{
+  "id": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e12",
+  "type": "core.symbol",
+  "dataType": "cot-in.cot",
+  "dataSource": "tak-north",
+  "time": { "observed": "2026-10-03T08:20:00.000Z", "validFrom": "2026-10-03T08:20:00.000Z", "expires": "2026-10-03T08:25:00.000Z" },
+  "layerId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e02",
+  "version": 57,
+  "geometry": { "type": "Point", "coordinates": [18.1012, 59.3507, 45.2] },
+  "symbol": {
+    "standard": "APP-6B",
+    "sidc": "SFGPUCI--------",
+    "modifiers": { "uniqueDesignation": "VIPER 2", "speed": 4.2, "direction": 270 }
+  },
+  "label": {
+    "policyIdentifier": { "name": "NATO" },
+    "classification": "UNCLASSIFIED"
+  },
+  "extensions": {
+    "cot-in": { "type": "a-f-G-U-C-I", "how": "m-g", "ce": 9999999.0, "le": 9999999.0, "detail": "<__group name=\"Cyan\" role=\"Team Member\"/>" }
+  },
+  "meta": {
+    "created": { "at": "2026-10-03T07:02:11.000Z", "by": { "plugin": "cot-in", "system": "tak-north" } },
+    "modified": { "at": "2026-10-03T08:20:00.000Z", "by": { "plugin": "cot-in", "system": "tak-north" } },
+    "externalRef": { "system": "cot", "id": "ANDROID-358240051111110" }
+  }
+}

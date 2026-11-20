@@ -1,0 +1,84 @@
+{
+  "id": "terrain",
+  "name": "Terrain",
+  "version": "0.1.0",
+  "sdkVersion": "^1.8.0",
+  "kind": "utility",
+  "category": "geometoc",
+  "icon": "Mountain",
+  "requires": ["emc2.map-view"],
+  "uses": ["emc2.coordinates"],
+  "server": { "entryClass": "dev.emcc.plugins.terrain.TerrainPlugin" },
+  "web": { "entry": "index.js", "css": ["terrain.css"] },
+  "permissions": ["plugin.terrain.use"],
+  "folders": [
+    {
+      "id": "heights",
+      "setting": "/heightDataFolder",
+      "reason": "DTED height data (levels 0 to 2) for viewsheds"
+    }
+  ],
+  "settings": {
+    "type": "object",
+    "x-emc2": {
+      "groups": [
+        { "id": "height-data", "label": "Height data", "description": "Where the DTED height data is, and how much memory the parsed cells may use.", "properties": ["heightDataFolder", "cacheMegabytes"] },
+        { "id": "line-of-sight", "label": "Viewshed and height map", "description": "How viewsheds and height maps are computed, and the limits on one request.", "properties": ["refractionCoefficient", "maxRange", "maxCells", "timeoutSeconds"] }
+      ]
+    },
+    "properties": {
+      "heightDataFolder": {
+        "title": "Height data folder",
+        "description": "The folder with the DTED height data: one file per cell, e<lon>/n<lat>.dt0, .dt1 or .dt2 (a w or s for west and south). Either an absolute path (for example shared storage), or a path below the emcc folder that starts with %emcc%/ (ECore resolves it; one that leaves the emcc folder is refused). Empty: not set. The value reaches every logged-in browser.",
+        "type": "string",
+        "default": "%emcc%/settings/terrain",
+        "x-emc2": { "hint": "DTED cells: an absolute path, or one under %emcc%/; empty: not set" }
+      },
+      "refractionCoefficient": {
+        "title": "Refraction coefficient",
+        "description": "The atmospheric refraction coefficient k of the line of sight: a height at distance d is lowered by d squared over twice the earth's radius, times (1 - k).",
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "default": 0.13,
+        "x-emc2": { "hint": "k in the line of sight's curvature term, 0 to 1" }
+      },
+      "maxRange": {
+        "title": "Longest range",
+        "description": "The longest range a viewshed may have, and the largest radius of a height map circle, in metres.",
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 200000,
+        "default": 50000,
+        "x-emc2": { "hint": "The longest viewshed range and the largest height map radius", "unit": "m" }
+      },
+      "maxCells": {
+        "title": "Most height cells per request",
+        "description": "The most height cells (grid points) one viewshed or height map may need within its range. A finer level that needs more is replaced by a coarser one; when none fits, the request is refused.",
+        "type": "integer",
+        "minimum": 100000,
+        "maximum": 100000000,
+        "default": 10000000,
+        "x-emc2": { "hint": "The most height cells one request may need; a coarser level, else refused", "unit": "cells" }
+      },
+      "timeoutSeconds": {
+        "title": "Request timeout",
+        "description": "How long a viewshed or height map may take, reading the data included, before it is refused.",
+        "type": "integer",
+        "minimum": 5,
+        "maximum": 55,
+        "default": 30,
+        "x-emc2": { "hint": "How long a request may take, reading the data included", "unit": "s" }
+      },
+      "cacheMegabytes": {
+        "title": "Height cell cache",
+        "description": "The memory the parsed height cells may use together; the least recently used go first.",
+        "type": "integer",
+        "minimum": 32,
+        "maximum": 2048,
+        "default": 256,
+        "x-emc2": { "hint": "Memory for the parsed height cells; the least recently used go first", "unit": "MB" }
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "id": "basemap-osm",
+  "name": "OpenStreetMap background",
+  "version": "0.1.0",
+  "sdkVersion": "^1.0.0",
+  "kind": "background-map",
+  "properties": ["ingoing"],
+  "provides": ["emc2.background-map"],
+  "internet": {
+    "hosts": ["tile.openstreetmap.org"],
+    "reason": "Fetches OpenStreetMap tiles. Development and demonstrations only; left out of disconnected installations."
+  },
+  "server": { "entryClass": "dev.emcc.plugins.basemaposm.BasemapOsmPlugin" },
+  "web": {
+    "entry": "index.js",
+    "shared": { "react": "19.3.0", "@emc2/plugin-sdk": "1.0.0" }
+  },
+  "settings": {
+    "type": "object",
+    "properties": {
+      "upstreamUrl": { "type": "string", "default": "https://tile.openstreetmap.org/{z}/{x}/{y}.png" },
+      "maxZoom": { "type": "integer", "minimum": 0, "maximum": 22, "default": 19 },
+      "cacheTiles": { "type": "integer", "minimum": 0, "default": 2000 },
+      "upstreamTimeoutSeconds": { "type": "number", "exclusiveMinimum": 0, "default": 5 }
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "name": "@emc2/plugin-sdk",
+  "version": "1.9.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "The emc2 web plugin SDK: the only API a plugin's web part uses (ADR-0008). Owned by the PDA. Design: docs/plugins/sdk-v1.md.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/testing/index.ts",
+    "./build": "./src/build/index.ts",
+    "./components.css": "./src/components/components.css"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "build": "tsc --noEmit -p .",
+    "test": "tsc --noEmit -p . && vitest run"
+  },
+  "dependencies": {
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1"
+  },
+  "peerDependencies": {
+    "lucide-react": "1.49.0",
+    "milsymbol": "3.0.4",
+    "ol": "10.10.0",
+    "proj4": "2.22.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "16.3.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "jsdom": "30.1.2",
+    "lucide-react": "1.49.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "typescript": "6.0.3",
+    "vite": "8.3.5",
+    "vitest": "5.0.3"
+  }
+}

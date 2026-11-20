@@ -1,0 +1,39 @@
+{
+  "id": "fmv",
+  "name": "Full motion video",
+  "version": "0.3.0",
+  "sdkVersion": "^1.9.0",
+  "kind": "general",
+  "channelKinds": [
+    {
+      "name": "camera-pose",
+      "title": "Camera pose",
+      "description": "One simulated camera's pose for one frame: where it is, where it looks, how wide, and the frame.",
+      "payload": {
+        "type": "object",
+        "properties": {
+          "camera": { "type": "string", "format": "uuid" },
+          "time": { "type": "string", "format": "date-time" },
+          "platform": { "$ref": "#/$defs/platform" },
+          "mission": { "type": "string", "minLength": 1, "maxLength": 64 }
+        },
+        "required": ["camera", "time", "platform"],
+        "additionalProperties": false,
+        "$defs": {
+          "platform": {
+            "type": "object",
+            "properties": {
+              "position": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+              "heading": { "type": "number", "minimum": 0, "exclusiveMaximum": 360 }
+            },
+            "required": ["position", "heading"]
+          }
+        }
+      }
+    }
+  ],
+  "compute": { "threads": 4, "reason": "Renders one simulated camera per thread." },
+  "server": {
+    "entryClass": "dev.emcc.plugins.fmv.FmvPlugin"
+  }
+}

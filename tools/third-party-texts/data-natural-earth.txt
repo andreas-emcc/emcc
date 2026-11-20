@@ -1,0 +1,10 @@
+Natural Earth vector map data, version 5.1.2, scale 1:50m: land, Antarctic ice shelves, lakes,
+coastline and country borders on land. Used by the basemap-naturalearth plugin; converted in
+format and simplified, not edited in content (CR-0009).
+
+Natural Earth data is in the public domain. No permission is needed to use, change or
+distribute it.
+
+Made with Natural Earth. Free vector and raster map data @ naturalearthdata.com.
+
+Source: https://github.com/nvkelso/natural-earth-vector, tag v5.1.2.

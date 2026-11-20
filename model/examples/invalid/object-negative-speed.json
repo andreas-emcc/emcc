@@ -1,0 +1,15 @@
+{
+  "id": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e42",
+  "type": "core.symbol",
+  "dataType": "core.general",
+  "dataSource": "manual",
+  "layerId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e02",
+  "version": 1,
+  "geometry": { "type": "Point", "coordinates": [18.1012, 59.3507] },
+  "symbol": { "standard": "APP-6B", "sidc": "SFGPUCI--------", "modifiers": { "speed": -3, "direction": 90 } },
+  "label": { "policyIdentifier": { "name": "NATO" }, "classification": "UNCLASSIFIED" },
+  "meta": {
+    "created": { "at": "2026-10-05T08:00:00.000Z", "by": { "plugin": "cot-in", "system": "tak:server-1" } },
+    "modified": { "at": "2026-10-05T08:00:00.000Z", "by": { "plugin": "cot-in", "system": "tak:server-1" } }
+  }
+}

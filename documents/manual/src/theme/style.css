@@ -1,0 +1,111 @@
+/* The emc2 manual's stylesheet. System fonts only; light and dark follow the computer. */
+:root {
+  --bg: #ffffff;
+  --bg-alt: #f2f4f7;
+  --text: #1b1f24;
+  --muted: #4b5563;
+  --link: #0b5cad;
+  --border: #c9d1da;
+  --accent: #1f3a93;
+  --code-bg: #eef1f5;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14181d;
+    --bg-alt: #1c2229;
+    --text: #e3e7eb;
+    --muted: #aab3bd;
+    --link: #7db4f0;
+    --border: #38424d;
+    --accent: #9db4f5;
+    --code-bg: #232b33;
+  }
+}
+* { box-sizing: border-box; }
+html { font-size: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 1rem/1.6 var(--font); }
+a { color: var(--link); }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.skip { position: absolute; left: -999px; top: 0; background: var(--bg); padding: .5rem 1rem; }
+.skip:focus { left: 0; z-index: 10; }
+
+header.site { display: flex; gap: 1rem; align-items: baseline; justify-content: space-between; padding: .6rem 1rem; background: var(--bg-alt); border-bottom: 1px solid var(--border); }
+header.site a { font-weight: 600; color: var(--text); text-decoration: none; }
+header.site span { color: var(--muted); font-size: .9rem; }
+footer.site { padding: 1rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .85rem; }
+
+.layout { display: grid; grid-template-columns: 19rem minmax(0, 1fr); max-width: 80rem; margin: 0 auto; }
+nav.toc { padding: 1rem; border-right: 1px solid var(--border); font-size: .92rem; position: sticky; top: 0; align-self: start; max-height: 100vh; overflow-y: auto; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; }
+nav.toc .toc-home { margin: 0 0 .75rem; font-weight: 600; }
+nav.toc li.part { margin: .25rem 0; }
+nav.toc summary { cursor: pointer; font-weight: 600; padding: .15rem 0; }
+nav.toc summary a { text-decoration: none; color: var(--text); }
+nav.toc details ol { padding-left: 1rem; }
+nav.toc li a { text-decoration: none; display: inline-block; padding: .1rem 0; }
+nav.toc a[aria-current="page"] { color: var(--accent); font-weight: 700; text-decoration: underline; }
+nav.toc ol.outline { padding-left: 1rem; font-size: .88rem; }
+
+main { padding: 1.5rem 2rem 3rem; max-width: 52rem; }
+h1 { font-size: 1.9rem; line-height: 1.25; margin: 0 0 1rem; }
+h1 .num { display: block; font-size: .95rem; font-weight: 500; color: var(--muted); letter-spacing: .02em; }
+h2 { font-size: 1.4rem; margin: 2rem 0 .5rem; border-bottom: 1px solid var(--border); padding-bottom: .2rem; }
+h3 { font-size: 1.15rem; margin: 1.5rem 0 .4rem; }
+p, ul, ol { margin: .75rem 0; }
+li { margin: .2rem 0; }
+code { font-family: var(--mono); font-size: .9em; background: var(--code-bg); padding: .1em .3em; border-radius: 3px; }
+pre { background: var(--code-bg); padding: .75rem 1rem; overflow-x: auto; border-radius: 4px; }
+pre code { background: none; padding: 0; }
+blockquote { margin: 1rem 0; padding: .1rem 1rem; border-left: 4px solid var(--accent); background: var(--bg-alt); }
+kbd { font-family: var(--mono); font-size: .85em; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 3px; padding: 0 .3em; }
+
+.table-wrap { overflow-x: auto; margin: 1rem 0; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+th, td { border: 1px solid var(--border); padding: .4rem .6rem; text-align: left; vertical-align: top; }
+th { background: var(--bg-alt); }
+
+figure { margin: 1.25rem 0; }
+figure img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 4px; }
+figcaption { color: var(--muted); font-size: .9rem; margin-top: .3rem; }
+img { max-width: 100%; height: auto; }
+
+.release { color: var(--muted); }
+ol.parts.big > li { margin: .6rem 0; font-weight: 600; }
+ol.parts.big ol { font-weight: 400; }
+.pager { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.pager a { text-decoration: none; max-width: 48%; }
+.pager a span { display: block; font-size: .8rem; color: var(--muted); }
+.pager .next { text-align: right; margin-left: auto; }
+
+/* manual.html: the whole manual in one document, printed to the PDF (white page, black text) */
+body.print-doc { max-width: 52rem; margin: 0 auto; padding: 1.5rem; }
+.print-doc a { color: var(--link); text-decoration: none; }
+.print-doc .cover { padding: 6rem 0 2rem; }
+.print-doc .cover h1 { font-size: 2.8rem; }
+.print-doc .cover .release { font-size: 1.1rem; }
+.print-doc .contents ol { list-style: none; padding-left: 1.2rem; }
+.print-doc .contents > ol { padding-left: 0; }
+.print-doc .chapter { margin-top: 3rem; }
+
+@media (max-width: 56rem) {
+  .layout { display: block; }
+  nav.toc { position: static; max-height: none; border-right: 0; border-bottom: 1px solid var(--border); }
+  main { padding: 1rem; }
+}
+@media print {
+  header.site, nav.toc, .pager, .skip { display: none; }
+  .layout { display: block; max-width: none; }
+  main { max-width: none; padding: 0; }
+  body { background: #fff; color: #000; }
+  a { color: inherit; }
+  h2, h3, figure { break-after: avoid; break-inside: avoid; }
+  tr, img { break-inside: avoid; }
+  thead { display: table-header-group; }
+  body.print-doc { max-width: none; padding: 0; }
+  .print-doc a { color: #0b4f96; }
+  .print-doc .cover { padding-top: 7cm; break-after: page; }
+  .print-doc .contents { break-after: page; }
+  .print-doc .chapter { break-before: page; margin-top: 0; }
+}

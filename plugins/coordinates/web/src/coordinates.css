@@ -1,0 +1,129 @@
+/* Coordinates styles: every class starts with the plugin id. Design tokens only (ADR-0034): every
+   colour, font, size, space, corner radius and shadow is a --emc2- token; besides them only 0,
+   percentages and 1px hairlines. The icon buttons, the format choice, the Go button and the messages
+   are the web SDK's shared components. No element selectors at top level, no :root, nothing
+   global. */
+
+/* The pointer position on the map, a map control: the panel colour and the card shadow (looks.md). */
+.coordinates-cursor {
+  padding: 0 var(--emc2-space-padding);
+  border: 1px solid var(--emc2-color-border);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-panel);
+  box-shadow: var(--emc2-shadow-card);
+  color: var(--emc2-color-text);
+  font-family: var(--emc2-font-data);
+  font-size: var(--emc2-size-text);
+  line-height: var(--emc2-size-row);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The icon at the top right (M4), a map control as the map view's "Map controls" button is: the
+   pane colour, a hairline and the card shadow. */
+.coordinates-toggle {
+  display: inline-flex;
+  border: 1px solid var(--emc2-color-border);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-pane);
+  box-shadow: var(--emc2-shadow-card);
+  color: var(--emc2-color-text);
+}
+
+.coordinates-toggle[hidden] {
+  display: none;
+}
+
+/* The window (T-162; owner, 2026-11-10): the map view's map settings frame, in the icon's place in
+   the corner, so it grows to the left over the map. About ten rows wide, so it grows with the
+   density. */
+.coordinates-window {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  box-sizing: border-box;
+  width: calc(var(--emc2-size-row) * 10);
+  max-width: 100%;
+  padding: var(--emc2-space-padding);
+  border: 1px solid var(--emc2-color-border);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-pane);
+  box-shadow: var(--emc2-shadow-card);
+  color: var(--emc2-color-text);
+  font: var(--emc2-size-text) / 1.3 var(--emc2-font-text);
+}
+
+/* Headed in the look's heading style, with the close button, as the map view's box is. */
+.coordinates-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--emc2-space-gap);
+  font-family: var(--emc2-font-heading);
+  font-weight: var(--emc2-heading-weight);
+  letter-spacing: var(--emc2-heading-letter-spacing);
+  text-transform: var(--emc2-heading-case);
+}
+
+.coordinates-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  min-width: 0;
+  color: var(--emc2-color-text);
+  font-family: var(--emc2-font-text);
+  font-size: var(--emc2-size-text);
+}
+
+/* The format above "go to". */
+.coordinates-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+}
+
+.coordinates-goto {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--emc2-space-gap);
+  min-width: 0;
+}
+
+/* The "go to" field: the plugin's own input, so that it can keep the spell check off, made to look
+   like the SDK's TextField, in the data font as coordinates are. */
+.coordinates-field {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  min-width: 0;
+}
+
+.coordinates-label {
+  color: var(--emc2-color-muted);
+  font-size: var(--emc2-size-text-small);
+}
+
+/* Border-box, so that it is as high as the Select and the Go button next to it (the SDK's own text
+   input is 2px higher). */
+.coordinates-input {
+  box-sizing: border-box;
+  min-width: 0;
+  height: var(--emc2-size-field);
+  padding: 0 var(--emc2-space-padding);
+  border: 1px solid var(--emc2-color-field-border);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-ground);
+  color: var(--emc2-color-text);
+  font: inherit;
+  font-family: var(--emc2-font-data);
+}
+
+.coordinates-input[aria-invalid='true'] {
+  border-color: var(--emc2-color-error);
+}
+
+.coordinates-input:focus-visible {
+  outline: var(--emc2-focus-width) solid var(--emc2-focus-color);
+  outline-offset: var(--emc2-focus-offset);
+}

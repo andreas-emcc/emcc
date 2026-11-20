@@ -1,0 +1,9 @@
+{
+  "requestId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e41",
+  "entityType": "object",
+  "operation": "create",
+  "entityId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e42",
+  "code": "EXTERNAL_REF_EXISTS",
+  "message": "Another object has the external identity cot ANDROID-358240051111110.",
+  "at": "2026-10-03T08:20:00.100Z"
+}

@@ -1,0 +1,1114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>emcc – Software Design Document</title>
+<!--
+  Source of documents/design/emcc-SDD.pdf. Build with: npm run build (in documents/design/src).
+  {{COMMIT}} and {{DATE}} are replaced by the build script.
+  Colours follow the APP-6 affiliation fills used throughout the project documents:
+  blue = emcc itself, green = plugins, yellow = external systems, grey = infrastructure, red = risks.
+-->
+<style>
+  @page {
+    size: A4;
+    margin: 22mm 18mm 20mm 18mm;
+    @top-left { content: "emcc – Software Design Document"; font: 8pt Calibri, Arial, sans-serif; color: #6B7280; }
+    @top-right { content: "Draft · commit {{COMMIT}}"; font: 8pt Calibri, Arial, sans-serif; color: #6B7280; }
+    @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 8pt Calibri, Arial, sans-serif; color: #6B7280; }
+  }
+  @page :first {
+    @top-left { content: none; }
+    @top-right { content: none; }
+  }
+  :root {
+    --text: #1F2933; --muted: #52606D; --rule: #CBD2D9;
+    --core: #1F6F8B; --core-bg: #E3F4FB;
+    --plugin: #2E7D32; --plugin-bg: #E6F5E6;
+    --ext: #8A7400; --ext-bg: #FFF8D1;
+    --infra: #5B6670; --infra-bg: #EEF0F2;
+    --risk: #A33A3A; --risk-bg: #FFE3E3;
+  }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: Calibri, "Segoe UI", Arial, sans-serif; font-size: 10.5pt; line-height: 1.42; color: var(--text); background: #fff; margin: 0; }
+  h1 { font-size: 26pt; margin: 0 0 4pt; letter-spacing: -0.3pt; }
+  h2 { font-size: 15pt; margin: 20pt 0 6pt; padding-bottom: 3pt; border-bottom: 1px solid var(--rule); break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 12pt 0 4pt; break-after: avoid; }
+  p { margin: 0 0 6pt; }
+  ul { margin: 0 0 6pt; padding-left: 16pt; }
+  li { margin-bottom: 2pt; }
+  code { font-family: Consolas, "Courier New", monospace; font-size: 9pt; background: #F2F4F6; padding: 0 2pt; border-radius: 2pt; }
+  table { border-collapse: collapse; width: 100%; margin: 4pt 0 10pt; font-size: 9.5pt; break-inside: avoid; }
+  th, td { text-align: left; vertical-align: top; padding: 3.5pt 6pt; border-bottom: 1px solid var(--rule); }
+  th { background: #F2F4F6; font-weight: 700; }
+  tr { break-inside: avoid; }
+  figure { margin: 8pt 0 14pt; break-inside: avoid; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption { font-size: 9pt; color: var(--muted); margin-top: 4pt; }
+  figcaption b { color: var(--text); }
+  .subtitle { font-size: 13pt; color: var(--muted); margin-bottom: 18pt; }
+  .meta td:first-child { width: 28%; font-weight: 700; }
+  .note { background: var(--core-bg); border-radius: 4pt; padding: 6pt 9pt; margin: 6pt 0 10pt; font-size: 9.5pt; }
+  .toc { columns: 2; column-gap: 24pt; font-size: 10pt; padding-left: 0; list-style: none; }
+  .toc li { margin-bottom: 1.5pt; }
+  .page-break { break-before: page; }
+  .keep { break-inside: avoid; }
+  .tag { display: inline-block; font-size: 8pt; font-weight: 700; padding: 0 4pt; border-radius: 2pt; }
+  .tag.n { background: var(--core-bg); color: var(--core); }
+
+  /* Figures */
+  svg text { font-family: Calibri, "Segoe UI", Arial, sans-serif; fill: var(--text); }
+  .core { fill: var(--core-bg); stroke: var(--core); stroke-width: 1.4; }
+  .plugin { fill: var(--plugin-bg); stroke: var(--plugin); stroke-width: 1.4; }
+  .ext { fill: var(--ext-bg); stroke: var(--ext); stroke-width: 1.4; }
+  .infra { fill: var(--infra-bg); stroke: var(--infra); stroke-width: 1.4; }
+  .risk { fill: var(--risk-bg); stroke: var(--risk); stroke-width: 1.4; }
+  .inner { fill: #fff; stroke: var(--core); stroke-width: 1; }
+  .inner-p { fill: #fff; stroke: var(--plugin); stroke-width: 1; }
+  .contract { fill: #fff; stroke: var(--core); stroke-width: 1.4; stroke-dasharray: 5 3; }
+  .grp { fill: none; stroke: #9AA5B1; stroke-width: 1.2; stroke-dasharray: 6 4; }
+  .dashed { stroke-dasharray: 5 3; }
+  .ln { stroke: #3E4C59; stroke-width: 1.3; fill: none; }
+  .ln-d { stroke: #3E4C59; stroke-width: 1.1; fill: none; stroke-dasharray: 4 3; }
+  .life { stroke: #9AA5B1; stroke-width: 1; stroke-dasharray: 4 3; }
+  .t { font-size: 13px; font-weight: 700; }
+  .tm { font-size: 12px; font-weight: 700; }
+  .s { font-size: 11px; fill: #3E4C59; }
+  .xs { font-size: 10px; fill: #3E4C59; }
+  .gt { font-size: 12px; font-weight: 700; fill: #52606D; }
+  .lbl { font-size: 10.5px; fill: #3E4C59; font-style: italic; }
+  .mono { font-family: Consolas, "Courier New", monospace; font-size: 10.5px; }
+  .c { text-anchor: middle; }
+</style>
+</head>
+<body>
+
+<!-- Shared SVG definitions (arrow heads) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#3E4C59"/>
+    </marker>
+  </defs>
+</svg>
+
+<!-- ============================ Title page ============================ -->
+<h1>emcc</h1>
+<div class="subtitle">Software Design Document (SDD)</div>
+
+<table class="meta">
+  <tr><td>Document</td><td>emcc Software Design Document</td></tr>
+  <tr><td>Version</td><td>Draft – no version number yet. Identified by the repository commit it describes.</td></tr>
+  <tr><td>Based on commit</td><td><code>{{COMMIT}}</code>, built {{DATE}}</td></tr>
+  <tr><td>Status</td><td>Draft. Describes the architecture and the data design as of 2026-11-15. <b>M8 is in progress:</b> bug fixes, the UX agent's redesign of the web UI (ADR-0056), the sensor package, symbol labels by place, and <b>full motion video</b> from STANAG 4609 in a new <code>fmv</code> plugin, with a stream channel from a plugin's server part to its web part and ECore's conversion service, which runs a shipped minimal LGPL ffmpeg as a separate process (ADR-0057). Its contracts, plugin SDK 1.8.0 (CR-0043, CR-0044, CR-0047), are being built on <code>integration/sdk-v1.8</code> and are not yet on <code>main</code>. <b>M7, the first release for outside users, was done on 2026-11-13</b> (tag <code>m7</code>, released as M7-RC3, Windows x64) with data model and SDK 1.6.0 and 1.7.0 (tags <code>contracts-1.6.0</code>, <code>contracts-1.7.0</code>): NVG in and out, symbol palettes, Settings categories, appending to lines, the stepped fade, folders relative to emcc and a log file. <b>M6 was done on 2026-11-11</b> (tag <code>m6</code>, SDK and data model 1.5.0): move and copy to layer, images in tactical graphics, sensor report symbols and a data type's field sets. <b>M5 was done on 2026-11-10</b> (tag <code>m5</code>, SDK and data model 1.4.0), and from M5 the product is called emcc: tactical graphics with mil-sym-ts, GMTI (STANAG 4607) and the simulator's sensor, terrain analysis, vessel symbols, field sets, relations, capabilities, the user's time and display settings per user. M4, Maps and inputs, was done on 2026-11-03, M3, the Simulator, on 2026-10-30, M2, Beautify, on 2026-10-22, M1 on 2026-10-14 and M0 on 2026-10-10. <b>M9 is next:</b> a simulated UAV camera (ADR-0058), Linux releases and tests, PostgreSQL with PostGIS, and OpenTelemetry.</td></tr>
+  <tr><td>Owner</td><td>The project owner. Maintained by the Architectural Consultant Agent (ACA).</td></tr>
+  <tr><td>Sources of truth</td><td><code>requirements.md</code>, <code>docs/architecture/overview.md</code> and <code>docs/adr/</code> in the repository. If this document and the repository disagree, the repository is correct.</td></tr>
+</table>
+
+<h3>Contents</h3>
+<ol class="toc">
+  <li>1 Introduction</li>
+  <li>2 Goals and constraints</li>
+  <li>3 System context</li>
+  <li>4 Architecture overview</li>
+  <li>5 Plugin architecture</li>
+  <li>6 Concurrency design</li>
+  <li>7 Object changes and the live picture</li>
+  <li>8 Workspaces, simulator, sensors and video</li>
+  <li>9 Data design</li>
+  <li>10 Cross-cutting concerns</li>
+  <li>11 Deployment</li>
+  <li>12 Design decisions</li>
+  <li>13 Risks and open issues</li>
+  <li>A Planned sections</li>
+</ol>
+
+<h2>1 Introduction</h2>
+<h3>1.1 Purpose</h3>
+<p>This document describes the technical design of emcc. emcc is the product name (owner, 2026-11-04); inside the code and the repository the system keeps the name emc2, so paths, package names (<code>@emc2/…</code>), plugin ids and settings keys (<code>emc2.*</code>) keep it. It is written for the agents and people who build, review and operate the system. It will grow with the project. This version covers the architecture and the data design (data model 1.7.0, frozen with plugin SDK 1.7.0, and SDK 1.8.0 as far as it is decided), up to milestone M8, and names what waits for M9. Detailed designs of each part are added as they are made (see Appendix A).</p>
+
+<h3>1.2 Scope</h3>
+<p>emcc is a web-based mock-up of a military command and control (C2) system, built to showcase what AI agents can do. Users see and edit objects – APP-6 symbols, vessel symbols, tactical graphics, shapes and texts – on a map that all users share live. Objects are exchanged with other systems through standard formats: Cursor on Target (CoT), NATO Vector Graphics (NVG) and GMTI (STANAG 4607) in and out, AIS and ADS-B in, and from M8 full motion video (STANAG 4609) in; KML comes later. Background maps come from WMS servers and, offline, from Natural Earth; terrain analysis uses local height data. A simulator in its own workspace moves tracks along routes, simulates ground radars on them, and sends both out through the plugins. Everything beyond a small core is a plugin.</p>
+
+<h3>1.3 References</h3>
+<table>
+  <tr><th>Reference</th><th>Content</th></tr>
+  <tr><td><code>requirements.md</code></td><td>What the system must do (owner's requirements)</td></tr>
+  <tr><td><code>docs/architecture/overview.md</code></td><td>Architecture description, including the normative rules for agents</td></tr>
+  <tr><td><code>docs/adr/0001 … 0058</code></td><td>Architecture decision records: why each choice was made</td></tr>
+  <tr><td><code>docs/change-requests/</code></td><td>Change requests to frozen contracts and rules (CR-0001 … CR-0047; CR-0007 and CR-0017 were rejected, all others approved or decided)</td></tr>
+  <tr><td><code>model/</code></td><td>The common data model: JSON Schemas, rules and examples (normative)</td></tr>
+  <tr><td><code>docs/plugins/sdk-v0.md</code>, <code>sdk-v1.md</code></td><td>Plugin SDK v0 design and the plugin manifest, and what each SDK 1.x release, up to 1.7.0, changes and adds; 1.8.0 is described on <code>integration/sdk-v1.8</code> until it reaches <code>main</code></td></tr>
+  <tr><td><code>docs/plugins/in-out/</code></td><td>The playbook for plugins that bring data in or send it out, in work packages (M4)</td></tr>
+  <tr><td><code>docs/architecture/m3-simulator-decisions.md</code>, <code>m4-plan.md</code> … <code>m7-plan.md</code></td><td>The owner's answers for M3, and the plans of M4 to M7; M8's scope is on the status board</td></tr>
+  <tr><td><code>docs/architecture/gmti-4607.md</code>, <code>nvg.md</code></td><td>The GMTI and NVG references: what emcc uses of STANAG 4607 and of NVG, and how it maps</td></tr>
+  <tr><td><code>docs/architecture/looks.md</code>, <code>docs/ux/</code></td><td>The values of the three looks, light and dark, and the two densities (ADR-0034, ADR-0056), and the UX agent's mockups and design notes</td></tr>
+  <tr><td><code>spikes/</code></td><td>The spikes' reports, among them S9 (receiving FMV) and S10 (a simulated UAV camera)</td></tr>
+  <tr><td><code>external/</code></td><td>The service sheets of the external services emcc is tested against (TAK Server, GeoServer, Keycloak, an NVG service, and playbacks of recorded AIS, ADS-B, GMTI and FMV data), run by the External Services Agent</td></tr>
+  <tr><td><code>documents/manual/</code></td><td>The user manual for operators and admins, written against each release by the User Documentation Agent</td></tr>
+  <tr><td><code>documents/design/emc2-data-model-v0.html</code></td><td>Readable description of data model v0; section 9 summarises 1.7.0</td></tr>
+  <tr><td><code>CLAUDE.md</code></td><td>Working rules for all agents, folder ownership, change control</td></tr>
+  <tr><td><code>LICENSE</code></td><td>The project licence: Apache License 2.0</td></tr>
+</table>
+
+<h2>2 Goals and constraints</h2>
+<table>
+  <tr><th style="width:4%">#</th><th style="width:28%">Quality goal</th><th>Consequence for the design</th></tr>
+  <tr><td>1</td><td>Robust under concurrency</td><td>No deadlocks or race conditions by design. A hung part never hangs the whole application.</td></tr>
+  <tr><td>2</td><td>Extensible through plugins</td><td>All features beyond the core are plugins, built according to one design pattern.</td></tr>
+  <tr><td>3</td><td>Works disconnected</td><td>Every function has a way to work offline (Natural Earth for maps); the browser fetches nothing from the internet (ADR-0030).</td></tr>
+  <tr><td>4</td><td>Scales</td><td>At least 100 000 objects on the map, many users, more servers later.</td></tr>
+  <tr><td>5</td><td>Secure</td><td>Real IAM from the first demo, permissions enforced on the server. A security label on every object.</td></tr>
+  <tr><td>6</td><td>Maintainable by agents</td><td>Small parts with one owner each, and written contracts between them.</td></tr>
+</table>
+<p><b>Constraints:</b> the server runs on Linux (main target) and Windows; the client runs in a current web browser with the <code>popover</code> attribute (Chrome and Edge 114, Safari 17, Firefox 125, Firefox ESR 128 or later; owner, 2026-10-16); the system is self-hosted; login uses Keycloak or a similar IAM; the map is 2D first, with 3D possible later as separate modules. The full object count needs a client with a GPU (ADR-0017). The project is licensed under the Apache License 2.0, and its dependencies must have permissive licences, with two approved exceptions in release bundles: the Java runtime and, from M8, a minimal LGPL ffmpeg run as a separate process (ADR-0016, section 10.5). Releases are Windows x64 up to M8; Linux releases and tests come in M9.</p>
+
+<h2>3 System context</h2>
+<figure>
+<svg viewBox="0 0 680 328" role="img" aria-label="System context diagram">
+  <rect class="core" x="240" y="10" width="200" height="54" rx="6"/>
+  <text class="t c" x="340" y="33">Browsers (users)</text>
+  <text class="s c" x="340" y="51">emcc web client</text>
+
+  <rect class="core" x="200" y="128" width="280" height="66" rx="6"/>
+  <text class="t c" x="340" y="155">emcc server</text>
+  <text class="s c" x="340" y="175">ECore + server parts of plugins</text>
+
+  <rect class="ext" x="540" y="128" width="130" height="66" rx="6"/>
+  <text class="t c" x="605" y="155">Keycloak</text>
+  <text class="s c" x="605" y="175">IAM · OpenID Connect</text>
+
+  <line class="ln" x1="340" y1="66" x2="340" y2="126" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <text class="lbl" x="348" y="100">HTTPS + WebSocket</text>
+  <line class="ln" x1="442" y1="44" x2="590" y2="126" marker-end="url(#arr)"/>
+  <text class="lbl" x="528" y="72">login (OIDC)</text>
+  <line class="ln" x1="482" y1="161" x2="538" y2="161" marker-end="url(#arr)"/>
+
+  <path class="ln" d="M340,196 V228 M58,228 H628"/>
+  <line class="ln" x1="58" y1="228" x2="58" y2="260" marker-end="url(#arr)"/>
+  <line class="ln" x1="172" y1="228" x2="172" y2="260" marker-end="url(#arr)"/>
+  <line class="ln" x1="286" y1="228" x2="286" y2="260" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <line class="ln" x1="400" y1="260" x2="400" y2="230" marker-end="url(#arr)"/>
+  <line class="ln" x1="514" y1="228" x2="514" y2="260" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <line class="ln" x1="628" y1="260" x2="628" y2="230" marker-end="url(#arr)"/>
+
+  <rect class="infra" x="6" y="262" width="104" height="56" rx="6"/>
+  <text class="tm c" x="58" y="286">Storage</text>
+  <text class="xs c" x="58" y="304">files · PostGIS (M9)</text>
+  <rect class="ext" x="120" y="262" width="104" height="56" rx="6"/>
+  <text class="tm c" x="172" y="286">WMS servers</text>
+  <text class="xs c" x="172" y="304">background maps</text>
+  <rect class="ext" x="234" y="262" width="104" height="56" rx="6"/>
+  <text class="tm c" x="286" y="286">TAK systems</text>
+  <text class="xs c" x="286" y="304">CoT in and out</text>
+  <rect class="ext" x="348" y="262" width="104" height="56" rx="6"/>
+  <text class="tm c" x="400" y="286">AIS · ADS-B</text>
+  <text class="xs c" x="400" y="304">ships, aircraft (in)</text>
+  <rect class="ext" x="462" y="262" width="104" height="56" rx="6"/>
+  <text class="tm c" x="514" y="286">NVG · GMTI</text>
+  <text class="xs c" x="514" y="304">in and out</text>
+  <rect class="ext" x="576" y="262" width="104" height="56" rx="6"/>
+  <text class="tm c" x="628" y="286">UAV video</text>
+  <text class="xs c" x="628" y="304">STANAG 4609 (M8)</text>
+</svg>
+<figcaption><b>Figure 1 – System context.</b> Blue: emcc. Yellow: external systems, provided by other projects. Grey: infrastructure. Plugins' server parts reach the external systems; the browser talks only to the emcc server, which also passes the background maps and the video on (ADR-0030, ADR-0057).</figcaption>
+</figure>
+<p>All users share one live picture held by the server. Browsers connect over HTTPS and a WebSocket. TAK systems, AIS and ADS-B receivers, NVG services, GMTI radars, UAVs and WMS servers are set up by separate projects; for emcc they are existing external systems. For tests, the External Services Agent runs a TAK Server, a GeoServer, Keycloak, an NVG service, and playbacks of recorded AIS, ADS-B, GMTI and FMV data on the development computer (section 11).</p>
+
+<h2>4 Architecture overview</h2>
+<h3>4.1 Building blocks</h3>
+<figure>
+<svg viewBox="0 0 680 582" role="img" aria-label="Building blocks diagram">
+  <!-- Browser tier -->
+  <rect class="grp" x="6" y="6" width="668" height="160" rx="8"/>
+  <text class="gt" x="18" y="26">Browser – TypeScript · React · OpenLayers</text>
+  <rect class="core" x="20" y="40" width="260" height="112" rx="6"/>
+  <text class="t c" x="150" y="62">Shell</text>
+  <text class="s c" x="150" y="84">Top bar · workspaces · Map Pane · panes</text>
+  <text class="s c" x="150" y="102">Settings list · Monitor · setups</text>
+  <text class="s c" x="150" y="120">Looks · actions · display settings</text>
+  <text class="s c" x="150" y="138">Login · connection · plugin loader</text>
+  <rect class="plugin" x="296" y="40" width="118" height="44" rx="6"/>
+  <text class="tm c" x="355" y="67">map-view-2d</text>
+  <rect class="plugin" x="422" y="40" width="118" height="44" rx="6"/>
+  <text class="tm c" x="481" y="67">symbology</text>
+  <rect class="plugin" x="548" y="40" width="118" height="44" rx="6"/>
+  <text class="tm c" x="607" y="67">fmv · simulator …</text>
+  <rect class="contract" x="296" y="96" width="370" height="56" rx="6"/>
+  <text class="t c" x="481" y="119">Web plugin SDK (TypeScript)</text>
+  <text class="s c" x="481" y="138">the only API that plugin web parts use</text>
+
+  <line class="ln" x1="340" y1="168" x2="340" y2="194" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <text class="lbl" x="350" y="186">WebSocket (JSON) · HTTPS · video streams</text>
+
+  <!-- Server tier -->
+  <rect class="grp" x="6" y="196" width="668" height="320" rx="8"/>
+  <text class="gt" x="18" y="216">Server – Java 25</text>
+  <rect class="core" x="20" y="226" width="646" height="36" rx="6"/>
+  <text class="tm c" x="343" y="249">app – Spring Boot edge: HTTP · WebSocket · login and sessions · static files</text>
+
+  <rect class="core" x="20" y="274" width="420" height="228" rx="6"/>
+  <text class="t c" x="230" y="294">ECore – plain Java</text>
+  <rect class="inner" x="32" y="306" width="196" height="28" rx="4"/><text class="s c" x="130" y="324">Plugin host · capabilities</text>
+  <rect class="inner" x="32" y="344" width="196" height="28" rx="4"/><text class="s c" x="130" y="362">Workers · connection tasks · watchdog</text>
+  <rect class="inner" x="32" y="382" width="196" height="28" rx="4"/><text class="s c" x="130" y="400">Message bus</text>
+  <rect class="inner" x="32" y="420" width="196" height="28" rx="4"/><text class="s c" x="130" y="438">Object store (single writer)</text>
+  <rect class="inner" x="32" y="458" width="196" height="28" rx="4"/><text class="s c" x="130" y="476">Stream hub (M8)</text>
+  <rect class="inner" x="236" y="306" width="196" height="28" rx="4"/><text class="s c" x="334" y="324">Live picture gateway</text>
+  <rect class="inner" x="236" y="344" width="196" height="28" rx="4"/><text class="s c" x="334" y="362">Persistence manager · folders</text>
+  <rect class="inner" x="236" y="382" width="196" height="28" rx="4"/><text class="s c" x="334" y="400">Security + labels</text>
+  <rect class="inner" x="236" y="420" width="196" height="28" rx="4"/><text class="s c" x="334" y="438">Settings · logs · monitor</text>
+  <rect class="inner" x="236" y="458" width="196" height="28" rx="4"/><text class="s c" x="334" y="476">Conversion service (M8)</text>
+
+  <rect class="contract" x="456" y="274" width="210" height="48" rx="6"/>
+  <text class="t c" x="561" y="294">Java Plugin SDK</text>
+  <text class="s c" x="561" y="312">the only dependency of plugins</text>
+  <rect class="plugin" x="456" y="334" width="210" height="168" rx="6"/>
+  <text class="tm c" x="561" y="354">Plugin server parts</text>
+  <rect class="inner-p" x="468" y="364" width="186" height="24" rx="4"/><text class="s c" x="561" y="380">cot · nvg · gmti (in and out)</text>
+  <rect class="inner-p" x="468" y="394" width="186" height="24" rx="4"/><text class="s c" x="561" y="410">simulator (routes, sensors)</text>
+  <rect class="inner-p" x="468" y="424" width="186" height="24" rx="4"/><text class="s c" x="561" y="440">fmv (STANAG 4609, M8)</text>
+  <rect class="inner-p" x="468" y="454" width="186" height="24" rx="4"/><text class="s c" x="561" y="470">basemap-wms · ais · terrain …</text>
+
+  <!-- Storage and the separate ffmpeg process -->
+  <line class="ln" x1="130" y1="504" x2="130" y2="534" marker-end="url(#arr)"/>
+  <line class="ln" x1="300" y1="504" x2="300" y2="534" marker-end="url(#arr)"/>
+  <path class="ln" d="M420,488 V556 H434" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <text class="lbl" x="426" y="526">pipes</text>
+  <rect class="infra" x="40" y="536" width="180" height="40" rx="6"/>
+  <text class="tm c" x="130" y="561">File store</text>
+  <rect class="infra dashed" x="230" y="536" width="180" height="40" rx="6"/>
+  <text class="tm c" x="320" y="561">PostgreSQL + PostGIS (M9)</text>
+  <rect class="infra" x="436" y="536" width="230" height="40" rx="6"/>
+  <text class="tm c" x="551" y="554">ffmpeg process (M8)</text>
+  <text class="xs c" x="551" y="568">minimal LGPL build · started only by ECore</text>
+</svg>
+<figcaption><b>Figure 2 – Building blocks.</b> Blue: core (owned by the CDA). Dashed: contracts (owned by the PDA), and storage still to come. Green: plugins (one Plugin Coding Agent each). Grey: infrastructure. Plugins reach the core only through the SDKs; only ECore starts the ffmpeg process, and talks to it through pipes (ADR-0057).</figcaption>
+</figure>
+<ul>
+  <li><b>app (Spring Boot edge)</b> handles HTTP, WebSocket, login and sessions (ADR-0022) and static files. It is thin: it translates requests into ECore messages and back. Spring is used nowhere else.</li>
+  <li><b>ECore</b> is plain Java. It hosts plugins, runs all workers and the plugins' connection tasks, delivers messages, holds the master copy of all objects and offers central services: persistence, security, settings, logging, metrics and notifications. Since M5 it gives optional functions only to the plugins that declare them as <b>capabilities</b> (ADR-0044), and lets plugins read the local folders an admin sets, read only (ADR-0049). In M8 it adds a <b>stream hub</b>, which serves a plugin's live streams to its web part, and a <b>conversion service</b>, which converts MPEG-2 video to H.264 in a separate ffmpeg process (ADR-0057, section 8.5).</li>
+  <li><b>Plugin SDKs</b> (Java and TypeScript) are the contracts between core and plugins. They are frozen per milestone and changed only through change control: 1.0.0 in M1, 1.1.0 in M2, 1.2.0 in M3, 1.3.0 in M4, 1.4.0 in M5, 1.5.0 in M6, 1.6.0 and 1.7.0 in M7, and 1.8.0 in M8, still being built. Each is a compatible addition, so a plugin built for an earlier 1.x keeps working.</li>
+  <li><b>Shell</b> is the web client frame (since M2, ADRs 0027, 0029, 0031–0034, 0039). A top bar holds the tabs (View, the workspaces that plugins declare such as Simulation, Settings and Monitor), small controls from plugins such as bookmarks, the setups control, the look, the clock and logout; from M5 also the time control, shown only with a temporal plugin (ADR-0045). Settings is a list, in categories since M7: General (the default look), Data types, Layers, and one entry per plugin. The View tab has the Map Pane with docked left, right and bottom panes, whose panels the user moves; the arrangement is saved as setups, remembered automatically or by name, in each user's own documents. One display settings window, opened from the Map Pane, holds each user's symbol size, labels, speed vector, relation lines and display filters (since M5, ADR-0046, ADR-0052). The shell keeps the lists of object and map actions for the right-click menus, with the shared Delete, Move to layer and Copy to layer (ADR-0032, ADR-0053), and gives the design tokens their values in three looks, light and dark, and two densities. The map itself is a plugin (<code>map-view-2d</code>), so a 3D map view can be added later as another plugin.</li>
+  <li><b>The UX agent's design</b> (M8, ADR-0056): the User Experience Agent owns the looks' values, the shared components' look and the shell's look CSS, while the layout stays the CDA's. Its redesign gives Settings and the Monitor cards, lists as a table with a form beside it, one Save per editing surface, and the looks their own control shapes, tabs and edges. A look sets only look properties, never layout, sizes, icons, wording or behaviour.</li>
+</ul>
+
+<h3>4.2 Technology stack</h3>
+<table>
+  <tr><th style="width:22%">Area</th><th style="width:33%">Choice</th><th>Main reason</th></tr>
+  <tr><td>Server</td><td>Java 25 (LTS), Maven</td><td>Mature on Linux, long support window, strong geospatial libraries, virtual threads (ADR-0001)</td></tr>
+  <tr><td>Web edge</td><td>Spring Boot 4.1, only in <code>server/app</code></td><td>HTTP, WebSocket and OIDC ready-made; core and plugins stay framework-free (ADR-0002)</td></tr>
+  <tr><td>Web client</td><td>TypeScript, React 19, Vite 8; shared components and Lucide icons in the web SDK</td><td>Largest ecosystem, plugin web parts as ES modules (ADR-0008); one look for every plugin (ADR-0029, ADR-0034)</td></tr>
+  <tr><td>Map</td><td>OpenLayers 10 + proj4js</td><td>Any projection including polar, WMS, WebGL for many objects (ADR-0009, ADR-0035)</td></tr>
+  <tr><td>Symbology</td><td>milsymbol 3.0.4 (APP-6 B, D, E); mil-sym-ts 2.10.9 for tactical graphics since M5</td><td>Fast and robust single-point symbols (ADR-0010); every APP-6 D and E multipoint graphic, in a Web Worker (ADR-0043)</td></tr>
+  <tr><td>Geodesy</td><td>GeographicLib-Java 2.1, behind the Java SDK's <code>Geodesy</code></td><td>Exact geodesic distances and paths, e.g. for the simulator's routes, the same edges as the data model's (CR-0025, ADR-0019)</td></tr>
+  <tr><td>Video (M8)</td><td>mpegts.js 1.8.2 in the <code>fmv</code> web part; ffmpeg 9.0.2, a minimal LGPL build, run by ECore</td><td>Live H.264 in the browser through Media Source Extensions; MPEG-2 converted to H.264 in a separate process (ADR-0057, CR-0045)</td></tr>
+  <tr><td>Storage</td><td>Persistence manager: file store; PostgreSQL + PostGIS in M9</td><td>Replaceable storage, spatial queries, ready for history (ADR-0024)</td></tr>
+  <tr><td>Identity</td><td>OpenID Connect, Keycloak, login on the server side</td><td>Standard protocol, any compliant IAM works; no tokens in the browser (ADR-0022)</td></tr>
+  <tr><td>Monitoring</td><td>SLF4J, a rolling log file (M7), in-app monitor view; OpenTelemetry in M9</td><td>Open standard, self-hosted tools (ADR-0013)</td></tr>
+  <tr><td>Licences</td><td>Project: Apache 2.0. Dependencies: permissive licences, with approved exceptions</td><td>Free reuse; no copyleft linked into shipped code (ADR-0016, section 10.5)</td></tr>
+</table>
+<p>Exact versions are pinned in the build files. The libraries shared between the shell and plugin web parts (React, OpenLayers, milsymbol, proj4, the web SDK and, since SDK 1.1.0, the Lucide icons) are part of the SDK contract, with exact versions. mil-sym-ts and mpegts.js are their plugins' own dependencies, not shared packages.</p>
+
+<h2>5 Plugin architecture</h2>
+<figure>
+<svg viewBox="0 0 680 282" role="img" aria-label="Plugin package and loading">
+  <rect class="plugin" x="10" y="10" width="200" height="180" rx="6"/>
+  <text class="t c" x="110" y="34">plugins/cot/</text>
+  <rect class="inner-p" x="24" y="48" width="172" height="26" rx="4"/><text class="mono" x="34" y="65">plugin.json</text><text class="xs" x="112" y="65">manifest</text>
+  <rect class="inner-p" x="24" y="82" width="172" height="26" rx="4"/><text class="mono" x="34" y="99">server/</text><text class="xs" x="112" y="99">Java jars</text>
+  <rect class="inner-p" x="24" y="116" width="172" height="26" rx="4"/><text class="mono" x="34" y="133">web/</text><text class="xs" x="112" y="133">ES modules</text>
+  <text class="lbl c" x="110" y="168">one package, versioned together</text>
+
+  <rect class="core" x="270" y="10" width="400" height="86" rx="6"/>
+  <text class="tm" x="284" y="30">Server process</text>
+  <rect class="inner" x="284" y="42" width="150" height="40" rx="4"/>
+  <text class="s c" x="359" y="66">ECore plugin host</text>
+  <line class="ln" x1="436" y1="62" x2="466" y2="62" marker-end="url(#arr)"/>
+  <rect class="inner" x="468" y="42" width="188" height="40" rx="4"/>
+  <text class="s c" x="562" y="58">Class loader for cot</text>
+  <text class="xs c" x="562" y="73">sees the Plugin SDK + its own jars</text>
+
+  <rect class="core" x="270" y="108" width="400" height="86" rx="6"/>
+  <text class="tm" x="284" y="128">Browser</text>
+  <rect class="inner" x="284" y="140" width="150" height="40" rx="4"/>
+  <text class="s c" x="359" y="164">Shell plugin loader</text>
+  <line class="ln" x1="436" y1="160" x2="466" y2="160" marker-end="url(#arr)"/>
+  <rect class="inner" x="468" y="140" width="188" height="40" rx="4"/>
+  <text class="s c" x="562" y="156">import() of the web part</text>
+  <text class="xs c" x="562" y="171">shared libraries via import map</text>
+
+  <line class="ln" x1="212" y1="95" x2="268" y2="62" marker-end="url(#arr)"/>
+  <line class="ln" x1="212" y1="129" x2="268" y2="160" marker-end="url(#arr)"/>
+
+  <text class="gt" x="10" y="222">Start-up sequence – plugins are never loaded or unloaded while running</text>
+  <g>
+    <polygon class="core" points="10,232 92,232 102,252 92,272 10,272 20,252"/>
+    <text class="xs c" x="58" y="256">Read manifests</text>
+    <polygon class="core" points="104,232 186,232 196,252 186,272 104,272 114,252"/>
+    <text class="xs c" x="152" y="256">Validate</text>
+    <polygon class="core" points="198,232 280,232 290,252 280,272 198,272 208,252"/>
+    <text class="xs c" x="246" y="250">Order by</text><text class="xs c" x="246" y="262">dependencies</text>
+    <polygon class="core" points="292,232 374,232 384,252 374,272 292,272 302,252"/>
+    <text class="xs c" x="340" y="250">Create class</text><text class="xs c" x="340" y="262">loaders</text>
+    <polygon class="core" points="386,232 468,232 478,252 468,272 386,272 396,252"/>
+    <text class="mono c" x="434" y="256">init()</text>
+    <polygon class="core" points="480,232 562,232 572,252 562,272 480,272 490,252"/>
+    <text class="mono c" x="528" y="256">start()</text>
+    <polygon class="core" points="574,232 656,232 666,252 656,272 574,272 584,252"/>
+    <text class="xs c" x="622" y="250">Register</text><text class="xs c" x="622" y="262">web parts</text>
+  </g>
+</svg>
+<figcaption><b>Figure 3 – Plugin package and loading.</b> A plugin has an optional server part and an optional web part. Each server part gets its own class loader, which avoids dependency conflicts; it is not a security sandbox, since plugins are trusted.</figcaption>
+</figure>
+<table>
+  <tr><th style="width:30%">Plugin kind</th><th>Purpose and examples</th></tr>
+  <tr><td>Map view</td><td>The map engine in the Map Pane; exactly one active per pane. <code>map-view-2d</code> (OpenLayers), a 3D view later.</td></tr>
+  <tr><td>Background map</td><td>Supplies a background map to the map view: tiles, vector data drawn in any projection, or a WMS map. <code>basemap-osm</code> (development and demos only), <code>basemap-naturalearth</code> (offline, M1), <code>basemap-wms</code> (M4: a WMS map requested through the plugin's server part, only in the projections the server offers; the admin picks the layers in the plugin's own settings panel, ADR-0035).</td></tr>
+  <tr><td>Utility</td><td>Services and tools; places no objects itself. <code>symbology</code> (APP-6 and vessel symbols, and since M5 tactical graphics with mil-sym-ts), <code>coordinates</code>, <code>bookmarks</code> (M2), <code>terrain</code> (M5: range, bearing, viewshed and a height map from local height data, ADR-0049).</td></tr>
+  <tr><td>General</td><td>Places and edits objects. <code>draw-symbols</code> (since M7 with symbol palettes), <code>layer-panel</code>, <code>draw-shapes</code> (M2, ADR-0033), <code>draw-tactical</code> (M5: tactical graphics, ADR-0043), <code>object-list</code> (M2: a layer's objects, page by page), <code>simulator</code> (M3: routes, groups, events and outputs in the Simulation workspace, ADR-0040; since M5 ground radar sensors and scenarios, ADR-0048).</td></tr>
+  <tr><td>In and out</td><td>A property any kind may have rather than a kind (below): <code>cot</code> (CoT in since M1, out since M3), <code>ais</code> and <code>adsb</code> (M4, in only, server part only), <code>gmti</code> (M5: STANAG 4607 in and out, ADR-0048), <code>nvg</code> (M7: NVG files and the NVG web service, in and out, ADR-0055), <code>fmv</code> (M8: STANAG 4609 full motion video in, ADR-0057).</td></tr>
+</table>
+<p>Any kind may also be <b>ingoing</b> (consumes external data) or <b>outgoing</b> (sends data out), using push or pull. Since M3 such plugins open their own sockets in <b>connection tasks</b>, and are configured as <b>links</b> in their settings; every output link is also an <b>output channel</b> that other plugins can send to (section 8.3). Since M4 the <b>in/out playbook</b> (<code>docs/plugins/in-out/</code>) describes how to build one in work packages, and the plugin template carries six transport modes to copy (UDP, TCP server and client, each sending or receiving). <code>ais</code> and <code>adsb</code> were its first test. A plugin that later needs its own process is connected through a <b>stub plugin</b> that implements the same SDK interfaces and forwards over inter-process communication.</p>
+<ul>
+  <li><b>Manifest</b> (<code>plugin.json</code>): its schema lives in <code>model/</code> but is versioned with the SDK. It declares the identity, kind, compatible SDK versions and start order (<code>dependsOn</code>); the web services a plugin provides and requires; whether it is required; its internet use and, from SDK 1.2.0, its own connections, for the server part only (<code>internet</code> and <code>connections</code>: declarations, shown in the monitor view; ECore checks no host, ADR-0030, ADR-0036); its settings with defaults; its permissions; from SDK v1 its data types (ADR-0023); from SDK 1.2.0 its workspaces (ADR-0039) and its declared fields (ADR-0038); from 1.4.0 its capabilities (ADR-0044), field sets (ADR-0050), relation kinds (ADR-0051) and local folders (ADR-0049); from 1.6.0 its Settings category and symbol palettes; and from 1.8.0 an icon. The plugin host rejects dependency cycles.</li>
+  <li><b>Installed layout:</b> <code>plugins/&lt;id&gt;/plugin.json</code>, <code>server/*.jar</code> and <code>web/</code>.</li>
+  <li><b>Build wiring:</b> a plugin's server part is a Maven module of the server build, registered with one line in <code>server/pom.xml</code>. Its web part is an npm workspace of the repository root, so all web parts share one lock file and the exact library versions the shell ships (CR-0006).</li>
+  <li><b>Template:</b> <code>plugins/_template/</code> is built and tested like a plugin, but never installed. Plugin agents copy it, and a test kit (ArchUnit rules, a fake plugin context, a fake object store, codec contract tests) checks every plugin's rules in its own build. The web test kit has fakes for the context, the map view and the services.</li>
+  <li><b>19 plugins</b> on <code>main</code> after M7: <code>map-view-2d</code>, <code>basemap-osm</code>, <code>basemap-naturalearth</code>, <code>basemap-wms</code>, <code>symbology</code>, <code>coordinates</code>, <code>bookmarks</code>, <code>terrain</code>, <code>draw-symbols</code>, <code>draw-shapes</code>, <code>draw-tactical</code>, <code>layer-panel</code>, <code>object-list</code>, <code>simulator</code>, <code>cot</code>, <code>ais</code>, <code>adsb</code>, <code>gmti</code> and <code>nvg</code>, each built by its own Plugin Coding Agent from a brief by the PDA. <code>fmv</code>, the 20th, is being built for M8 on <code>integration/sdk-v1.8</code>.</li>
+</ul>
+
+<h2>6 Concurrency design</h2>
+<figure>
+<svg viewBox="0 0 680 290" role="img" aria-label="Concurrency model">
+  <rect class="core" x="10" y="40" width="150" height="58" rx="6"/>
+  <text class="tm c" x="85" y="63">Connection task</text>
+  <text class="xs c" x="85" y="81">own thread · plugin's sockets</text>
+  <rect class="core" x="10" y="128" width="150" height="50" rx="6"/>
+  <text class="tm c" x="85" y="150">Timer</text>
+  <text class="xs c" x="85" y="166">one-off or periodic message</text>
+
+  <rect class="core" x="210" y="22" width="210" height="96" rx="6"/>
+  <text class="tm c" x="315" y="42">Worker – cot</text>
+  <rect class="inner" x="246" y="54" width="16" height="16"/><rect class="inner" x="266" y="54" width="16" height="16"/>
+  <rect class="inner" x="286" y="54" width="16" height="16"/><rect class="inner" x="306" y="54" width="16" height="16"/>
+  <rect class="inner" x="326" y="54" width="16" height="16" style="stroke-dasharray:3 2"/><rect class="inner" x="346" y="54" width="16" height="16" style="stroke-dasharray:3 2"/>
+  <text class="xs c" x="315" y="88">bounded mailbox · policy COALESCE_BY_KEY</text>
+  <text class="xs c" x="315" y="104">handler: one message at a time</text>
+
+  <rect class="core" x="460" y="22" width="210" height="96" rx="6"/>
+  <text class="tm c" x="565" y="42">Worker – object store</text>
+  <rect class="inner" x="496" y="54" width="16" height="16"/><rect class="inner" x="516" y="54" width="16" height="16"/>
+  <rect class="inner" x="536" y="54" width="16" height="16"/><rect class="inner" x="556" y="54" width="16" height="16" style="stroke-dasharray:3 2"/>
+  <rect class="inner" x="576" y="54" width="16" height="16" style="stroke-dasharray:3 2"/><rect class="inner" x="596" y="54" width="16" height="16" style="stroke-dasharray:3 2"/>
+  <text class="xs c" x="565" y="88">owns all objects – no locks needed</text>
+  <text class="xs c" x="565" y="104">handler: one message at a time</text>
+
+  <line class="ln" x1="162" y1="62" x2="244" y2="62" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <text class="lbl c" x="185" y="55">posts</text>
+
+  <rect class="core" x="210" y="150" width="460" height="32" rx="6"/>
+  <text class="s c" x="440" y="170">Message bus – immutable messages · topics · request/reply always with timeout</text>
+  <line class="ln" x1="315" y1="120" x2="315" y2="148" marker-end="url(#arr)"/>
+  <line class="ln" x1="565" y1="148" x2="565" y2="120" marker-end="url(#arr)"/>
+  <line class="ln" x1="162" y1="153" x2="208" y2="160" marker-end="url(#arr)"/>
+
+  <rect class="infra" x="210" y="214" width="220" height="62" rx="6"/>
+  <text class="tm c" x="320" y="238">Compute workers</text>
+  <text class="xs c" x="320" y="256">bounded pool of platform threads</text>
+  <line class="ln" x1="320" y1="184" x2="320" y2="212" marker-start="url(#arr)" marker-end="url(#arr)"/>
+
+  <rect class="risk" x="460" y="214" width="210" height="62" rx="6"/>
+  <text class="tm c" x="565" y="238">Watchdog</text>
+  <text class="xs c" x="565" y="254">time budget per handler call</text>
+  <text class="xs c" x="565" y="268">exceeded → HUNG, reported</text>
+
+  <text class="s" x="10" y="226">Plugins never create threads.</text>
+  <text class="s" x="10" y="242">They request workers, connection</text>
+  <text class="s" x="10" y="258">tasks and timers from ECore.</text>
+</svg>
+<figcaption><b>Figure 4 – Concurrency model.</b> All parallel work runs in core-managed mechanisms. Workers share no state and talk only through immutable messages. Plugins use no locks; ECore shares only leaf locks between them, and nothing waits forever.</figcaption>
+</figure>
+<table>
+  <tr><th style="width:8%">Rule</th><th>Content (normative – see overview 4.2 and ADR-0004)</th></tr>
+  <tr><td>C1</td><td>Plugins never create threads, executors or thread pools; they request workers, connection tasks (from SDK 1.2.0), timers and the deprecated listeners from ECore.</td></tr>
+  <tr><td>C2</td><td>A worker handles one message at a time; its state is only touched by itself.</td></tr>
+  <tr><td>C3</td><td>Workers communicate only through immutable messages (Java records).</td></tr>
+  <tr><td>C4</td><td>Plugins use no locks, monitors or blocking synchronizers. ECore shares a lock between plugins only if it is a <b>leaf lock</b>: no plugin code runs and no other lock is taken while it is held, and plugins cannot see it (ADR-0021).</td></tr>
+  <tr><td>C5</td><td>Every request/reply has a timeout; events are preferred.</td></tr>
+  <tr><td>C6–C8</td><td>Blocking I/O only in connection tasks (or the deprecated listeners), and plugins open sockets only there; CPU-heavy work in compute workers; no Java preview features.</td></tr>
+</table>
+<ul>
+  <li><b>Mailboxes are bounded</b> and declare an overflow policy: <code>DROP_OLDEST</code>, <code>DROP_NEWEST</code> or <code>COALESCE_BY_KEY</code>, which keeps only the newest message per key and suits track position updates. <code>BLOCK_SENDER</code> (with a timeout) exists only inside ECore; plugins never block on a send.</li>
+  <li><b>Connection tasks</b> (since M3, ADR-0036) run a plugin's own sockets of any kind: TCP client or server, UDP, multicast. ECore starts each on a platform thread of its own, restarts it with a back-off, caps the tasks per plugin, closes their sockets when they stop, and fences a stopped task. A task posts what it receives to workers as messages; workers hand it data to send through a bounded inbox, never blocking. Connection tasks use platform threads rather than virtual threads because of a JDK bug on Windows (JDK-8334574, CR-0027); workers stay on virtual threads.</li>
+  <li><b>Plugin code runs only in the plugin's own workers</b>, and in its connection tasks. Functions a plugin hands to the SDK (handler factories, mappers) run inside the target worker under its time budget, so only data and handle ids would cross a future process boundary.</li>
+  <li><b>Watchdog:</b> a worker that exceeds its time budget (5 s by default) is marked HUNG. If it is restartable, ECore fences the stuck instance and starts a fresh one on the same mailbox, up to a restart limit; otherwise its plugin is marked DEGRADED. Java cannot safely force-stop a thread, so a stuck thread is isolated and reported rather than killed.</li>
+  <li><b>Caps per plugin</b> (CR-0005): at most 10 000 outstanding asks and 1 000 active timers, so one plugin cannot fill the scheduler for everyone. Refusals are counted, logged and shown in the monitor view (M1).</li>
+  <li><b>Enforcement in three layers:</b> static architecture rules (ArchUnit, from the SDK's test kit) in every plugin's build, which also refuse sockets outside connection tasks; the watchdog at run time; and review before every merge, plus concurrency stress tests by the Integration Test Agent.</li>
+  <li><b>Streams</b> (M8, ADR-0057): ECore's stream hub runs each viewer of a plugin's stream on a virtual thread of its own, so a slow viewer never holds up the plugin or the other viewers: past a bound it loses data, and the monitor counts it. The plugin hands its stream to the hub as immutable chunks from its connection task and never waits for a viewer.</li>
+  <li><b>External processes</b> (M8, ADR-0057): only ECore starts a program, the shipped ffmpeg, one process per converted stream, and talks to it through pipes behind one narrow call, with timeouts for its start, a stalled conversion and its stop. Plugins never start programs, as they never create threads.</li>
+  <li><b>In the browser,</b> the rules keep their spirit in the one Web Worker, the symbology plugin's for tactical graphics since M5: copied messages, no shared memory, a timeout per request (ADR-0043).</li>
+</ul>
+
+<h2>7 Object changes and the live picture</h2>
+<figure>
+<svg viewBox="0 0 730 380" role="img" aria-label="Sequence of an object change">
+  <rect class="core" x="0" y="8" width="100" height="40" rx="5"/><text class="tm c" x="50" y="33">Browser A</text>
+  <rect class="core" x="120" y="8" width="100" height="40" rx="5"/><text class="xs c" x="170" y="25" style="font-weight:700">Live picture</text><text class="xs c" x="170" y="39" style="font-weight:700">gateway</text>
+  <rect class="core" x="250" y="8" width="100" height="40" rx="5"/><text class="tm c" x="300" y="33">Object store</text>
+  <rect class="core" x="414" y="8" width="96" height="40" rx="5"/><text class="xs c" x="462" y="25" style="font-weight:700">Persistence</text><text class="xs c" x="462" y="39" style="font-weight:700">manager</text>
+  <rect class="plugin" x="526" y="8" width="96" height="40" rx="5"/><text class="xs c" x="574" y="25" style="font-weight:700">Plugin</text><text class="xs c" x="574" y="39" style="font-weight:700">(e.g. cot)</text>
+  <rect class="core" x="634" y="8" width="96" height="40" rx="5"/><text class="tm c" x="682" y="33">Browser B</text>
+
+  <line class="life" x1="50" y1="48" x2="50" y2="372"/>
+  <line class="life" x1="170" y1="48" x2="170" y2="372"/>
+  <line class="life" x1="300" y1="48" x2="300" y2="372"/>
+  <line class="life" x1="462" y1="48" x2="462" y2="372"/>
+  <line class="life" x1="574" y1="48" x2="574" y2="372"/>
+  <line class="life" x1="682" y1="48" x2="682" y2="372"/>
+
+  <line class="ln" x1="50" y1="82" x2="168" y2="82" marker-end="url(#arr)"/>
+  <text class="xs c" x="110" y="76">1 ChangeRequest</text>
+  <line class="ln" x1="170" y1="116" x2="292" y2="116" marker-end="url(#arr)"/>
+  <text class="xs c" x="234" y="110">2 as message</text>
+
+  <rect class="core" x="294" y="118" width="12" height="74"/>
+  <text class="xs" x="314" y="140">3 check permission, validate,</text>
+  <text class="xs" x="314" y="154">assign version + sequence no.,</text>
+  <text class="xs" x="314" y="168">apply (last write wins)</text>
+
+  <line class="ln" x1="306" y1="208" x2="460" y2="208" marker-end="url(#arr)"/>
+  <text class="xs c" x="382" y="202">4 ChangeEvent (objects.changed)</text>
+  <line class="ln" x1="306" y1="236" x2="572" y2="236" marker-end="url(#arr)"/>
+  <text class="xs c" x="518" y="230">4 ChangeEvent</text>
+  <line class="ln" x1="294" y1="264" x2="172" y2="264" marker-end="url(#arr)"/>
+  <text class="xs c" x="234" y="258">4 ChangeEvent</text>
+
+  <text class="xs" x="470" y="290">5 store (write-behind)</text>
+  <text class="xs" x="582" y="262">5 e.g. send</text>
+  <text class="xs" x="582" y="275">CoT out</text>
+
+  <line class="ln" x1="168" y1="306" x2="52" y2="306" marker-end="url(#arr)"/>
+  <text class="xs c" x="110" y="300">6 delta</text>
+  <line class="ln" x1="172" y1="342" x2="680" y2="342" marker-end="url(#arr)"/>
+  <rect x="176" y="326" width="262" height="13" fill="#fff"/>
+  <text class="xs" x="180" y="336">6 delta – only if inside B's area of interest</text>
+</svg>
+<figcaption><b>Figure 5 – An object change.</b> Every change, from users and plugins alike, passes through the object store, the single writer. It produces a change event that persistence, the live picture gateway and interested plugins consume.</figcaption>
+</figure>
+<ul>
+  <li><b>Single writer for objects and layers</b> (ADR-0005, ADR-0018): all changes are ordered by sequence number, and race conditions on objects cannot occur.</li>
+  <li><b>Permissions first</b> (since M1, overview 4.4): a user's change request needs <code>objects.edit</code> for an object and <code>layers.edit</code> for a layer, checked before anything else; without it the answer is <code>PERMISSION_DENIED</code> and nothing changes. In a workspace that a plugin declares (since M3), its own edit permission takes their place (ADR-0039). Changes from plugins' server parts and from ECore itself are not checked. The browser only hides what a user may not do.</li>
+  <li><b>The layer lock</b> (since M4, ADR-0042): while a layer is locked, the store refuses a user's change to its content with <code>LAYER_LOCKED</code>: creating, changing, moving or deleting its objects, and changing or deleting the layer itself. Locking, unlocking and the draw order stay changeable by whoever may edit the layer. Changes without a user pass, so incoming data and the simulator's moves keep flowing into a locked layer.</li>
+  <li><b>Exactly one answer per change request</b> (ADR-0018): a change event for everyone, or a <b>change rejection</b> with a fixed code (section 9.7) for the requester only, both carrying the request's <code>requestId</code>. If no answer arrives, the SDK reports "outcome unknown".</li>
+  <li><b>Extension ownership is enforced by the object store</b> (ADR-0018): an update applies only the requesting plugin's own extension namespace and keeps every other one as stored. Since M3 a request may also name <b>declared fields</b> of other plugins that those plugins let others edit; the store checks each against its declaration and applies only them (ADR-0038).</li>
+  <li><b>Last write wins</b> in version 1. Change requests already carry <code>baseVersion</code>, so optimistic locking can be added later without changing the model.</li>
+  <li><b>From the browser:</b> the shell fills in <code>requestId</code> and the calling plugin; the server sets the user from the login session and never trusts it from the client. The shell's own changes, the shared Delete and the Layers entry's raise of a layer's classification, carry the reserved <code>source.plugin</code> <code>core-shell</code> (ADR-0032, CR-0015).</li>
+  <li><b>Move and copy to layer</b> (since M6, ADR-0053): two shared object actions of the shell, like Delete. A move is an update with the new <code>layerId</code>, so the id, the relations and every extension stay; a copy is a create of a snapshot with a new id and no <code>externalRef</code>. Both stay within the current workspace, and the lock applies.</li>
+  <li><b>Objects the browser does not hold</b> (since SDK 1.1.0): a plugin reads objects by id, and a layer's objects page by page, from the server, independent of the area of interest; the objects list uses this.</li>
+  <li><b>Live picture</b> (protocol in <code>server/live-picture-protocol.md</code>): over one WebSocket, each browser opens subscriptions (since M1, spike S3). An area subscription gets a snapshot of its area of interest, then deltas, and clusters with counts when the area holds more objects than its budget; a panel can subscribe to the layers and their object counts only. The map view applies batches at its own cadence (ADR-0017). Since M3 a page subscribes to the layers of the workspace it shows, and the server sends a declared workspace's layers only to users with its view permission (ADR-0039).</li>
+  <li><b>History later:</b> a change event holds everything needed. Storing events in an append-only log gives audit and timeline playback without redesign. A running simulation's moves are the exception: they are not stored (section 8.2).</li>
+</ul>
+
+<h2>8 Workspaces, simulator, sensors and video</h2>
+<p>Milestone M3, the Simulator, added the mechanisms of sections 8.1 to 8.3 (ADR-0036 to ADR-0041), following the owner's answers in <code>docs/architecture/m3-simulator-decisions.md</code>. M4 extended them with new inputs and the in/out playbook, M5 with sensors and GMTI (section 8.4), M7 with NVG, and M8 with full motion video (section 8.5). M9 brings a simulated camera (section 8.6).</p>
+
+<h3>8.1 Workspaces</h3>
+<ul>
+  <li><b>A workspace is a top-bar tab with the View layout</b> (ADR-0039): the Map Pane and the docked panes, with its own map state, panel layout, setups and layers. View is ECore's own; a plugin may declare more in its manifest, each with a permission to see it and one to change its layers and objects. The simulator declares Simulation.</li>
+  <li><b>A page shows one workspace at a time.</b> Switching works like a new connection with another filter: fresh snapshots, the new workspace's panels and map state. Two workspaces at once means two browser windows.</li>
+  <li><b>Plugins choose where they appear:</b> panels, overlays and actions name their workspaces, and appear in View only otherwise. Simulation reuses the map view, background maps, layer panel, symbols, shapes, coordinates, objects list and bookmarks, with no copied code.</li>
+  <li><b>A layer names its workspace</b> (data model 1.2.0). In a declared workspace, View's layers can be shown as a read-only reference. The server enforces the workspace's permissions: its layers and objects reach only users who may see it, in subscriptions, queries and fetches alike.</li>
+  <li><b>First layers</b> (M4): when there are none, the server creates "Drawing" in View and the simulator "Simulation" in its workspace.</li>
+</ul>
+
+<h3>8.2 The simulator</h3>
+<ul>
+  <li><b>One shared simulation per server</b> (ADR-0040), run by the <code>simulator</code> plugin's server part: one worker owns its state and a timer ticks it once per second, for at least 1 000 tracks. It runs with no browser open, and is kept over a restart, then paused. Its own permissions: to see, to edit and to run.</li>
+  <li><b>Tracks and routes are ordinary objects</b> in the Simulation workspace: tracks are placed with <code>draw-symbols</code>; a route is a line object whose points carry a speed and an altitude, each instant or ramped. A time can be typed instead of a speed. Units are each user's choice; values are stored in SI units. Tracks move along geodesics, with their position, direction and speed updated by change requests.</li>
+  <li><b>Groups and events:</b> selected objects are put on a route as a single object, a convoy (one after the other) or a formation (keeping their offsets, turning with the route). Events at route points change a field of the passing object, or hide it. Start, pause and reset work per route and for all. Since M4 the simulator names unnamed tracks after their route, so that CoT carries a callsign.</li>
+  <li><b>Outputs:</b> the simulator lists the output channels it finds (section 8.3). A <b>Ground truth output</b> sends every track of the simulation to the chosen ones at each tick; since M5 a <b>Sensor output</b> sends what a simulated sensor detects (section 8.4, ADR-0048).</li>
+  <li><b>Scenarios</b> (M5): a whole simulation is exported to a scenario file and imported again; since M7 from a Scenario item in the top bar.</li>
+  <li><b>Unsaved moves</b> (ADR-0041, from spike S6): while a simulation runs, its moves are applied and sent as usual but not written to disk; the journal declares the gaps. The simulator saves its tracks and its own state before a route runs, when it pauses, stops or is reset, and when a user changes the simulation. After a restart it places the tracks from that saved state, paused.</li>
+</ul>
+
+<h3>8.3 Data in and out</h3>
+<figure>
+<svg viewBox="0 0 680 388" role="img" aria-label="Data in and out">
+  <rect class="plugin" x="10" y="30" width="160" height="58" rx="6"/>
+  <text class="tm c" x="90" y="54">Simulator</text>
+  <text class="xs c" x="90" y="72">tracks in Simulation, 1 Hz</text>
+  <rect class="plugin" x="255" y="30" width="160" height="58" rx="6"/>
+  <text class="tm c" x="335" y="54">cot output link</text>
+  <text class="xs c" x="335" y="72">an output channel</text>
+  <rect class="ext" x="500" y="30" width="170" height="58" rx="6"/>
+  <text class="tm c" x="585" y="54">TAK Server</text>
+  <text class="xs c" x="585" y="72">TAK clients, e.g. WinTAK</text>
+
+  <rect class="core" x="10" y="130" width="160" height="58" rx="6"/>
+  <text class="tm c" x="90" y="154">Layer in View</text>
+  <text class="xs c" x="90" y="172">the tracks as received</text>
+  <rect class="plugin" x="255" y="130" width="160" height="58" rx="6"/>
+  <text class="tm c" x="335" y="154">cot input link</text>
+  <text class="xs c" x="335" y="172">data source = link name</text>
+
+  <rect class="core" x="10" y="226" width="160" height="58" rx="6"/>
+  <text class="tm c" x="90" y="250">Layers in View</text>
+  <text class="xs c" x="90" y="268">ships · aircraft · detections · NVG</text>
+  <rect class="plugin" x="255" y="226" width="160" height="58" rx="6"/>
+  <text class="tm c" x="335" y="250">Input links</text>
+  <text class="xs c" x="335" y="268">ais · adsb (M4) · gmti (M5) · nvg (M7)</text>
+  <rect class="ext" x="500" y="226" width="170" height="58" rx="6"/>
+  <text class="tm c" x="585" y="250">AIS · ADS-B · GMTI · NVG</text>
+  <text class="xs c" x="585" y="268">receivers · radars · NVG services</text>
+
+  <rect class="plugin" x="10" y="322" width="160" height="58" rx="6"/>
+  <text class="tm c" x="90" y="346">Simulator sensors</text>
+  <text class="xs c" x="90" y="364">ground radars on tracks</text>
+  <rect class="plugin" x="255" y="322" width="160" height="58" rx="6"/>
+  <text class="tm c" x="335" y="346">gmti output link</text>
+  <text class="xs c" x="335" y="364">a Sensor output's channel</text>
+  <rect class="ext" x="500" y="322" width="170" height="58" rx="6"/>
+  <text class="tm c" x="585" y="346">GMTI systems</text>
+  <text class="xs c" x="585" y="364">or emcc's own gmti input</text>
+  <line class="ln" x1="172" y1="351" x2="253" y2="351" marker-end="url(#arr)"/>
+  <text class="lbl c" x="212" y="344">dwells</text>
+  <line class="ln" x1="417" y1="351" x2="498" y2="351" marker-end="url(#arr)"/>
+  <text class="lbl c" x="457" y="344">STANAG 4607</text>
+  <text class="gt" x="10" y="312">Sensors since M5</text>
+
+  <line class="ln" x1="172" y1="59" x2="253" y2="59" marker-end="url(#arr)"/>
+  <text class="lbl c" x="212" y="52">tracks</text>
+  <line class="ln" x1="417" y1="59" x2="498" y2="59" marker-end="url(#arr)"/>
+  <text class="lbl c" x="457" y="52">CoT</text>
+  <path class="ln" d="M585,90 V159 H417" marker-end="url(#arr)"/>
+  <text class="lbl" x="592" y="128">CoT</text>
+  <line class="ln" x1="255" y1="159" x2="172" y2="159" marker-end="url(#arr)"/>
+  <text class="lbl c" x="212" y="152">objects</text>
+  <line class="ln" x1="500" y1="255" x2="417" y2="255" marker-end="url(#arr)"/>
+  <text class="lbl c" x="457" y="248">own formats</text>
+  <line class="ln" x1="255" y1="255" x2="172" y2="255" marker-end="url(#arr)"/>
+  <text class="lbl c" x="212" y="248">objects</text>
+  <text class="gt" x="10" y="18">The M3 demo loop</text>
+  <text class="gt" x="10" y="216">More inputs, M4 to M7</text>
+</svg>
+<figcaption><b>Figure 6 – Data in and out.</b> Green: plugins' links, each running on connection tasks. An input link writes into one target layer; an output link sends its source layers and whatever other plugins give its output channel. The simulation's ground truth stays in the Simulation workspace, and what came back from TAK shows in View. <code>gmti</code> and <code>nvg</code> also send out; full motion video is in section 8.5.</figcaption>
+</figure>
+<ul>
+  <li><b>Connection tasks</b> (ADR-0036, section 6) carry every plugin's own sockets. A connection that listens binds to loopback unless an admin chooses an interface; a multicast link needs an interface an admin names. Hosts and ports come from the plugin's settings, never from a browser request, a message or an object's data (ADR-0030).</li>
+  <li><b>A link is one configured connection</b> of an in or out plugin (ADR-0037), set up by an admin in the plugin's settings: a name, which becomes the data source of what it receives (ADR-0023), a transport and a direction (in, out or both, on one connection). An input link writes into one target layer, chosen with a layer picker in the settings form. An output link sends the objects of its source layers, and never sends an object back to the link it came from.</li>
+  <li><b>Every output link is also an output channel.</b> Other plugins' server parts find the channels through the SDK and send to them without a layer: the simulator does. A channel says what it can do (for example, send a delete) and which declared fields its protocol uses. A slow output keeps only the latest update per object, never a growing queue.</li>
+  <li><b>Release limit:</b> each output link has a highest classification it may send, by default that of the server's default label; objects above it, and objects it cannot carry, are skipped and counted in the monitor view.</li>
+  <li><b><code>cot</code></b> sends and receives CoT over a TCP client (TAK Server, with TLS), UDP or multicast. APP-6 maps to the CoT type; the object's name becomes the callsign (M4). Its check against a real TAK Server with WinTAK passed in M3.</li>
+  <li><b><code>ais</code> and <code>adsb</code></b> (M4) were built by the in/out playbook, as its first test, and are input only. <code>ais</code> reads NMEA 0183 AIVDM sentences over UDP or TCP, <code>adsb</code> the SBS-1 (BaseStation) text of a decoder on TCP port 30003. Each keeps one symbol per ship or aircraft, at its last position. The External Services Agent plays recorded AIS and ADS-B data back for their tests.</li>
+  <li><b><code>nvg</code></b> (M7, ADR-0055) reads and writes NATO Vector Graphics, as files and through the NVG web service. An import becomes ordinary objects of the drawing plugins' data types, texts as <code>core.text</code>; a composite's parts stay linked by a relation; a re-import updates objects by their <code>externalRef</code>; and anything in a layer can be written out as NVG.</li>
+  <li><b>Declared fields</b> (ADR-0038): a plugin declares fields in its own namespace that other plugins' editors may set, such as a CoT team or role. Since M5 it groups them into <b>field sets</b> that an object carries (ADR-0050), and since M6 a data type brings its plugin's sets (ADR-0054). The shared editor in the web SDK shows one set at a time.</li>
+</ul>
+
+<h3>8.4 Sensors and GMTI</h3>
+<ul>
+  <li><b>A simulated ground radar</b> (M5, ADR-0048) is a sensor on a simulated track, one sensor per track. It scans a job area in dwells, detects the tracks it covers and sends dwells with their reports to the Sensor outputs a user picks. Its presets go from a wide wedge to a narrow one. Built in M8 and not yet released: the Narrow wedge follows recorded AFSERS radar data, and a <b>Systematic</b> scan mode covers the search area in order and revisits the targets it finds, beside the earlier Random one.</li>
+  <li><b><code>gmti</code></b> sends and receives STANAG 4607 Edition 4 (AEDP-4607). A received dwell becomes detections, drawn with symbology's sensor report symbol (data type <code>gmti.detection</code>, since M6), the platform, and dwell areas; a <b>pairing line</b> joins each detection to its platform (a relation, ADR-0051). Built in M8 and not yet released: one dwell area per revisit, kept until it fades.</li>
+  <li><b>Fading</b> (M7, CR-0042): a data type may name a stepped fade in its plugin's settings, e.g. full until 10 s, then 5 % steps to invisible at 100 s. The map view draws it once a second, with no change events.</li>
+  <li><b>Display settings per user</b> (M5, ADR-0046, ADR-0052): each user switches relation lines, dwell areas and sensor coverage on and off, and sets symbol size, labels and the speed vector, in one window.</li>
+</ul>
+
+<h3>8.5 Full motion video (M8)</h3>
+<figure>
+<svg viewBox="0 0 680 274" role="img" aria-label="Full motion video">
+  <rect class="ext" x="6" y="30" width="124" height="64" rx="6"/>
+  <text class="tm c" x="68" y="54">UAV · replay</text>
+  <text class="xs c" x="68" y="72">STANAG 4609 over UDP</text>
+  <text class="xs c" x="68" y="86">H.264 · H.265 · MPEG-2</text>
+
+  <rect class="plugin" x="170" y="22" width="160" height="80" rx="6"/>
+  <text class="tm c" x="250" y="42">fmv input link</text>
+  <text class="xs c" x="250" y="60">connection task</text>
+  <text class="xs c" x="250" y="74">reads PAT, PMT, KLV, keyframes</text>
+  <text class="xs c" x="250" y="88">ST 0601 · ST 0102 in Java</text>
+
+  <rect class="core" x="370" y="10" width="140" height="44" rx="6"/>
+  <text class="tm c" x="440" y="30">Object store</text>
+  <text class="xs c" x="440" y="46">camera + field of view</text>
+  <rect class="core" x="370" y="70" width="140" height="56" rx="6"/>
+  <text class="tm c" x="440" y="90">Stream hub</text>
+  <text class="xs c" x="440" y="106">keyframe start per viewer</text>
+  <text class="xs c" x="440" y="119">slow viewers lose data</text>
+  <rect class="core" x="370" y="146" width="140" height="44" rx="6"/>
+  <text class="tm c" x="440" y="166">Conversion service</text>
+  <text class="xs c" x="440" y="182">MPEG-2 only</text>
+  <rect class="infra" x="370" y="222" width="140" height="44" rx="6"/>
+  <text class="tm c" x="440" y="242">ffmpeg process</text>
+  <text class="xs c" x="440" y="258">to H.264, KLV kept</text>
+
+  <rect class="core" x="550" y="10" width="124" height="44" rx="6"/>
+  <text class="tm c" x="612" y="30">Map</text>
+  <text class="xs c" x="612" y="46">camera symbol · open arc</text>
+  <rect class="plugin" x="550" y="70" width="124" height="70" rx="6"/>
+  <text class="tm c" x="612" y="90">fmv web part</text>
+  <text class="xs c" x="612" y="106">FMV panel</text>
+  <text class="xs c" x="612" y="119">floating video window</text>
+  <text class="xs c" x="612" y="132">mpegts.js</text>
+
+  <line class="ln" x1="132" y1="62" x2="168" y2="62" marker-end="url(#arr)"/>
+  <path class="ln" d="M332,40 H350 V32 H368" marker-end="url(#arr)"/>
+  <text class="lbl" x="300" y="15">changes</text>
+  <path class="ln" d="M332,84 H350 V98 H368" marker-end="url(#arr)"/>
+  <text class="lbl" x="336" y="116">chunks</text>
+  <path class="ln" d="M300,104 V168 H368" marker-end="url(#arr)"/>
+  <text class="lbl" x="306" y="160">MPEG-2</text>
+  <line class="ln" x1="440" y1="192" x2="440" y2="220" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <text class="lbl" x="448" y="211">pipes</text>
+  <path class="ln" d="M512,168 H530 V112 H512" marker-end="url(#arr)"/>
+  <text class="lbl" x="535" y="160">H.264</text>
+  <line class="ln" x1="512" y1="32" x2="548" y2="32" marker-end="url(#arr)"/>
+  <line class="ln" x1="512" y1="90" x2="548" y2="90" marker-end="url(#arr)"/>
+  <text class="lbl" x="515" y="84">GET</text>
+
+  <rect class="plugin dashed" x="6" y="150" width="124" height="64" rx="6"/>
+  <text class="tm c" x="68" y="174">Simulated camera</text>
+  <text class="xs c" x="68" y="192">rendered by ECore,</text>
+  <text class="xs c" x="68" y="206">fmv output link (M9)</text>
+  <path class="ln-d" d="M68,148 V96" marker-end="url(#arr)"/>
+  <text class="lbl" x="74" y="128">UDP</text>
+</svg>
+<figcaption><b>Figure 7 – Full motion video.</b> The <code>fmv</code> plugin's input link reads only what it needs from the transport stream: the metadata becomes two map objects, and the video goes on unchanged, as immutable chunks, to ECore's stream hub. MPEG-2 alone passes through ECore's conversion service and its ffmpeg process first. Each viewer gets an endless streaming <code>GET</code> over its login session, checked for the plugin's view permission. Dashed: the simulated camera planned for M9 (section 8.6), which reaches the same input over UDP.</figcaption>
+</figure>
+<ul>
+  <li><b>In</b> (ADR-0057): <code>fmv</code> receives STANAG 4609 Class 1 motion imagery over UDP, unicast or multicast, through input links in connection tasks. It decodes the ST 0601 and ST 0102 metadata in its own Java code. Each stream becomes <b>two map objects linked by a relation:</b> the camera, an APP-6 symbol at the sensor's position, and its field of view, an open <code>ArcBand</code> aimed at the frame centre. They change at most twice a second, and ST 0102's classification sets their label.</li>
+  <li><b>The stream channel</b> (SDK 1.8.0, CR-0044): a plugin declares a stream endpoint with a permission, and hands ECore its stream. ECore keeps the latest PAT and PMT and the packets since the last keyframe, so a new viewer sees a picture at once, and limits the viewers per stream and in all. The channel carries any binary stream, not only video. When access by label comes, it also checks each viewer's clearance for the stream's label.</li>
+  <li><b>Formats:</b> H.264 passes unchanged and plays in every browser. H.265 passes unchanged and is never converted; it plays where the browser can decode it. MPEG-2 is converted to H.264.</li>
+  <li><b>The web part:</b> the FMV panel lists the streams with their format, size, bit rate and the age of their metadata, and opens each video in a floating window above the map (SDK 1.8.0's <code>FloatingWindow</code>). mpegts.js, the plugin's own dependency, plays it; for it the Content-Security-Policy's media sources add <code>blob:</code> to <code>'self'</code> (CR-0046). Nothing is fetched from the internet.</li>
+  <li><b>A renamed link keeps its objects:</b> each item of a settings list gets a stable id that ECore fills in and shows nowhere (CR-0047).</li>
+</ul>
+
+<h3>8.6 A simulated camera (M9)</h3>
+<p>ADR-0058, after spike S10, plans a <b>simulated UAV camera</b> for M9: a camera sensor on a simulated track, with four pointing modes (a fixed point, an object, fixed angles and a sweep). ECore renders its view from orthophotos draped over the terrain, encodes it with ffmpeg and muxes it with exact ST 0601 metadata, because plugins create no threads. An <code>fmv</code> output link sends it as STANAG 4609 over UDP to an address an admin sets, so emcc's own FMV panel sees it as it sees a real camera, through an input link. Imagery comes from a folder and, optionally, a WMS whose tiles the <code>fmv</code> plugin fetches and ECore caches. S10 measured about 1.5 cores per 720p camera on the CPU, and no GPU is needed. Encoding generated frames needs ffmpeg beyond CR-0045, so an amended or new CR comes first, which also chooses the Linux encoder.</p>
+
+<h2>9 Data design</h2>
+<p>The common data model is specified in JSON Schema (draft 2020-12) in <code>model/</code>, owned by the PDA, and is the normative contract for both Java and TypeScript (ADR-0007). <b>Data model 1.7.0</b> (CR-0042) came with plugin SDK 1.7.0 in M7 and is on <code>main</code> (tag <code>contracts-1.7.0</code>): a data type's stepped fade. Before it came <b>1.6.0</b> in M7 (CR-0041, tag <code>contracts-1.6.0</code>: <code>core.text</code>, a plugin's category, symbol palettes, folders relative to emcc, display classes, colour settings), <b>1.5.0</b> in M6 (CR-0038, CR-0039: a data type's field sets, sensor report data types, settings fields shown by another field's value), <b>1.4.0</b> in M5 (CR-0030, CR-0031: tactical graphics' amplifiers and points, field sets, vessel symbols, relations, capabilities, local folders), 1.3.0 in M4 (CR-0028: a layer's lock and its rejection code), 1.2.0 in M3 (CR-0025, tag <code>contracts-1.2.0</code>: a layer's workspace, declared fields, connections and workspaces in the manifest), 1.1.0 in M2 (CR-0014: style fields), 1.0.0 in M1 (CR-0010: data types, data sources and time) and 0.1.0 in M0. Every version since 1.0.0 is a compatible addition, so no stored data needed a migration. In M8, SDK 1.8.0 changes no object or layer schema; of the schemas in <code>model/</code> it changes only the plugin manifest's, which is versioned with the SDK: an optional icon, and annotations for the settings forms (groups, hints, units and a stable id per list item). Frozen versions change only through change requests. This section summarises it. The normative text is <code>model/README.md</code> with the schemas; <code>documents/design/emc2-data-model-v0.html</code> describes version 0.1.0 only.</p>
+
+<h3>9.1 Map object and layer</h3>
+<table style="break-inside:auto">
+  <tr><th style="width:18%">Field</th><th>Meaning</th></tr>
+  <tr><td><code>id</code></td><td>Lowercase UUID (version 7), chosen by the creator, so retries are safe. Globally unique, never reused</td></tr>
+  <tr><td><code>type</code></td><td><code>core.symbol</code> (a Point with a symbol), <code>core.multipoint</code> (an APP-6 tactical graphic: LineString, Polygon or MultiPoint with a symbol; its points' order and meaning are the graphic's), <code>core.shape</code> (any geometry with a style, no symbol) or, since 1.6.0, <code>core.text</code> (a text at a Point, with its value, rotation and size). Plugin types <code>&lt;plugin-id&gt;.&lt;name&gt;</code> are possible, but a core type plus an extension is preferred</td></tr>
+  <tr><td><code>dataType</code></td><td>What kind of information the object is, e.g. <code>cot.cot</code> or the built-in <code>core.general</code>: one of the data types the loaded plugins declare (section 9.9, ADR-0023)</td></tr>
+  <tr><td><code>dataSource</code></td><td>Where it came from: <code>manual</code> for drawn objects, or the name of the input link it came through (section 8.3). Fixed at creation</td></tr>
+  <tr><td><code>time</code></td><td>Optional: when the information was observed, from when it is valid, and when it expires (rule 15)</td></tr>
+  <tr><td><code>layerId</code></td><td>The layer the object belongs to; it must exist</td></tr>
+  <tr><td><code>geometry</code></td><td>Where the object is (section 9.3)</td></tr>
+  <tr><td><code>symbol</code></td><td>Standard, SIDC and modifiers (section 9.4)</td></tr>
+  <tr><td><code>style</code></td><td>Stroke and fill colours, width, opacity and dash, mainly for shapes; from 1.1.0 also a hatched fill, an arrowhead and markers at a line's points</td></tr>
+  <tr><td><code>properties</code></td><td><code>name</code> (up to 256 characters) and <code>description</code> (up to 4 096); plugin data belongs in extensions</td></tr>
+  <tr><td><code>label</code></td><td>Mandatory security label (section 9.5)</td></tr>
+  <tr><td><code>fieldSets</code></td><td>Since 1.4.0: the field sets the object carries, e.g. <code>cot.unit</code>; a set is added, never removed (ADR-0050, section 9.6)</td></tr>
+  <tr><td><code>relations</code></td><td>Since 1.4.0: links to other objects, each a declared kind and the other object's id, such as a detection's pairing with its platform; never checked against the other object and never cascaded (ADR-0051)</td></tr>
+  <tr><td><code>displayClass</code></td><td>Since 1.6.0: <code>dwell-area</code> or <code>sensor-coverage</code>, which each user's display filters hide or show</td></tr>
+  <tr><td><code>extensions</code></td><td>Plugin id → that plugin's own JSON, including its declared fields (section 9.6)</td></tr>
+  <tr><td><code>version</code>, <code>meta</code></td><td>Set by the object store: the version (1 on create, plus one per change), created and modified (when, and by which plugin, user or external system), and <code>externalRef</code> for objects from another system, such as a CoT uid</td></tr>
+</table>
+<p><b>Layer:</b> <code>id</code>, <code>name</code>, <code>drawOrder</code> (a number, so a layer can be moved between two others by changing only its own value), <code>visible</code>, <code>label</code> (covering the layer's own data) and optional <code>extensions</code>, plus <code>version</code> and <code>meta</code>. Since 1.2.0 an optional <code>workspace</code> (absent means View; it does not change once set), and since 1.3.0 an optional <code>locked</code> (absent means not locked; an update without it keeps the stored value, section 7). Layers are flat. ECore creates a layer named "Drawing" in View when there are none (M4), and only empty layers can be deleted.</p>
+
+<h3>9.2 Entities</h3>
+<figure>
+<svg viewBox="0 0 680 362" role="img" aria-label="Entities of the data model">
+  <rect class="core" x="10" y="40" width="150" height="212" rx="6"/>
+  <text class="t" x="24" y="62">Layer</text>
+  <text class="mono" x="24" y="86">id</text>
+  <text class="mono" x="24" y="104">name</text>
+  <text class="mono" x="24" y="122">drawOrder</text>
+  <text class="mono" x="24" y="140">visible</text>
+  <text class="mono" x="24" y="158">label</text>
+  <text class="mono" x="24" y="176">extensions?</text>
+  <text class="mono" x="24" y="194">workspace?</text>
+  <text class="mono" x="24" y="212">locked?</text>
+  <text class="mono" x="24" y="230">version, meta</text>
+
+  <line class="ln" x1="160" y1="128" x2="218" y2="128"/>
+  <text class="xs c" x="170" y="120">1</text>
+  <text class="xs c" x="208" y="120">*</text>
+
+  <rect class="core" x="220" y="10" width="190" height="344" rx="6"/>
+  <text class="t" x="234" y="32">MapObject</text>
+  <text class="mono" x="234" y="56">id</text>
+  <text class="mono" x="234" y="76">type</text>
+  <text class="mono" x="234" y="96">dataType</text>
+  <text class="mono" x="234" y="116">dataSource</text>
+  <text class="mono" x="234" y="136">time?</text>
+  <text class="mono" x="234" y="156">layerId</text>
+  <text class="mono" x="234" y="176">version</text>
+  <text class="mono" x="234" y="196">geometry</text>
+  <text class="mono" x="234" y="216">symbol?</text>
+  <text class="mono" x="234" y="236">style?</text>
+  <text class="mono" x="234" y="256">properties?</text>
+  <text class="mono" x="234" y="276">label</text>
+  <text class="mono" x="234" y="296">extensions?</text>
+  <text class="mono" x="234" y="316">meta</text>
+  <text class="mono" x="320" y="56">fieldSets?</text>
+  <text class="mono" x="320" y="76">relations?</text>
+  <text class="mono" x="320" y="96">text?</text>
+  <text class="mono" x="320" y="116">displayClass?</text>
+  <text class="xs" x="234" y="342">? = optional</text>
+
+  <rect class="inner" x="470" y="14" width="200" height="44" rx="5"/>
+  <text class="tm" x="482" y="32">Geometry</text>
+  <text class="xs" x="482" y="49">8 types · WGS84 lon/lat · geodesic edges</text>
+  <rect class="inner" x="470" y="70" width="200" height="44" rx="5"/>
+  <text class="tm" x="482" y="88">Symbol</text>
+  <text class="xs" x="482" y="105">APP-6 B/D/E · vessel · SIDC · modifiers</text>
+  <rect class="inner" x="470" y="126" width="200" height="44" rx="5"/>
+  <text class="tm" x="482" y="144">SecurityLabel</text>
+  <text class="xs" x="482" y="161">STANAG 4774 structure · mandatory</text>
+  <rect class="plugin" x="470" y="182" width="200" height="44" rx="5"/>
+  <text class="tm" x="482" y="200">Extensions</text>
+  <text class="xs" x="482" y="217">per plugin · forwarded untouched</text>
+  <rect class="infra" x="470" y="238" width="200" height="44" rx="5"/>
+  <text class="tm" x="482" y="256">Meta</text>
+  <text class="xs" x="482" y="273">set by the object store</text>
+
+  <path class="ln" d="M300,192 H436 V36 H468" marker-end="url(#arr)"/>
+  <path class="ln" d="M300,212 H444 V92 H468" marker-end="url(#arr)"/>
+  <path class="ln" d="M278,272 H452 V148 H468" marker-end="url(#arr)"/>
+  <path class="ln" d="M318,292 H458 V204 H468" marker-end="url(#arr)"/>
+  <path class="ln" d="M268,312 H462 V260 H468" marker-end="url(#arr)"/>
+</svg>
+<figcaption><b>Figure 8 – Entities of data model 1.7.0.</b> A layer holds map objects; since 1.2.0 it may name its workspace, and since 1.3.0 it may be locked. Since 1.4.0 an object may carry field sets and relations, and since 1.6.0 a text and a display class. Blue: entities. Green: data owned by individual plugins. Grey: set by the object store, never by clients. The messages that change objects and layers are in section 9.7.</figcaption>
+</figure>
+
+<h3>9.3 Geometry</h3>
+<table>
+  <tr><th style="width:22%">Type</th><th>Content</th></tr>
+  <tr><td>Point, MultiPoint, LineString, Polygon</td><td>As in GeoJSON (RFC 7946). Polygon rings are closed; the first ring is the outer one, others are holes</td></tr>
+  <tr><td>Circle</td><td><code>center</code>, <code>radius</code> in metres</td></tr>
+  <tr><td>Ellipse</td><td><code>center</code>, <code>semiMajorAxis</code>, <code>semiMinorAxis</code> in metres, <code>rotation</code> as a bearing</td></tr>
+  <tr><td>Corridor</td><td>A centre line and its total <code>width</code> in metres</td></tr>
+  <tr><td>ArcBand</td><td><code>center</code>, inner and outer radius, start and end bearing clockwise; a sector has an inner radius of 0</td></tr>
+</table>
+<ul>
+  <li><b>Positions</b> are WGS84 <code>[longitude, latitude]</code> or <code>[longitude, latitude, altitude]</code>; altitude is metres above the ellipsoid (HAE). Distances are geodesic metres; bearings are degrees clockwise from true north.</li>
+  <li><b>Edges are geodesic</b> (ADR-0019): the edge between two positions is the shorter geodesic, whatever the projection. Renderers densify edges, so a shape looks the same in Web Mercator and polar projections. Geometries are never split at the antimeridian, which differs from GeoJSON. A polygon that encloses a pole cannot be expressed; a Circle or ArcBand around the pole can.</li>
+  <li><b>Ring orientation</b> is normalised so that the inside lies to the left of the outer ring, determined along the geodesic edges, not in longitude and latitude.</li>
+</ul>
+<div class="note"><b>Coordinate rule:</b> coordinates are always WGS84 in longitude, latitude order – in code, on the wire and in storage. Projections (Web Mercator, polar stereographic and others) and coordinate formats (decimal degrees, DMS, UTM, MGRS) apply only at display, input and format boundaries. Every converter is tested with a point where latitude ≠ longitude.</div>
+
+<h3>9.4 Symbols</h3>
+<table>
+  <tr><th style="width:14%">Standard</th><th>SIDC</th></tr>
+  <tr><td>APP-6B</td><td>15 characters, letter-based, e.g. <code>SFGPUCI--------</code></td></tr>
+  <tr><td>APP-6D</td><td>20 digits; version digits (1–2) 10, 11 or 12</td></tr>
+  <tr><td>APP-6E</td><td>30 digits; version digits 13 or 14. <b>20 digits mean the 30-digit code with digits 21–30 all zero</b>: writers write the short form, readers accept both, and comparisons (including symbol caches) treat them as equal</td></tr>
+  <tr><td><code>vessel</code></td><td>Since 1.4.0 (ADR-0047): the AIS ship type as a 4-digit code, drawn by <code>symbology</code> as a pointed hull along the direction, filled by ship-type group</td></tr>
+</table>
+<p><b>Modifiers</b> are a closed list of names, as in milsymbol's options, so misspelt names are rejected; adding a name later is a minor change. Since 1.4.0 the list also holds the amplifiers tactical graphics use, such as <code>distances</code> (AM) and <code>azimuths</code> (AN). <code>direction</code> (degrees from true north) and <code>speed</code> (metres per second over ground) are numbers, as CoT needs them; all others are display text of 1–128 characters. The version digits follow milsymbol 3.0.4, the renderer chosen in ADR-0010. mil-sym-ts, which draws the multipoint graphics since M5, reads the digits as the standards define them, where 13 and 11 mean MIL-STD-2525; so the object's <code>standard</code> decides, and the symbology plugin sets the digits only in its call to mil-sym-ts, never in the stored SIDC (ADR-0043).</p>
+
+<h3>9.5 Security label</h3>
+<p>Every object and every layer carries a confidentiality label in the structure of STANAG 4774 (ADatP-4774): a policy identifier, a classification (a string, because the values depend on the policy), optional categories (tag name, type, values) and optional creation and review times. A default label comes from the server configuration; the SDKs give it to plugins for everything they create.</p>
+<ul>
+  <li><b>Object and layer labels</b> (ADR-0020): a user sees an object only if cleared for <b>both</b> its label and its layer's label, and sees a layer only if cleared for its label. Stored labels are not constrained against each other, so no data ever needs a migration.</li>
+  <li><b>When:</b> labels are stored, shown and forwarded. Access control based on them comes after M1 (owner, 2026-10-10), with security policy definitions (the order of classifications and the meaning of categories, in the style of a SPIF) as configuration.</li>
+  <li><b>Binding</b> (STANAG 4778) is not part of the model; it sits behind a <code>LabelBinder</code> interface (section 10.3). Before the real binding is built, the JSON mapping is checked against the official ADatP-4774 XML schema.</li>
+</ul>
+
+<h3>9.6 Extensions</h3>
+<p>A plugin stores its own data on an object under its plugin id. <b>Only that plugin writes it; everyone else, including ECore and outgoing plugins, forwards it untouched</b>, so no information is lost on its way through the system (ADR-0007).</p>
+<ul>
+  <li><b>On update</b>, the object store applies only the requesting plugin's own namespace: present replaces it, <code>{}</code> removes it, absent keeps it. All other namespaces come from the stored object; foreign namespaces in a request are ignored, never rejected (ADR-0018).</li>
+  <li><b>On create</b>, all namespaces are accepted, so an imported object keeps the extensions it was exported with.</li>
+  <li><b>Exact numbers:</b> extension data keeps every number exactly as written, even beyond double precision (CR-0004).</li>
+  <li><b>Declared fields</b> (since 1.2.0, ADR-0038): a plugin may declare fields in its own namespace, with a type, label, unit and limits, and mark them editable by others. A change request names the fields it sets (<code>fields</code>); the object store checks each against its declaration and applies only those, so other plugins' editors can set them without touching the rest of the namespace.</li>
+  <li><b>Field sets</b> (since 1.4.0, ADR-0050, ADR-0054): named groups of a plugin's declared fields. An object lists the sets it carries; a request may add a set, and nothing removes one. Since 1.5.0 a data type names its sets, and the store adds them to a symbol on a create and on a change of data type.</li>
+</ul>
+
+<h3>9.7 Change messages</h3>
+<table>
+  <tr><th style="width:18%">Message</th><th>Content</th></tr>
+  <tr><td>ChangeRequest</td><td><code>requestId</code>, <code>entityType</code> (object or layer), <code>operation</code> (create, update or delete), <code>entityId</code>, optional <code>baseVersion</code>, the complete content as <code>data</code> (not for delete), <code>source</code>, on an object's create an optional <code>externalRef</code> (rule 16), and on an object's create or update optional declared <code>fields</code> (since 1.2.0)</td></tr>
+  <tr><td>ChangeEvent</td><td>On topic <code>objects.changed</code>: a gapless <code>sequenceNo</code>, the request's fields, the new and previous version, the complete <code>state</code> after the change (<code>null</code> on delete), the entity's <code>label</code> (also on delete, so receivers can filter), and when and by whom</td></tr>
+  <tr><td>ChangeRejection</td><td>To the requester only: the request's fields, a <code>code</code>, an English <code>message</code>, and for validation failures up to 50 <code>details</code> (a JSON Pointer and the problem)</td></tr>
+</table>
+<p>A move to another layer (ADR-0053) is an ordinary update with a new <code>layerId</code>. <b>Rejection codes:</b> <code>VALIDATION_FAILED</code>, <code>ENTITY_NOT_FOUND</code>, <code>ENTITY_EXISTS</code>, <code>LAYER_NOT_FOUND</code>, <code>LAYER_NOT_EMPTY</code>, <code>PERMISSION_DENIED</code>, <code>EXTERNAL_REF_EXISTS</code> (since 1.0.0), <code>LAYER_LOCKED</code> (since 1.3.0) and <code>INTERNAL_ERROR</code>. A request gets one answer in a fixed order: the schema check, then the permission, then the entities it names, then the lock, then the rules. A new code is a minor change, for example <code>CONFLICT</code> when optimistic locking is added.</p>
+
+<h3>9.8 Rules beyond the schema</h3>
+<p>JSON Schema cannot express everything. These rules bind the object store, the SDKs and the plugins equally; the object store implements rules 1–8, 10–18 and 21, ECore checks the manifest parts of rules 17–20 when it loads a plugin, and the web SDK applies rule 22. The list below gives rules 1 to 16 in short and rules 17 to 22 by subject; <code>model/README.md</code> has them in full.</p>
+<table style="break-inside:auto">
+  <thead><tr><th style="width:5%">#</th><th>Rule</th></tr></thead>
+  <tr><td>1</td><td>Polygon rings are closed; orientation is normalised along the geodesic edges</td></tr>
+  <tr><td>2</td><td>ArcBand: inner radius &lt; outer radius. Ellipse: semi-minor ≤ semi-major axis</td></tr>
+  <tr><td>3</td><td>References: the layer must exist; a create needs a new id; an update or delete needs an existing entity</td></tr>
+  <tr><td>4</td><td>Clients never send <code>version</code> or <code>meta</code></td></tr>
+  <tr><td>5</td><td>An update replaces the core fields as a whole and merges extensions per plugin (section 9.6). Two exceptions: a layer update without <code>workspace</code> or <code>locked</code> keeps the stored value</td></tr>
+  <tr><td>6</td><td>A delete increases the version; its event has no state but carries the label</td></tr>
+  <tr><td>7</td><td>Sequence numbers are global and gapless per server. Only a file store's journal may hold declared gaps, for a running simulation's unsaved moves (ADR-0041)</td></tr>
+  <tr><td>8</td><td>The requesting plugin is named in the request; the user comes from the login session, never from the client</td></tr>
+  <tr><td>9</td><td>Axis order: every converter is tested with a point where latitude ≠ longitude</td></tr>
+  <tr><td>10</td><td>Edges are geodesic and never split at the antimeridian</td></tr>
+  <tr><td>11</td><td>Only empty layers can be deleted</td></tr>
+  <tr><td>12</td><td>Every change request gets exactly one answer: a change event or a change rejection</td></tr>
+  <tr><td>13</td><td>Empty means absent: an empty optional object or array equals a missing one; writers omit it, readers accept both</td></tr>
+  <tr><td>14</td><td>Data type and data source: the data type is checked on create and on a change of it, never when stored data is loaded; the data source is fixed at creation</td></tr>
+  <tr><td>15</td><td>Time attributes: <code>validFrom</code> is not after <code>expires</code>; expiry follows the data type's configured behaviour and needs no change event; ECore's later removal is an ordinary delete</td></tr>
+  <tr><td>16</td><td>External identity: only a create may carry <code>externalRef</code>; it is kept for the object's life and is unique per system</td></tr>
+  <tr><td>17–18</td><td>Relations and field sets (1.4.0): a new relation's kind and an added set must be declared by a loaded plugin; stored ones are kept and forwarded, declared or not</td></tr>
+  <tr><td>19–21</td><td>Local folders and a data type's sets (1.4.0, 1.5.0): a manifest's folders and sets must point to its own settings and sets; the store adds a data type's sets to a symbol</td></tr>
+  <tr><td>22</td><td>A stepped fade (1.7.0): it ends after it starts, or there is no stepped fade</td></tr>
+</table>
+
+<h3>9.9 Numbers, types and versioning</h3>
+<ul>
+  <li><b>Numbers:</b> core numbers have double precision (IEEE 754), as the SDKs hold them, and are compared as doubles. Only free-form JSON – extension data and plugin settings – keeps exact decimals (CR-0004).</li>
+  <li><b>Types:</b> the Java records and TypeScript types are written by hand in the SDKs. ECore maps JSON with Jackson and validates incoming documents against the schemas. A contract test checks the mapping against every example in <code>model/examples/</code>.</li>
+  <li><b>Versioning:</b> one SemVer version for all schemas. A minor change keeps every valid document valid; anything else is major and needs a migration of stored data. No field may change its meaning in a minor version. Version 1.0.0 since M1; compatible additions are 1.x: 1.1.0 in M2, 1.2.0 in M3, 1.3.0 in M4, 1.4.0 in M5, 1.5.0 in M6, and 1.6.0 and 1.7.0 in M7. The plugin manifest schema is versioned with the SDK instead, 1.7.0 on <code>main</code> and 1.8.0 being built. Each release was built in steps on an integration branch, reviewed by the ACA and frozen by the owner before it reached <code>main</code>.</li>
+  <li><b>History (later):</b> the event log is append-only and never rewritten. Old events are read through upcasters that turn them into the current form.</li>
+</ul>
+<p><b>Deferred</b> (each a minor change later): layer groups; event ordering across several servers; polygons around a pole. Texts, deferred for NVG until M7, are <code>core.text</code> since 1.6.0.</p>
+<p><b>Data types and data sources</b> (since data model 1.0.0, ADR-0023): every object has a <code>dataType</code> and a <code>dataSource</code>.</p>
+<ul>
+  <li><code>dataType</code> is the kind of information the object is, for example <code>cot.cot</code>, and is separate from <code>type</code>, which says what the object is on the map. Plugins declare their data types in their manifests, prefixed with their plugin id. ECore builds the list at start-up and has one built-in type, <code>core.general</code>.</li>
+  <li><code>dataSource</code> is where the object came from: <code>manual</code> for drawn objects, or the name of the input link it came through.</li>
+  <li>Behaviour such as expiry and fading is set per data type; since 1.7.0 a data type may name a stepped fade in its plugin's settings (section 8.4).</li>
+  <li>Since 1.5.0 a data type may also bring field sets, be left out of the editors' choice (<code>manual: false</code>), or mark its objects as sensor reports.</li>
+</ul>
+
+<h2>10 Cross-cutting concerns</h2>
+<h3>10.1 Coordinates and projections</h3>
+<p>The map view uses OpenLayers with proj4 definitions from configuration, so any projection with a proj4 definition can be used, including polar stereographic. Background map plugins declare the projections they support. Reprojecting Web Mercator tiles does not reach the poles. Since M1, a background drawn from Natural Earth vector data (public domain, CR-0009, ADR-0025) works in every projection, including polar ones, and needs no internet. Since M4, WMS servers add detailed maps, polar ones included where the server serves polar projections natively: <code>basemap-wms</code> passes the maps through its server part, and a WMS background is offered only in the projections its server lists, never reprojected (ADR-0035). An admin picks each background's layers from the server's list in the plugin's own settings panel. Coordinate formats are provided by the <code>coordinates</code> utility plugin (proj4js and <code>mgrs</code> in the browser; Proj4J and NGA <code>mgrs-java</code> on the server). Since M5 the <code>terrain</code> plugin computes range, bearing and viewsheds from local DTED height data (ADR-0049); a demo zip of the Sundsvall area ships next to the release (CR-0037), and GeoTIFF height data comes in M9.</p>
+<h3>10.2 Persistence and local files</h3>
+<p>The persistence manager is the only path to storage. It stores objects and layers (from change events), plugin documents (namespaced JSON), settings, and since M2 each user's own documents, such as bookmarks, setups and since M5 display settings (ADR-0027, ADR-0046). A file store is used today; PostgreSQL + PostGIS follows in M9 (ADR-0024), with the question whether it keeps an append-only event table for history. Writes are write-behind: a crash may lose the last moments of changes, which is acceptable for now. A running simulation's moves are not written at all (section 8.2).</p>
+<p><b>Local files</b> (since M5, ADR-0049): a plugin reads files only from the folders its manifest declares, through the SDK, read only and confined to the folder; an admin sets each path, absolute or, since M7, relative to the emcc folder (<code>%emcc%/</code>). The Monitor shows them.</p>
+<p>The <b>file store</b> keeps a snapshot of the picture (<code>snapshot.json</code>, replaced atomically) and a journal with one change event per line (<code>journal.jsonl</code>), compacted into a new snapshot every 10 000 events. On load every document is validated; a cut-off last journal line is repaired or dropped with a warning, and any other damage or an undeclared gap in the sequence stops the start rather than losing data silently. Stored documents are written in the canonical form (rule 13), so they are deterministic.</p>
+<h3>10.3 Security</h3>
+<p>Since M1, login uses OpenID Connect against Keycloak, run <b>on the server side</b> (ADR-0022). The edge runs the Authorization Code flow with PKCE as a confidential client, and tokens never reach the browser. The browser holds only a session cookie, which also authenticates the WebSocket, so the Content-Security-Policy stays <code>'self'</code>. Groups from the IAM map to emcc permissions through configuration, and plugins declare and check their own permissions through the SDK. <b>The server enforces every permission; the browser only hides</b> what a user may not do (section 7).</p>
+<p>A <b>no-login mode</b> stays available for portable use, demonstrations and tests:</p>
+<ul>
+  <li>There is one local user, with all permissions.</li>
+  <li>A warning is logged at every start, and the browser shows a "No login" mark.</li>
+  <li>The server listens on loopback only, unless a second setting explicitly allows other addresses.</li>
+  <li>A server configured for login never falls back to it.</li>
+</ul>
+<ul>
+  <li><b>Labels:</b> every object and layer carries a STANAG 4774 label from the first version. Filtering by label comes after M1 and follows ADR-0020 (section 9.5). STANAG 4778 binding sits behind a <code>LabelBinder</code> interface with a mock implementation for now.</li>
+  <li><b>Browser:</b> the edge serves the web client with a Content-Security-Policy that allows only the emcc server (<code>'self'</code>), so no web part can contact or leak data to another host (ADR-0030).</li>
+  <li><b>Edge hardening (M0):</b> the API and the live picture answer only under the host names the server is configured for, against DNS rebinding. The live picture limits message sizes, request rates and the number of sessions.</li>
+  <li><b>Workspaces and the layer lock</b> (M3, M4): a declared workspace's layers reach only users with its view permission, and need its edit permission for changes (ADR-0039); a locked layer refuses users' changes to its content (ADR-0042). Both are enforced by the server.</li>
+  <li><b>Connections and outputs</b> (M3): a plugin's listening connection binds to loopback unless an admin chooses otherwise, and each output link has a highest classification it may send (section 8.3).</li>
+  <li><b>Video</b> (M8): every stream viewer is checked by the server for the plugin's view permission, and, once access by label comes, for the stream's label. Only ECore starts the ffmpeg process. The Security Review Agent's next review looks at the stream endpoint, ECore's process and ffmpeg as a parser of outside data.</li>
+  <li><b>Reviews:</b> the Security Review Agent's first review, of everything on <code>main</code> after M7 with its dependencies, runs during M8 and reports to the owner only (T-046).</li>
+  <li><b>Plugins are trusted</b> (ADR-0003). The class loader per plugin avoids dependency conflicts; it is not a security sandbox. A server part reaches outside hosts only through the SDK. Its outbound HTTP and its own connections may go to any host (owner, 2026-10-18 and 2026-10-22), but never to one taken from a browser request, a message or an object's data (ADR-0030); ECore checks no host, and the reviews check the plugins.</li>
+</ul>
+<h3>10.4 Logging and monitoring</h3>
+<p>Logging uses SLF4J; each plugin's log entries are tagged with its id, and an admin can set one plugin's level. Since M7 a release also writes the log to <code>logs/emcc.log</code>, rolling, so that it can be collected and analysed. Since M1 the monitor view (admins only) shows ECore's own counters, polled every two seconds; since M3 each plugin's connection tasks and links, with their rates, the addresses they listen on and the objects they skipped; since M5 the declared folders and capabilities; and in M8 the streams and their viewers. OpenTelemetry export is planned for M9 (ADR-0013). Per plugin, the number and state of workers, mailbox depth, message rate, handler time, hung events and refusals at the caps are exact. <b>Memory is not shown per plugin</b> (spike S5): ordinary workers share virtual threads, so the monitor shows the JVM's total allocation rate and ECore's share only. Each plugin reports its status (<code>OK</code>, <code>DEGRADED</code> or <code>FAILED</code>); ECore may set a status too, and the worse of the two counts. The monitor view shows live health; external dashboards are optional and self-hosted.</p>
+
+<h3>10.5 Licences</h3>
+<p>emcc is licensed under the <b>Apache License 2.0</b> (ADR-0016). Shipped dependencies may use MIT, BSD-2-Clause, BSD-3-Clause, Apache-2.0, EPL-2.0, ISC, Zlib or CC0-1.0 (CR-0002), and EPL-1.0 only for unmodified binary dependencies (CR-0003). Where a library is dual-licensed with LGPL, the EPL option is used: Logback 1.5, for example, is EPL-2.0 or LGPL-2.1, and emcc uses EPL-2.0. Release bundles include an OpenJDK runtime under GPL-2.0 with the Classpath Exception, made with <code>jlink</code> and otherwise unmodified, with its own <code>legal/</code> folder (CR-0008); it is the only GPL component. mil-sym-ts is Apache-2.0 apart from a CC-BY-3.0 note on one unused function, allowed for that note only in an unmodified mil-sym-ts (CR-0029).</p>
+<p><b>ffmpeg</b> (M8, CR-0045) is the one LGPL program: a minimal build of one pinned, unmodified release (9.0.2), only LGPL-2.1-or-later, without GPL or non-free parts, and with Windows' own H.264 encoder; Linux chooses its encoder in M9. ECore runs it as a separate process through pipes, never linked into emcc or loaded as a library. Its licence ships in the release, and its exact source, build script and <code>configure</code> line ship as a zip beside it, so that a user can replace the binary with a build of their own. Its build tools (GCC, <code>make</code>, MSYS2) are dev-only and never shipped.</p>
+<p>Development tools may also use MPL-2.0, CC-BY-4.0, BlueOak-1.0.0 and MIT-0 (CR-0001), and PSF-2.0 (CR-0036). Natural Earth data and the Sundsvall demo height data are public domain (CR-0009, CR-0037). Anything else needs the owner's approval. Versions are pinned exactly; a licence check runs over the Maven and npm dependency trees. Every build generates a third-party notices file with the copyright and licence texts of every shipped dependency, and the release includes it. External services that emcc is only tested against, never shipped with it, may have any licence that allows the use; the owner approves each one (owner, 2026-10-14).</p>
+
+<h3>10.6 Client rendering</h3>
+<p>Drawing the full 100 000 objects needs hardware-accelerated WebGL, i.e. a GPU (ADR-0017, from spike S2). Without one, about 10 000 individually drawn symbols stay usable; above that, the area of interest's budget and its clusters (since M1) keep the map usable. Changes reach the map view in batches, which it applies at its own cadence. The map view detects software rendering at start-up and tells the user and the monitor view; it never drops objects silently. Since M5, tactical graphics are drawn by mil-sym-ts in one Web Worker, loaded only with the first graphic, so a zoom does not block the map (ADR-0043; spike S1: 1 000 graphics redrawn in 51–129 ms). Since M7 the map view draws a data type's stepped fade once a second from the clock, with no updates from the server. Video is decoded by the browser itself, through Media Source Extensions (section 8.5).</p>
+
+<h3>10.7 Repository and build</h3>
+<p>One git repository holds everything, with exactly one owning agent per folder (ADR-0015). The Java parts form one Maven multi-module build in <code>server/</code>, including the plugins' server parts. The TypeScript parts are npm workspaces of the repository root – the shell, the web SDK and every plugin's web part – with one lock file (CR-0006). Shared browser libraries are provided once by the shell through an import map, and plugin builds treat them as external (spike S4). Scripts in <code>tools/</code> build, test and start the whole system on Windows and Linux. Each contract release is built in steps on an integration branch (<code>integration/sdk-v1.x</code>) and reaches <code>main</code> with its milestone. The Integration Test Agent's full run (over 300 flows in real browsers against the real server, the login specs against Keycloak included) or a quick run of a few minutes gates each merge. Release candidates are also tested against the external services (TAK Server, the NVG service) and with the release zip itself.</p>
+
+<h2>11 Deployment</h2>
+<figure>
+<svg viewBox="0 0 680 318" role="img" aria-label="Deployment view">
+  <rect class="grp" x="6" y="6" width="520" height="306" rx="8"/>
+  <text class="gt" x="18" y="26">Disconnected network – everything works offline</text>
+
+  <rect class="infra" x="20" y="40" width="300" height="150" rx="6"/>
+  <text class="tm c" x="170" y="60">Server host – Linux or Windows</text>
+  <rect class="core" x="34" y="72" width="272" height="106" rx="6"/>
+  <text class="t c" x="170" y="93">emcc runtime image</text>
+  <text class="s c" x="170" y="112">Java 25 runtime (jlink) · app + ECore</text>
+  <text class="s c" x="170" y="130">plugins/ – one folder per plugin</text>
+  <text class="s c" x="170" y="148">web client files · ffmpeg (M8)</text>
+  <text class="s c" x="170" y="166">configuration · settings/ · logs/</text>
+
+  <rect class="infra" x="352" y="40" width="160" height="60" rx="6"/>
+  <text class="tm c" x="432" y="65">Keycloak</text>
+  <text class="s c" x="432" y="83">IAM</text>
+  <rect class="infra dashed" x="352" y="116" width="160" height="74" rx="6"/>
+  <text class="tm c" x="432" y="146">PostgreSQL + PostGIS</text>
+  <text class="s c" x="432" y="164">database (M9)</text>
+
+  <rect class="core" x="20" y="222" width="300" height="76" rx="6"/>
+  <text class="tm c" x="170" y="252">Browsers</text>
+  <text class="s c" x="170" y="270">users' workstations</text>
+
+  <rect class="ext" x="352" y="214" width="160" height="40" rx="6"/>
+  <text class="tm c" x="432" y="239">WMS servers</text>
+  <rect class="ext" x="352" y="262" width="160" height="40" rx="6"/>
+  <text class="tm c" x="432" y="280">TAK · AIS · ADS-B</text>
+  <text class="xs c" x="432" y="294">NVG · GMTI · UAV video</text>
+
+  <line class="ln" x1="170" y1="192" x2="170" y2="220" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <line class="ln" x1="322" y1="70" x2="350" y2="70" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <line class="ln" x1="322" y1="153" x2="350" y2="153" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <path class="ln" d="M320,180 L334,180 L334,234 L350,234" marker-end="url(#arr)"/>
+  <path class="ln" d="M334,234 L334,282 L350,282" marker-end="url(#arr)"/>
+
+  <rect class="ext dashed" x="540" y="40" width="134" height="60" rx="6"/>
+  <text class="tm c" x="607" y="65">OpenStreetMap</text>
+  <text class="xs c" x="607" y="83">development / demo only</text>
+</svg>
+<figcaption><b>Figure 9 – Deployment.</b> Everything the system needs at runtime is inside the network. One server instance runs per host; more capacity means more hosts. Keycloak and, from M9, the database may share the server host or run on their own (dashed: not yet).</figcaption>
+</figure>
+<p>Deliverables are self-contained: a Java runtime image built with <code>jlink</code>/<code>jpackage</code>, the built web client, the plugins, configuration, and from M8 the ffmpeg binary in the release's own tools folder. Installing them requires no network access. Every function has a way to work offline: for maps that is Natural Earth. Internet-only sources such as <code>basemap-osm</code> are separate plugins that can be left out of a disconnected installation (ADR-0030).</p>
+<p>Each milestone ends with a release candidate the owner tests on another computer: a zip for Windows x64 with its own Java runtime, the demo scenario, the user manual (since M5) and a README (M1; M2 RC1; M3 RC2; M4 RC2; M5 RC2, 2026-11-10; M6 RC1, 2026-11-11; M7 RC3, 2026-11-12). The Sundsvall height data ships as a separate demo zip next to it (CR-0037). Its start script runs in the no-login mode, or, from M4 RC2, against a Keycloak realm it is given. <b>M7 was the first release for outside users</b>, who demonstrate emcc in a controlled environment; its readme carries a disclaimer and makes no promise that stored data carries over. From M7 the release writes its log to <code>logs/emcc.log</code>. <b>Linux</b> releases and tests come in M9.</p>
+<p>For development and tests, the External Services Agent runs the external services on the development computer, each portable in its own folder with start, stop, status and logs commands: a TAK Server, a GeoServer WMS server, Keycloak with a lasting demo realm (since M4), an NVG service, and playbacks of recorded AIS, ADS-B, GMTI and FMV data, with a replay manager (<code>external/</code>). They are never part of a release.</p>
+
+<h2>12 Design decisions</h2>
+<table>
+  <tr><th style="width:10%">ADR</th><th>Decision</th></tr>
+  <tr><td>0001</td><td>Java 25 LTS and Maven for the server</td></tr>
+  <tr><td>0002</td><td>Spring Boot only at the edge; ECore and plugins in plain Java</td></tr>
+  <tr><td>0003</td><td>Plugins: in-process, loaded at start, optional server and web part</td></tr>
+  <tr><td>0004</td><td>Concurrency through core-managed workers and messages</td></tr>
+  <tr><td>0005</td><td>All object changes are change events through a single writer</td></tr>
+  <tr><td>0006</td><td>Server-authoritative live picture over WebSocket</td></tr>
+  <tr><td>0007</td><td>Common data model: WGS84, mandatory labels, blind-forwarded extensions</td></tr>
+  <tr><td>0008</td><td>Web client: TypeScript, React and Vite</td></tr>
+  <tr><td>0009</td><td>OpenLayers as the 2D map engine, in a map view plugin</td></tr>
+  <tr><td>0010</td><td>milsymbol for symbology, APP-6 B/D/E (extended by 0043)</td></tr>
+  <tr><td>0011</td><td>Persistence manager with file store and PostgreSQL/PostGIS (superseded by 0024)</td></tr>
+  <tr><td>0012</td><td>Identity through OpenID Connect, Keycloak as reference IAM (superseded by 0022)</td></tr>
+  <tr><td>0013</td><td>OpenTelemetry and an in-app monitor view</td></tr>
+  <tr><td>0014</td><td>No internet access at runtime (superseded by 0030)</td></tr>
+  <tr><td>0015</td><td>One repository with one owning agent per folder</td></tr>
+  <tr><td>0016</td><td>Project licence Apache 2.0 and dependency licence policy</td></tr>
+  <tr><td>0017</td><td>Client rendering needs a GPU for the full object count</td></tr>
+  <tr><td>0018</td><td>Change protocol for objects and layers: exactly one answer, extension ownership enforced by the object store (extends 0005, 0007)</td></tr>
+  <tr><td>0019</td><td>Geometry edges are geodesic (extends 0007)</td></tr>
+  <tr><td>0020</td><td>Access to an object requires clearance for its label and its layer's label (extends 0007)</td></tr>
+  <tr><td>0021</td><td>ECore may share only leaf locks between plugins (extends 0004)</td></tr>
+  <tr><td>0022</td><td>Login on the server side with OpenID Connect, and a no-login mode (supersedes 0012)</td></tr>
+  <tr><td>0023</td><td>Objects carry a data type and a data source; plugins declare the data types (extends 0007)</td></tr>
+  <tr><td>0024</td><td>Persistence manager with file store, and PostgreSQL/PostGIS from M2 (supersedes 0011; now planned for M9)</td></tr>
+  <tr><td>0025</td><td>Background maps may also be vector data, drawn by the map view in any projection (extends 0009)</td></tr>
+  <tr><td>0026</td><td>The shell's workspace: a top bar with views, and docked panes with movable panels (superseded by 0031)</td></tr>
+  <tr><td>0027</td><td>A core store for each user's own data (extends 0024)</td></tr>
+  <tr><td>0028</td><td>Object actions: one list for the right-click menu and the objects panel (superseded by 0032)</td></tr>
+  <tr><td>0029</td><td>A shared visual design system in the web SDK</td></tr>
+  <tr><td>0030</td><td>Everything works offline; settings may point to internet hosts (supersedes 0014; owner, 2026-10-18: outbound HTTP to any host)</td></tr>
+  <tr><td>0031</td><td>The workspace: a top bar, a settings list, docked panes and saved setups (supersedes 0026)</td></tr>
+  <tr><td>0032</td><td>Selection, object actions and map actions (supersedes 0028)</td></tr>
+  <tr><td>0033</td><td>Drawn shapes: a <code>draw-shapes</code> plugin and a drawing service in the map view (extends 0009)</td></tr>
+  <tr><td>0034</td><td>Three selectable looks, each light and dark (extends 0029, 0031)</td></tr>
+  <tr><td>0035</td><td>WMS background maps through a <code>wms</code> source in the map view (extends 0009, 0025; built in M4)</td></tr>
+  <tr><td>0036</td><td>Connection tasks: plugins open their own sockets inside ECore tasks (extends 0004, 0030; on platform threads since CR-0027)</td></tr>
+  <tr><td>0037</td><td>Data in and out: links with layers, and output channels (extends 0023)</td></tr>
+  <tr><td>0038</td><td>Declared plugin fields, set from any editor (extends 0007, 0018)</td></tr>
+  <tr><td>0039</td><td>Workspaces: top-bar tabs with their own map, panes and layers (extends 0006, 0031)</td></tr>
+  <tr><td>0040</td><td>The simulator: routes, groups, events and outputs in the Simulation workspace</td></tr>
+  <tr><td>0041</td><td>A running simulation's moves are not written to disk (extends 0024, 0040)</td></tr>
+  <tr><td>0042</td><td>The layer lock, stored with the layer and enforced by the server (extends 0005, 0018)</td></tr>
+  <tr><td>0043</td><td>Tactical graphics drawn with mil-sym-ts, in a Web Worker behind the symbology plugin (extends 0010; built in M5)</td></tr>
+  <tr><td>0044</td><td>Capabilities: optional plugin interfaces, declared in the manifest (extends 0003)</td></tr>
+  <tr><td>0045</td><td>Temporal awareness: the user's time, for temporal plugins (extends 0044, 0006)</td></tr>
+  <tr><td>0046</td><td>Display settings per user, on the server (extends 0027)</td></tr>
+  <tr><td>0047</td><td>Vessel symbols, a second symbol set beside APP-6 (extends 0007, 0010)</td></tr>
+  <tr><td>0048</td><td>GMTI (STANAG 4607) in and out, and Ground truth and Sensor outputs (extends 0037, 0040)</td></tr>
+  <tr><td>0049</td><td>Terrain analysis from local height data, in the <code>terrain</code> plugin</td></tr>
+  <tr><td>0050</td><td>Field sets, groups of declared fields that an object carries (extends 0038, 0037; points 4 and 5 superseded by 0054)</td></tr>
+  <tr><td>0051</td><td>Relations between objects, drawn as pairing lines (extends 0007, 0046, 0048)</td></tr>
+  <tr><td>0052</td><td>One display settings window, opened from the Map Pane (extends 0046, 0031)</td></tr>
+  <tr><td>0053</td><td>Move and copy to layer (extends 0005, 0032, 0042)</td></tr>
+  <tr><td>0054</td><td>A data type brings its field sets (supersedes 0050 points 4 and 5)</td></tr>
+  <tr><td>0055</td><td>NVG in and out, over files and the NVG web service (extends 0007, 0036, 0037)</td></tr>
+  <tr><td>0056</td><td>What a look may set: edges, surfaces, radii, label type, control and tab shapes, never layout (extends 0034, 0029)</td></tr>
+  <tr><td>0057</td><td>FMV in (STANAG 4609), with a stream channel from a plugin's server part to its web part, and ECore's conversion service (extends 0036, 0037, 0051, 0016, 0030)</td></tr>
+  <tr><td>0058</td><td>A simulated FMV camera, rendered by ECore and sent as STANAG 4609 (extends 0040, 0048, 0057, 0049; for M9)</td></tr>
+</table>
+<p><b>Approved or decided change requests</b> to frozen contracts and rules:</p>
+<table style="break-inside:auto">
+  <tr><th style="width:10%">CR</th><th>Change</th></tr>
+  <tr><td>0001</td><td>Allow dev-only build-tool licences</td></tr>
+  <tr><td>0002</td><td>Allow ISC, Zlib and CC0-1.0 in shipped code</td></tr>
+  <tr><td>0003</td><td>Allow EPL-1.0 for unmodified binary dependencies (raised for Logback, which in the shipped version 1.5 is EPL-2.0)</td></tr>
+  <tr><td>0004</td><td>Core numbers are compared as doubles; free-form JSON keeps exact decimals</td></tr>
+  <tr><td>0005</td><td>A Java SDK version constant, and caps on asks and timers per plugin (SDK 0.1.1)</td></tr>
+  <tr><td>0006</td><td>The npm workspace root moves to the repository root</td></tr>
+  <tr><td>0008</td><td>Release bundles include an unmodified OpenJDK runtime (GPL-2.0 with the Classpath Exception)</td></tr>
+  <tr><td>0009</td><td>Ship Natural Earth map data (public domain) for an offline background map</td></tr>
+  <tr><td>0010</td><td>Data model 1.0.0 and SDK v1 for M1</td></tr>
+  <tr><td>0011</td><td>An optional service key, for map-view-2d's use of the symbols</td></tr>
+  <tr><td>0012</td><td><code>coordinates</code> uses the map view instead of requiring it, and follows settings changes</td></tr>
+  <tr><td>0013</td><td>Settings may point to internet hosts; everything must work offline (built in M2)</td></tr>
+  <tr><td>0014</td><td>Data model 1.1.0: a hatched fill, an arrowhead and markers at a line's points</td></tr>
+  <tr><td>0015</td><td>Web SDK 1.1.0: panels with a default pane, the top bar, setups, object and map actions, objects by id, the drawing service, user documents, design tokens, shared components and Lucide icons</td></tr>
+  <tr><td>0016</td><td>A bookmark centre the projection cannot show goes to the nearest point it can (a brief change)</td></tr>
+  <tr><td>0018</td><td>A shared colour field (<code>ColorField</code>)</td></tr>
+  <tr><td>0019</td><td>Arrow keys in the shared tree, menu and list, and drag and drop in the tree</td></tr>
+  <tr><td>0020</td><td>A plugin can cancel the map interaction it started</td></tr>
+  <tr><td>0021</td><td>The shared dialog and popover in the browser's top layer</td></tr>
+  <tr><td>0022</td><td>An internet declaration without default hosts</td></tr>
+  <tr><td>0023</td><td>A WMS background source and a plugin's own settings panel (folded into CR-0028)</td></tr>
+  <tr><td>0024</td><td>An icon button with a tooltip apart from its label</td></tr>
+  <tr><td>0025</td><td>SDK 1.2.0 and data model 1.2.0 for M3: connection tasks, links and output channels, declared fields, workspaces, unsaved moves, geodesics</td></tr>
+  <tr><td>0026</td><td>POST endpoints for plugins' commands</td></tr>
+  <tr><td>0027</td><td>Connection tasks on platform threads (JDK-8334574 on Windows)</td></tr>
+  <tr><td>0028</td><td>SDK 1.3.0 and data model 1.3.0 for M4: WMS, the layer lock, the declared-fields list, right-click, greyed settings fields</td></tr>
+  <tr><td>0029</td><td>Allow the CC-BY-3.0 note in an unmodified mil-sym-ts</td></tr>
+  <tr><td>0030</td><td>SDK 1.4.0 and data model 1.4.0 for M5: the New layer button, the object writer and output kinds, tactical graphics, field sets, vessel symbols, capabilities and the user's time, display settings, local folders</td></tr>
+  <tr><td>0031</td><td>Relations between objects</td></tr>
+  <tr><td>0032</td><td>The user's time carries a set time and an optional interval at once</td></tr>
+  <tr><td>0033, 0034</td><td>A dwell says which sensor made it, how it was set, and its mission</td></tr>
+  <tr><td>0035</td><td>An output channel states how deep an area it carries</td></tr>
+  <tr><td>0036</td><td>Allow PSF-2.0 for dev-only tools</td></tr>
+  <tr><td>0037</td><td>Ship the Sundsvall height data as a separate demo zip</td></tr>
+  <tr><td>0038</td><td>A data type brings its field sets</td></tr>
+  <tr><td>0039, 0040</td><td>SDK and data model 1.5.0 for M6: graphic images, the speed vector in steps, sensor report data types, sensor types and job areas, a revisit's dwells</td></tr>
+  <tr><td>0041</td><td>SDK and data model 1.6.0 for M7: NVG, Append, relation colours, display classes, categories and colour fields, palettes, folders relative to emcc</td></tr>
+  <tr><td>0042</td><td>A data type's stepped fade: data model and web SDK 1.7.0</td></tr>
+  <tr><td>0043</td><td>SDK 1.8.0 for M8: label places, the UX agent's tokens and components, "name once, icon always", settings schema hints and the manifest icon, panel parts</td></tr>
+  <tr><td>0044</td><td>SDK 1.8.0 part E: the stream channel, ECore's MPEG-2 conversion call, the floating window, the Video icon</td></tr>
+  <tr><td>0045</td><td>Ship a minimal LGPL ffmpeg, run by ECore as a separate process; its build tools as dev-only; Windows' own H.264 encoder</td></tr>
+  <tr><td>0046</td><td>The Content-Security-Policy allows <code>blob:</code> media, so that live video plays</td></tr>
+  <tr><td>0047</td><td>SDK 1.8.0 part F: a stable id per settings list item, so a renamed link keeps its objects</td></tr>
+</table>
+<p>CR-0043, CR-0044, CR-0046 and CR-0047 are being built on <code>integration/sdk-v1.8</code> and reach <code>main</code> with M8.</p>
+
+<h2>13 Risks and open issues</h2>
+<table>
+  <tr><th style="width:7%">Id</th><th style="width:48%">Question to answer (spike)</th><th>Why it matters · status</th></tr>
+  <tr><td>S1</td><td>How are multipoint APP-6 tactical graphics drawn? Candidates: mil-sym-ts, or our own renderer</td><td>milsymbol draws single-point symbols only. <b>Answered</b> (2026-10-30): mil-sym-ts draws every APP-6 D and E multipoint graphic, 1 000 of them in 51–129 ms in a Web Worker; the owner chose it, built in M5 (ADR-0043)</td></tr>
+  <tr><td>S2</td><td>Can OpenLayers draw 100 000 symbols smoothly, also in a polar projection, with live updates?</td><td>Core requirement. <b>Answered:</b> yes with a GPU, if updates are batched; about 4.5 frames per second without one (ADR-0017)</td></tr>
+  <tr><td>S3</td><td>Thresholds, message sizes and update rates for area of interest and aggregation</td><td>Scaling of the live picture. <b>Answered</b> (2026-10-10): the server sends each browser only its area of interest from the in-memory picture, and clusters with counts when zoomed out, at small cost (<code>spikes/s3/README.md</code>)</td></tr>
+  <tr><td>S4</td><td>Plugin web parts as separate ES modules sharing libraries through an import map</td><td>Web plugin loading. <b>Answered:</b> yes; the shell provides the shared libraries through an import map</td></tr>
+  <tr><td>S5</td><td>Approximate memory per plugin through Java Flight Recorder</td><td>Monitoring requirement. <b>Answered</b> (2026-11-05): within 4 % on platform threads, but wrong between plugins on shared virtual threads; the monitor shows the JVM's total and ECore's share only</td></tr>
+  <tr><td>S6</td><td>Can 1 000 tracks move once per second through the object store, persistence and the live picture?</td><td>The simulator's target. <b>Answered</b> (2026-10-22): the ordinary path carries it; persistence was the cost, so a running simulation's moves are not written to disk (ADR-0041)</td></tr>
+  <tr><td>S7</td><td>Can CesiumJS, as a 3D map view plugin, meet the owner's 3D goals offline, at emcc's object count and in polar areas?</td><td>The 3D view. <b>Planned,</b> not scheduled</td></tr>
+  <tr><td>S8</td><td>Can an event log with PostgreSQL read models answer questions from a local LLM, offline, with the user's permissions?</td><td>The data platform's design. <b>Planned,</b> with PostgreSQL in M9</td></tr>
+  <tr><td>S9</td><td>Can a plugin receive STANAG 4609 video over UDP, play it live in the browser and draw the camera's field of view?</td><td>The FMV plugin. <b>Answered</b> (2026-11-14): ST 0601 and ST 0102 decode in plain Java; mpegts.js plays live H.264 with a first frame after about 0.1 s from the last keyframe; MPEG-2 converts with an LGPL ffmpeg at about half a core per 720p stream (ADR-0057)</td></tr>
+  <tr><td>S10</td><td>Can emcc simulate a UAV whose video leaves the server as STANAG 4609, rendered from an orthophoto over the terrain?</td><td>The simulated camera. <b>Answered</b> (2026-11-15): plain Java renders 720p in 36 ms on one core, and a live camera costs about 1.4–1.6 cores with encoding; no GPU needed (ADR-0058, for M9)</td></tr>
+</table>
+<p><b>Resolved design items:</b> no escape hatch to OpenLayers (SDK v0 and v1); altitude is HAE; Circle, Ellipse, Corridor and ArcBand are part of the model; the licence policy (ADR-0016); object and layer labels (ADR-0020); the build wiring of plugins (CR-0006); the area of interest and clusters (spike S3); permissions checked on the server first (overview 4.4); connection tasks for plugins' sockets (ADR-0036); unsaved simulation moves (spike S6, ADR-0041); the tactical graphics renderer and its contract (spike S1, ADR-0043, data model 1.4.0); memory per plugin (spike S5); shipping ffmpeg (CR-0045). <b>Open in M8:</b> ECore's conversion service, still to be built, and SDK 1.8.0's freeze. <b>Planned for M9:</b> the simulated camera (ADR-0058) and an amended or new CR for ffmpeg's encoding, Linux releases and tests with a Linux H.264 encoder, PostgreSQL + PostGIS with spike S8, OpenTelemetry export, and GeoTIFF height data.</p>
+<p><b>Known limits</b> of the current design:</p>
+<ul>
+  <li>A polygon that encloses a pole cannot be expressed (rule 10); use a Circle or ArcBand.</li>
+  <li>A handler stuck in an endless computation is detected and reported, but cannot be stopped: virtual threads are not pre-empted. It keeps one carrier thread busy until the server restarts.</li>
+  <li>Write-behind persistence may lose the last moments of changes in a crash; a running simulation is restored from its last save, paused.</li>
+  <li>Connection tasks run on platform threads until the JDK fixes JDK-8334574 on Windows; the cap on tasks per plugin keeps their number bounded.</li>
+  <li>A receiving multicast link stays stopped until an admin names a network interface.</li>
+  <li>A layer stays in its workspace; objects move and copy between layers of the current workspace only (ADR-0053).</li>
+  <li>Without a GPU, about 10 000 individually drawn symbols stay usable; more need the area of interest's clusters (ADR-0017, spike S3).</li>
+  <li>Labels are still cosmetic: access by label, and each stream viewer's clearance for the video's label, come later (ADR-0020, ADR-0057).</li>
+  <li>H.265 video plays only in browsers that decode it; it is never converted. Releases are Windows x64 only until M9.</li>
+</ul>
+
+<div class="keep">
+<h2>Appendix A – Planned sections</h2>
+<p>Sections to be added as the design is detailed, roughly in this order:</p>
+<ul>
+  <li>Plugin SDK reference – Java and TypeScript interfaces, manifest format, design pattern (today in <code>docs/plugins/</code>)</li>
+  <li>ECore detailed design – plugin host, worker runtime, message bus, object store (today in <code>server/README.md</code>)</li>
+  <li>Client–server protocol – WebSocket messages, area-of-interest subscriptions, plugin channels (today in <code>server/live-picture-protocol.md</code>)</li>
+  <li>Format mappings – CoT, AIS, ADS-B, GMTI, NVG and STANAG 4609 to and from the data model (today in the plugins' briefs, <code>gmti-4607.md</code> and <code>nvg.md</code>), KML later</li>
+  <li>Security design – permission model, label handling, STANAG 4778 binding</li>
+  <li>Test strategy, build and release, operations and monitoring</li>
+</ul>
+</div>
+
+</body>
+</html>

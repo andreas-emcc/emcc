@@ -1,0 +1,12 @@
+{
+  "name": "emcc-website",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Builds the static emcc website (www.emcc.dev) into dist/",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "standalone": "node standalone.mjs"
+  }
+}

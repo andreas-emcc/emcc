@@ -1,0 +1,41 @@
+{
+  "id": "coordinates",
+  "name": "Coordinates",
+  "version": "0.1.0",
+  "sdkVersion": "^1.8.0",
+  "kind": "utility",
+  "icon": "Crosshair",
+  "category": "map-and-symbols",
+  "provides": ["emc2.coordinates"],
+  "uses": ["emc2.map-view"],
+  "web": { "entry": "index.js", "css": ["coordinates.css"] },
+  "settings": {
+    "type": "object",
+    "properties": {
+      "defaultFormat": {
+        "title": "Default format",
+        "description": "The display format until the user picks one in this browser.",
+        "enum": ["dd", "dms", "utm", "mgrs"],
+        "default": "dms"
+      },
+      "mgrsPrecision": {
+        "title": "MGRS precision",
+        "description": "MGRS digits per axis: 5 is 1 m, 4 is 10 m, down to 1 (10 km).",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5,
+        "default": 5,
+        "x-emc2": { "unit": "digits" }
+      },
+      "dmsSecondsDecimals": {
+        "title": "DMS seconds decimals",
+        "description": "Decimals of the seconds in DMS.",
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 3,
+        "default": 1,
+        "x-emc2": { "unit": "decimals" }
+      }
+    }
+  }
+}

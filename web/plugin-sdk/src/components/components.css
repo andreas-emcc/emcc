@@ -1,0 +1,631 @@
+/*
+ * The shared components' CSS (ADR-0029 point 2, ADR-0034; CR-0015 item 20). The shell ships this
+ * file once; plugins never import or copy it. Only design tokens, no fixed colours or sizes: the
+ * look, light or dark, and the density change the tokens' values. 0, percentages, auto and 1 px
+ * hairlines are allowed (the conformance reviewer's ADR-0034 check, T-057).
+ */
+
+.emc2-icon {
+  width: var(--emc2-size-icon);
+  height: var(--emc2-size-icon);
+  flex: none;
+  stroke-width: 1.75px;
+  vertical-align: middle;
+}
+.emc2-icon * {
+  vector-effect: non-scaling-stroke;
+}
+
+.emc2-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--emc2-color-pane);
+  color: var(--emc2-color-text);
+  font-family: var(--emc2-font-text);
+  font-size: var(--emc2-size-text);
+}
+.emc2-panel-head {
+  display: flex;
+  align-items: center;
+  gap: var(--emc2-space-gap);
+  padding: 0 var(--emc2-space-padding);
+  min-height: var(--emc2-size-row);
+  background: var(--emc2-color-panel);
+  border-bottom: 1px solid var(--emc2-color-border);
+}
+.emc2-panel-title {
+  flex: auto;
+  margin: 0;
+  font-family: var(--emc2-font-heading);
+  font-size: var(--emc2-size-text);
+  font-weight: var(--emc2-heading-weight);
+  letter-spacing: var(--emc2-heading-letter-spacing);
+  text-transform: var(--emc2-heading-case);
+}
+.emc2-panel-actions {
+  display: flex;
+  gap: var(--emc2-space-gap);
+  margin-left: auto;
+}
+.emc2-panel-body {
+  flex: auto;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--emc2-space-padding);
+}
+/* SDK 1.8.0 part G: PanelFrame's foot, after the scrolling body: full width, at the bottom, pinned
+   while a scrolling ancestor (the shell's panel) scrolls. Structure only; the foot's look is the UXA's, below. */
+.emc2-panel > .emc2-panel-foot {
+  flex: none;
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+}
+
+.emc2-button,
+.emc2-icon-button,
+.emc2-menu-item,
+.emc2-tree-item,
+.emc2-tab {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.emc2-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--emc2-space-gap);
+  height: var(--emc2-size-field);
+  padding: 0 var(--emc2-space-padding);
+  border: 1px solid var(--emc2-color-field-border);
+  border-radius: var(--emc2-radius-control);
+  background: var(--emc2-color-panel);
+}
+.emc2-button-primary {
+  background: var(--emc2-color-accent);
+  border-color: var(--emc2-color-accent);
+  color: var(--emc2-color-on-accent);
+}
+.emc2-button-danger {
+  border-color: var(--emc2-color-error);
+  color: var(--emc2-color-error);
+}
+.emc2-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--emc2-size-field);
+  height: var(--emc2-size-field);
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--emc2-radius-control);
+  background: transparent;
+}
+.emc2-icon-button[aria-pressed='true'] {
+  background: var(--emc2-color-accent-soft);
+}
+
+.emc2-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+}
+.emc2-field-label {
+  color: var(--emc2-color-muted);
+  font-family: var(--emc2-font-label);
+  font-size: var(--emc2-size-text-small);
+  font-weight: var(--emc2-label-weight);
+  letter-spacing: var(--emc2-label-letter-spacing);
+  text-transform: var(--emc2-label-case);
+}
+.emc2-input {
+  box-sizing: border-box;
+  height: var(--emc2-size-field);
+  padding: 0 var(--emc2-space-padding);
+  border: 1px solid var(--emc2-color-field-border);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-ground);
+  color: var(--emc2-color-text);
+  font: inherit;
+}
+/* A placeholder in the muted colour, at least 4.5:1 on the ground in every look (looks.md); the
+   browser's own grey was below it (T-110). Firefox dims placeholders unless the opacity is set. */
+.emc2-input::placeholder {
+  color: var(--emc2-color-muted);
+  opacity: 1;
+}
+.emc2-input[aria-invalid='true'] {
+  border-color: var(--emc2-color-error);
+}
+.emc2-field-error {
+  color: var(--emc2-color-error);
+  font-size: var(--emc2-size-text-small);
+}
+.emc2-data {
+  font-family: var(--emc2-font-data);
+}
+/* The colour field (CR-0018): the picker as a square swatch next to the text. */
+.emc2-color-row {
+  display: flex;
+  align-items: center;
+  gap: var(--emc2-space-gap);
+}
+.emc2-color-row .emc2-input {
+  flex: 1;
+  min-width: 0;
+}
+.emc2-color-swatch {
+  flex: none;
+  box-sizing: border-box;
+  width: var(--emc2-size-field);
+  height: var(--emc2-size-field);
+  padding: 0;
+  border: 1px solid var(--emc2-color-field-border);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-ground);
+  cursor: pointer;
+}
+.emc2-color-swatch::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.emc2-color-swatch::-webkit-color-swatch {
+  border: 0;
+  border-radius: var(--emc2-radius);
+}
+.emc2-color-swatch::-moz-color-swatch {
+  border: 0;
+  border-radius: var(--emc2-radius);
+}
+/* A disabled swatch is dimmed as a disabled icon is (looks.md). */
+.emc2-color-swatch:disabled {
+  cursor: default;
+  opacity: 60%;
+}
+.emc2-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--emc2-space-gap);
+  min-height: var(--emc2-size-row);
+}
+.emc2-slider input {
+  accent-color: var(--emc2-color-accent);
+}
+
+.emc2-tabs {
+  display: flex;
+  gap: var(--emc2-space-gap);
+  border-bottom: 1px solid var(--emc2-color-border);
+}
+.emc2-tab {
+  height: var(--emc2-size-row);
+  padding: 0 var(--emc2-space-padding);
+  border: 0;
+  background: transparent;
+  color: var(--emc2-color-muted);
+}
+.emc2-tab-active {
+  color: var(--emc2-color-text);
+  box-shadow: inset 0 calc(-1 * var(--emc2-focus-width)) 0 var(--emc2-color-accent);
+}
+/* Chart Room: the tabs are pills on a track in the ground colour (ADR-0056 point 2). */
+:root[data-look='chart-room'] .emc2-tabs {
+  border-bottom-color: transparent;
+  border-radius: var(--emc2-radius-control);
+  background: var(--emc2-color-ground);
+}
+:root[data-look='chart-room'] .emc2-tab {
+  border-radius: var(--emc2-radius-control);
+}
+:root[data-look='chart-room'] .emc2-tab-active {
+  background: var(--emc2-color-panel);
+  color: var(--emc2-color-accent);
+  font-weight: var(--emc2-heading-weight);
+  box-shadow: var(--emc2-shadow-card);
+}
+/* Signal: the active tab is a filled block. Its text keeps the text font and case: capitals made
+   tabs wrap in narrow panes (Graphics' "Common graphics"). */
+:root[data-look='signal'] .emc2-tab-active {
+  background: var(--emc2-color-accent);
+  color: var(--emc2-color-on-accent);
+  box-shadow: none;
+}
+
+.emc2-menu,
+.emc2-list,
+.emc2-tree,
+.emc2-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.emc2-menu,
+.emc2-popover {
+  background: var(--emc2-color-raised);
+  border: 1px solid var(--emc2-color-edge);
+  border-radius: var(--emc2-radius);
+  box-shadow: var(--emc2-shadow-menu);
+}
+/* The popover is in the browser's top layer (CR-0021); the component places it, so the browser's own
+   [popover] place (inset 0, margin auto) is reset. Without the feature it is fixed in the page. */
+.emc2-popover {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  overflow: auto;
+  box-sizing: border-box;
+  padding: var(--emc2-space-padding);
+  color: var(--emc2-color-text);
+  font-family: var(--emc2-font-text);
+  font-size: var(--emc2-size-text);
+}
+.emc2-menu-item,
+.emc2-tree-item {
+  display: flex;
+  align-items: center;
+  gap: var(--emc2-space-gap);
+  width: 100%;
+  min-height: var(--emc2-size-row);
+  padding: 0 var(--emc2-space-padding);
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+.emc2-menu-separator {
+  border-top: 1px solid var(--emc2-color-border);
+}
+.emc2-tree ul {
+  padding-left: var(--emc2-size-icon);
+}
+/* Where a dragged node lands (CR-0019): a line in the accent colour before or after a row, a frame
+   round a folder it goes into. */
+.emc2-tree-drop-before {
+  box-shadow: inset 0 var(--emc2-focus-width) 0 var(--emc2-color-accent);
+}
+.emc2-tree-drop-after {
+  box-shadow: inset 0 calc(-1 * var(--emc2-focus-width)) 0 var(--emc2-color-accent);
+}
+.emc2-tree-drop-into {
+  box-shadow: inset 0 0 0 var(--emc2-focus-width) var(--emc2-color-accent);
+}
+
+.emc2-list-row {
+  display: flex;
+  align-items: center;
+  gap: var(--emc2-space-gap);
+  min-height: var(--emc2-size-row);
+  padding: 0 var(--emc2-space-padding);
+  cursor: default;
+}
+.emc2-list-row-selected,
+.emc2-tree-item-selected {
+  background: var(--emc2-color-accent-soft);
+}
+/* Hover (looks.md): rows and items take a 6 % tint of the text colour, buttons move 8 % towards it; never when disabled. */
+.emc2-menu-item:not(:disabled):hover,
+.emc2-tree-item:hover,
+.emc2-list-row:hover,
+.emc2-icon-button:not(:disabled):hover {
+  background: color-mix(in srgb, var(--emc2-color-text) 6%, transparent);
+}
+.emc2-button:not(:disabled):hover {
+  background: color-mix(in srgb, var(--emc2-color-panel) 92%, var(--emc2-color-text));
+}
+.emc2-button-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--emc2-color-accent) 92%, var(--emc2-color-text));
+}
+
+.emc2-notice {
+  padding: var(--emc2-space-padding);
+  border-left: var(--emc2-focus-width) solid var(--emc2-color-accent);
+  background: var(--emc2-color-panel);
+}
+.emc2-notice-warning {
+  border-left-color: var(--emc2-color-warning);
+}
+.emc2-notice-error {
+  border-left-color: var(--emc2-color-error);
+}
+
+/* The confirmation is a modal <dialog> in the top layer (CR-0021) that covers the window in the
+   backdrop colour, with the visible box inside: ::backdrop does not take the page's custom
+   properties in every browser, so it stays transparent. */
+.emc2-backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--emc2-color-backdrop);
+}
+.emc2-backdrop:not([open]) {
+  display: none;
+}
+.emc2-backdrop::backdrop {
+  background: transparent;
+}
+.emc2-dialog {
+  max-width: 90%;
+  color: var(--emc2-color-text);
+  font-family: var(--emc2-font-text);
+  font-size: var(--emc2-size-text);
+  padding: var(--emc2-space-padding);
+  background: var(--emc2-color-raised);
+  border: 1px solid var(--emc2-color-edge);
+  border-radius: var(--emc2-radius);
+  box-shadow: var(--emc2-shadow-menu);
+}
+.emc2-dialog-title {
+  margin: 0;
+  font-family: var(--emc2-font-heading);
+  font-size: var(--emc2-size-text);
+  font-weight: var(--emc2-heading-weight);
+  text-transform: var(--emc2-heading-case);
+}
+.emc2-dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--emc2-space-gap);
+}
+
+/* Disabled: muted text, no hover, 60 % icons (looks.md); a disabled primary or danger button loses its colour too. */
+.emc2-button:disabled,
+.emc2-icon-button:disabled,
+.emc2-menu-item:disabled {
+  color: var(--emc2-color-muted);
+  cursor: default;
+}
+.emc2-button:disabled {
+  background: var(--emc2-color-panel);
+  border-color: var(--emc2-color-border);
+}
+.emc2-button:disabled .emc2-icon,
+.emc2-icon-button:disabled .emc2-icon {
+  opacity: 60%;
+}
+.emc2-button:focus-visible,
+.emc2-icon-button:focus-visible,
+.emc2-input:focus-visible,
+.emc2-color-swatch:focus-visible,
+.emc2-tab:focus-visible,
+.emc2-menu-item:focus-visible,
+.emc2-tree-item:focus-visible,
+.emc2-list-row:focus-visible {
+  outline: var(--emc2-focus-width) solid var(--emc2-focus-color);
+  outline-offset: var(--emc2-focus-offset);
+}
+/* SDK 1.2.0: the declared fields editor (DeclaredFields). */
+.emc2-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+}
+.emc2-fields-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--emc2-space-gap);
+}
+.emc2-fields-row > .emc2-field,
+.emc2-fields-input {
+  flex: 1;
+}
+.emc2-fields-input {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+}
+/* SDK 1.4.0: one group per field set, and the drop-down with its "+" (ADR-0050 point 5). */
+.emc2-fields-set {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+}
+.emc2-fields-set-name {
+  color: var(--emc2-color-muted);
+}
+
+/* SDK 1.8.0 (CR-0043 part B; T-202): the panel foot, chips and tiles. Their structure is the SDK's,
+   their look the UXA's (ADR-0056), on the tokens' values in tokens.css. */
+.emc2-panel-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--emc2-space-gap);
+  padding: var(--emc2-space-padding);
+  border-top: var(--emc2-edge-width) solid var(--emc2-color-edge);
+  background: var(--emc2-color-panel);
+}
+.emc2-panel-foot-status {
+  color: var(--emc2-color-muted);
+  font-size: var(--emc2-size-text-small);
+}
+.emc2-panel-foot-actions {
+  display: flex;
+  gap: var(--emc2-space-gap);
+  margin-left: auto;
+}
+
+.emc2-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--emc2-space-gap) / 2);
+  padding: 0 var(--emc2-space-gap);
+  border: 1px solid currentColor;
+  border-radius: var(--emc2-radius-control);
+  font-size: var(--emc2-size-text-small);
+  font-weight: var(--emc2-heading-weight);
+  white-space: nowrap;
+}
+.emc2-chip-ok {
+  color: var(--emc2-color-ok);
+}
+.emc2-chip-warning {
+  color: var(--emc2-color-warning);
+}
+.emc2-chip-error {
+  color: var(--emc2-color-error);
+}
+.emc2-chip-info {
+  color: var(--emc2-color-accent);
+}
+.emc2-chip-neutral {
+  color: var(--emc2-color-muted);
+}
+.emc2-chip-label {
+  color: var(--emc2-color-text);
+}
+
+.emc2-tiles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+}
+.emc2-tile-group-head {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--emc2-color-border);
+  background: none;
+  color: var(--emc2-color-muted);
+  font: inherit;
+  font-size: var(--emc2-size-text-small);
+  font-weight: var(--emc2-heading-weight);
+  letter-spacing: var(--emc2-heading-letter-spacing);
+  text-align: left;
+  text-transform: var(--emc2-heading-case);
+  cursor: pointer;
+}
+.emc2-tile-group-head:hover {
+  color: var(--emc2-color-text);
+}
+.emc2-tile-group-head:focus-visible {
+  outline: var(--emc2-focus-width) solid var(--emc2-focus-color);
+  outline-offset: var(--emc2-focus-offset);
+}
+.emc2-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(var(--emc2-size-row) * 3), 1fr));
+  gap: var(--emc2-space-gap);
+}
+.emc2-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--emc2-space-gap) / 2);
+  padding: calc(var(--emc2-space-padding) / 2);
+  border: 1px solid var(--emc2-color-border);
+  /* Tiles take the surface corners, not the control corners: Chart Room's pills would cut the picture. */
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-raised);
+  color: var(--emc2-color-text);
+  font: inherit;
+  cursor: pointer;
+}
+.emc2-tile:not([aria-disabled='true']):hover {
+  background: color-mix(in srgb, var(--emc2-color-raised) 92%, var(--emc2-color-text));
+}
+.emc2-tile:focus-visible {
+  outline: var(--emc2-focus-width) solid var(--emc2-focus-color);
+  outline-offset: var(--emc2-focus-offset);
+}
+.emc2-tile-selected,
+.emc2-tile-selected:not([aria-disabled='true']):hover {
+  border-color: var(--emc2-color-accent);
+  background: var(--emc2-color-accent-soft);
+  /* A second line inside the border, so that the choice shows by more than colour. */
+  box-shadow: inset 0 0 0 1px var(--emc2-color-accent);
+}
+.emc2-tile[aria-disabled='true'] {
+  color: var(--emc2-color-muted);
+  cursor: default;
+}
+.emc2-tile-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(var(--emc2-size-row) * 2);
+}
+.emc2-tile-label {
+  font-size: var(--emc2-size-text-small);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+/* SDK 1.8.0 (CR-0044 E3): the floating window. Its structure is the SDK's, its look the UXA's. It
+   is in the browser's top layer and the component places it, so the browser's own [popover] place
+   (inset 0, margin auto) is reset. Without the feature it is fixed in the page. */
+.emc2-window {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+  color: var(--emc2-color-text);
+  font-family: var(--emc2-font-text);
+  font-size: var(--emc2-size-text);
+  background: var(--emc2-color-raised);
+  border: var(--emc2-edge-width) solid var(--emc2-color-edge);
+  border-radius: var(--emc2-radius);
+  box-shadow: var(--emc2-shadow-menu);
+}
+.emc2-window-title {
+  display: flex;
+  align-items: center;
+  gap: var(--emc2-space-gap);
+  flex: none;
+  min-height: var(--emc2-size-row);
+  padding: 0 var(--emc2-space-padding);
+  border-bottom: var(--emc2-edge-width) solid var(--emc2-color-edge);
+  cursor: move;
+  user-select: none;
+  touch-action: none;
+  background: var(--emc2-color-panel);
+}
+.emc2-window-title-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--emc2-font-heading);
+  font-weight: var(--emc2-heading-weight);
+  letter-spacing: var(--emc2-heading-letter-spacing);
+  text-transform: var(--emc2-heading-case);
+}
+/* The window with the focus in it has the open panel's soft head (ADR-0056 point 4), the same in
+   every look: the Accent soft tint and an accent bar on the left, so it shows by the bar too. */
+.emc2-window:focus-within > .emc2-window-title {
+  background: var(--emc2-color-accent-soft);
+  box-shadow: inset calc(var(--emc2-focus-width) + 1px) 0 0 var(--emc2-color-accent);
+}
+.emc2-window-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.emc2-window-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: calc(var(--emc2-size-row) / 2);
+  height: calc(var(--emc2-size-row) / 2);
+  cursor: nwse-resize;
+  touch-action: none;
+  /* Muted, not Edge: Edge is under 3:1 on Raised in two dark palettes. The Raised line along its
+     edge keeps it seen on a black video in the light palettes. */
+  background: linear-gradient(135deg, transparent calc(50% - 1px), var(--emc2-color-raised) calc(50% - 1px), var(--emc2-color-raised) 50%, var(--emc2-color-muted) 50%);
+}
+.emc2-window-title:focus-visible,
+.emc2-window-resize:focus-visible {
+  outline: var(--emc2-focus-width) solid var(--emc2-focus-color);
+  outline-offset: calc(var(--emc2-focus-width) * -1);
+}

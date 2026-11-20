@@ -1,0 +1,60 @@
+{
+  "id": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e22",
+  "type": "core.shape",
+  "dataType": "core.general",
+  "dataSource": "manual",
+  "layerId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e01",
+  "version": 1,
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [
+        17.9,
+        59.2
+      ],
+      [
+        18.05,
+        59.28
+      ],
+      [
+        18.1,
+        59.35
+      ]
+    ]
+  },
+  "style": {
+    "strokeColor": "#A33A3A",
+    "strokeWidth": 3,
+    "arrowhead": "end"
+  },
+  "properties": {
+    "name": "Axis BLUE"
+  },
+  "label": {
+    "policyIdentifier": {
+      "name": "NATO"
+    },
+    "classification": "UNCLASSIFIED"
+  },
+  "extensions": {
+    "draw-shapes": {
+      "kind": "arrow"
+    }
+  },
+  "meta": {
+    "created": {
+      "at": "2026-10-15T09:00:00.000Z",
+      "by": {
+        "plugin": "draw-shapes",
+        "user": "3f2c9a10-5d7e-4b8a-9c41-2e6f8d0a7b15"
+      }
+    },
+    "modified": {
+      "at": "2026-10-15T09:00:00.000Z",
+      "by": {
+        "plugin": "draw-shapes",
+        "user": "3f2c9a10-5d7e-4b8a-9c41-2e6f8d0a7b15"
+      }
+    }
+  }
+}

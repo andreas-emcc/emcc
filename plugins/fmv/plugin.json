@@ -1,0 +1,1293 @@
+{
+  "id": "fmv",
+  "name": "FMV",
+  "version": "0.1.0",
+  "sdkVersion": "^1.9.0",
+  "kind": "general",
+  "category": "data-links",
+  "icon": "Video",
+  "properties": [
+    "ingoing",
+    "outgoing"
+  ],
+  "server": {
+    "entryClass": "dev.emcc.plugins.fmv.FmvPlugin"
+  },
+  "web": {
+    "entry": "index.js",
+    "css": [
+      "fmv.css"
+    ]
+  },
+  "permissions": [
+    "plugin.fmv.view"
+  ],
+  "connections": [
+    {
+      "kinds": [
+        "udp",
+        "multicast"
+      ],
+      "direction": "both",
+      "settings": "/links",
+      "reason": "STANAG 4609 full motion video over UDP, unicast or multicast, as each link in the settings names it. An input link receives from cameras, usually on a UAV, and binds to loopback unless an admin sets another address; a multicast link joins its group on the interface an admin names. An output link sends a simulated camera's video, paced, to the address or group an admin sets; a new output link has none and sends nothing. The addresses, groups, interfaces and ports come only from the links."
+    }
+  ],
+  "internet": {
+    "hosts": [],
+    "reason": "The output links' cameras may see imagery from a WMS an admin names in the WMS imagery settings, for the area the imagery folder does not cover. No host is contacted by default; the host comes only from that setting, and the tiles are kept so that a flown area works offline."
+  },
+  "dataTypes": [
+    {
+      "id": "fmv.camera",
+      "name": "FMV camera",
+      "description": "The sensor of a STANAG 4609 stream: where the camera is.",
+      "defaults": {},
+      "fieldSets": [
+        "camera"
+      ],
+      "manual": false
+    },
+    {
+      "id": "fmv.field-of-view",
+      "name": "FMV field of view",
+      "description": "The open arc from an FMV camera towards the centre of its frame.",
+      "defaults": {},
+      "manual": false
+    }
+  ],
+  "fields": [
+    {
+      "name": "link",
+      "type": "text",
+      "label": "Link",
+      "description": "The FMV link the stream came in on.",
+      "maxLength": 256
+    },
+    {
+      "name": "mission",
+      "type": "text",
+      "label": "Mission",
+      "description": "The mission id of the stream (ST 0601 tag 3).",
+      "maxLength": 127
+    },
+    {
+      "name": "platformDesignation",
+      "type": "text",
+      "label": "Platform",
+      "description": "The platform designation (ST 0601 tag 10).",
+      "maxLength": 127
+    },
+    {
+      "name": "imageSourceSensor",
+      "type": "text",
+      "label": "Sensor",
+      "description": "The image source sensor (ST 0601 tag 11).",
+      "maxLength": 127
+    },
+    {
+      "name": "sensorAltitude",
+      "type": "number",
+      "label": "Sensor altitude",
+      "description": "The sensor's true altitude (ST 0601 tag 15).",
+      "unit": "m"
+    },
+    {
+      "name": "verticalFov",
+      "type": "number",
+      "label": "Vertical field of view",
+      "description": "The sensor's vertical field of view (ST 0601 tag 17).",
+      "unit": "°",
+      "minimum": 0,
+      "maximum": 180
+    },
+    {
+      "name": "relativeAzimuth",
+      "type": "number",
+      "label": "Relative azimuth",
+      "description": "The sensor's relative azimuth angle (ST 0601 tag 18).",
+      "unit": "°",
+      "minimum": 0,
+      "maximum": 360
+    },
+    {
+      "name": "relativeElevation",
+      "type": "number",
+      "label": "Relative elevation",
+      "description": "The sensor's relative elevation angle (ST 0601 tag 19).",
+      "unit": "°",
+      "minimum": -180,
+      "maximum": 180
+    },
+    {
+      "name": "slantRange",
+      "type": "number",
+      "label": "Slant range",
+      "description": "The distance from the sensor to the frame centre (ST 0601 tag 21).",
+      "unit": "m",
+      "minimum": 0
+    },
+    {
+      "name": "frameCenterLatitude",
+      "type": "number",
+      "label": "Frame centre latitude",
+      "description": "The latitude of the frame centre (ST 0601 tag 23).",
+      "unit": "°",
+      "minimum": -90,
+      "maximum": 90
+    },
+    {
+      "name": "frameCenterLongitude",
+      "type": "number",
+      "label": "Frame centre longitude",
+      "description": "The longitude of the frame centre (ST 0601 tag 24).",
+      "unit": "°",
+      "minimum": -180,
+      "maximum": 180
+    },
+    {
+      "name": "frameCenterElevation",
+      "type": "number",
+      "label": "Frame centre elevation",
+      "description": "The elevation of the frame centre (ST 0601 tag 25).",
+      "unit": "m"
+    },
+    {
+      "name": "videoFormat",
+      "type": "text",
+      "label": "Video format",
+      "description": "The format of the stream's video, as the panel names it.",
+      "maxLength": 64
+    },
+    {
+      "name": "classifyingCountry",
+      "type": "text",
+      "label": "Classifying country",
+      "description": "The classifying country as the stream writes it (ST 0102 tag 3).",
+      "maxLength": 127
+    },
+    {
+      "name": "releasingInstructions",
+      "type": "text",
+      "label": "Releasing instructions",
+      "description": "The releasing instructions (ST 0102 tag 6).",
+      "maxLength": 127
+    },
+    {
+      "name": "version",
+      "type": "integer",
+      "label": "ST 0601 version",
+      "description": "The UAS Datalink Local Set's version number (ST 0601 tag 65).",
+      "minimum": 0,
+      "maximum": 255
+    },
+    {
+      "name": "lastSet",
+      "type": "text",
+      "label": "Last set",
+      "description": "When the last metadata set arrived (UTC).",
+      "maxLength": 40
+    }
+  ],
+  "fieldSets": [
+    {
+      "id": "camera",
+      "label": "FMV camera",
+      "fields": [
+        "link",
+        "mission",
+        "platformDesignation",
+        "imageSourceSensor",
+        "sensorAltitude",
+        "verticalFov",
+        "relativeAzimuth",
+        "relativeElevation",
+        "slantRange",
+        "frameCenterLatitude",
+        "frameCenterLongitude",
+        "frameCenterElevation",
+        "videoFormat",
+        "classifyingCountry",
+        "releasingInstructions",
+        "version",
+        "lastSet"
+      ]
+    }
+  ],
+  "relationKinds": [
+    {
+      "id": "fmv.view",
+      "label": "FMV camera and view",
+      "line": {
+        "strokeColor": "#FFD400",
+        "strokeWidth": 1,
+        "strokeDash": "dot"
+      },
+      "defaultOn": false
+    }
+  ],
+  "settings": {
+    "type": "object",
+    "properties": {
+      "links": {
+        "title": "Links",
+        "description": "The FMV links, one entry per link: each receives STANAG 4609 full motion video over UDP and writes the camera and its field of view into a layer. Without an entry the plugin does nothing. The form shows the fields the link's mode uses.",
+        "type": "array",
+        "default": [],
+        "x-emc2": {
+          "hint": "Each link receives or sends STANAG 4609 over UDP",
+          "item": {
+            "name": "name",
+            "noun": "link",
+            "state": "enabled",
+            "id": "id",
+            "columns": [
+              "direction",
+              "mode",
+              "port"
+            ]
+          }
+        },
+        "items": {
+          "type": "object",
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false,
+          "x-emc2": {
+            "groups": [
+              {
+                "id": "connection",
+                "label": "Connection",
+                "description": "In: where the link listens. Out: where it sends; a new output link has no destination and sends nothing until one is set.",
+                "properties": [
+                  "direction",
+                  "mode",
+                  "address",
+                  "group",
+                  "interface",
+                  "port",
+                  "ttl"
+                ]
+              },
+              {
+                "id": "video",
+                "label": "Video",
+                "description": "Out: the simulated camera's H.264 video, its metadata and the pacing.",
+                "properties": [
+                  "bitrate",
+                  "keyframeSeconds",
+                  "metadataEvery",
+                  "maxRate"
+                ]
+              },
+              {
+                "id": "picture",
+                "label": "Picture",
+                "description": "In: where and how the camera and its field of view are drawn. Out: what the simulated camera sees.",
+                "properties": [
+                  "targetLayer",
+                  "cameraSymbol",
+                  "cameraIdentity",
+                  "fovColour",
+                  "sampling",
+                  "haze",
+                  "imagerySet"
+                ]
+              },
+              {
+                "id": "classification",
+                "label": "Classification",
+                "description": "Labels and ST 0102: in, from the stream to the objects; out, from the camera's label to the stream, with its release limit.",
+                "properties": [
+                  "label",
+                  "classification",
+                  "classificationNames",
+                  "highestClassification",
+                  "classifyingCountry"
+                ]
+              },
+              {
+                "id": "advanced",
+                "label": "Advanced",
+                "description": "In: which clock the objects follow, and when the panel says Stale.",
+                "properties": [
+                  "time",
+                  "staleSeconds"
+                ],
+                "advanced": true
+              }
+            ]
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "direction": {
+                    "const": "in"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "port"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "mode": {
+                    "const": "multicast"
+                  },
+                  "direction": {
+                    "const": "in"
+                  }
+                },
+                "required": [
+                  "mode"
+                ]
+              },
+              "then": {
+                "required": [
+                  "group",
+                  "interface"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "mode": {
+                    "const": "multicast"
+                  },
+                  "direction": {
+                    "const": "out"
+                  }
+                },
+                "required": [
+                  "mode",
+                  "direction",
+                  "group"
+                ]
+              },
+              "then": {
+                "required": [
+                  "interface"
+                ]
+              }
+            }
+          ],
+          "properties": {
+            "id": {
+              "description": "The link's stable id (a UUID v7): ECore fills it in, nothing changes it, and it is not shown. A renamed link keeps its objects by it.",
+              "type": "string",
+              "readOnly": true
+            },
+            "name": {
+              "description": "The link's name, 1 to 64 characters (e.g. FMV link 1). It names the link's objects; renaming the link keeps them.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "x-emc2": {
+                "hint": "Renaming the link keeps its objects"
+              },
+              "title": "Name"
+            },
+            "enabled": {
+              "description": "Whether the plugin runs this link. Stopping it keeps its objects.",
+              "type": "boolean",
+              "default": true,
+              "title": "Enabled"
+            },
+            "direction": {
+              "title": "Direction",
+              "description": "in: receives STANAG 4609 and draws the camera and its field of view. out: offers an output channel that takes a simulated camera's poses and sends its video as STANAG 4609.",
+              "enum": [
+                "in",
+                "out"
+              ],
+              "default": "in",
+              "x-emc2": {
+                "hint": "in: receives and draws; out: sends a simulated camera's video"
+              }
+            },
+            "mode": {
+              "description": "udp: unicast to or from an address and port. multicast: an input link joins the group on the interface an administrator names; an output link sends to the group from that interface.",
+              "enum": [
+                "udp",
+                "multicast"
+              ],
+              "default": "udp",
+              "x-emc2": {
+                "hint": "udp: unicast; multicast: joins a group on a named interface"
+              },
+              "title": "Mode"
+            },
+            "address": {
+              "description": "udp in: the local address to listen on; absent, 127.0.0.1 (only this computer); 0.0.0.0 listens on the network. udp out: where to send; absent, nothing is sent.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253,
+              "x-emc2": {
+                "hint": "In: absent is 127.0.0.1; out: where to send",
+                "visibleWhen": {
+                  "property": "mode",
+                  "in": [
+                    "udp"
+                  ]
+                }
+              },
+              "title": "Address"
+            },
+            "group": {
+              "description": "multicast: the group, 224.0.0.0 to 239.255.255.255. An input link joins it; an output link sends to it.",
+              "type": "string",
+              "minLength": 7,
+              "maxLength": 45,
+              "x-emc2": {
+                "hint": "The group to join, 224.0.0.0 to 239.255.255.255",
+                "visibleWhen": {
+                  "property": "mode",
+                  "in": [
+                    "multicast"
+                  ]
+                }
+              },
+              "title": "Group"
+            },
+            "interface": {
+              "description": "multicast: the network interface, by name or address, that joins the group or sends to it. Required with a group: without one the link stays stopped.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "x-emc2": {
+                "hint": "Required for multicast: the interface, by name or address",
+                "visibleWhen": {
+                  "property": "mode",
+                  "in": [
+                    "multicast"
+                  ]
+                }
+              },
+              "title": "Interface"
+            },
+            "port": {
+              "description": "in: the port to listen on. out: the port to send to; absent, nothing is sent.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535,
+              "title": "Port"
+            },
+            "ttl": {
+              "title": "Multicast TTL",
+              "description": "out, multicast: how many routers the datagrams may cross, 1 to 32. 1 keeps them on the local network.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 32,
+              "default": 1,
+              "x-emc2": {
+                "hint": "1: the local network only",
+                "visibleWhen": {
+                  "property": "mode",
+                  "in": [
+                    "multicast"
+                  ]
+                },
+                "enabledWhen": {
+                  "property": "direction",
+                  "in": [
+                    "out"
+                  ]
+                }
+              }
+            },
+            "targetLayer": {
+              "description": "Where the camera and its field of view go: an existing layer, or \"New layer\" with a name. Absent: a new layer named like the link.",
+              "type": "object",
+              "x-emc2": {
+                "hint": "Empty: a new layer named like the link",
+                "kind": "layer",
+                "visibleWhen": {
+                  "property": "direction",
+                  "in": [
+                    "in"
+                  ]
+                }
+              },
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "title": "Layer"
+            },
+            "cameraSymbol": {
+              "description": "The camera's APP-6D symbol code (20 digits); its context is reality and its identity follows the setting below. Default: a UAV with photographic reconnaissance.",
+              "type": "string",
+              "pattern": "^[0-9]{20}$",
+              "default": "10030100001103002000",
+              "x-emc2": {
+                "hint": "A 20-digit APP-6D code",
+                "visibleWhen": {
+                  "property": "direction",
+                  "in": [
+                    "in"
+                  ]
+                }
+              },
+              "title": "Camera symbol"
+            },
+            "cameraIdentity": {
+              "description": "The standard identity of the camera's symbol.",
+              "enum": [
+                "pending",
+                "unknown",
+                "assumed-friend",
+                "friend",
+                "neutral",
+                "suspect",
+                "hostile"
+              ],
+              "default": "friend",
+              "x-emc2": {
+                "hint": "The standard identity of the camera's symbol",
+                "visibleWhen": {
+                  "property": "direction",
+                  "in": [
+                    "in"
+                  ]
+                }
+              },
+              "title": "Camera identity"
+            },
+            "fovColour": {
+              "description": "The colour of the field of view's line, #RRGGBB.",
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "default": "#FFD400",
+              "x-emc2": {
+                "kind": "colour",
+                "hint": "The field of view's line",
+                "visibleWhen": {
+                  "property": "direction",
+                  "in": [
+                    "in"
+                  ]
+                }
+              },
+              "title": "Field of view colour"
+            },
+            "label": {
+              "description": "The label of the link's layer, and of objects whose stream's classification is not mapped. Default: the server's default label.",
+              "type": "object",
+              "x-emc2": {
+                "hint": "The layer's label, and an object's when the stream's is not mapped",
+                "visibleWhen": {
+                  "property": "direction",
+                  "in": [
+                    "in"
+                  ]
+                }
+              },
+              "properties": {
+                "policy": {
+                  "description": "The security policy, e.g. NATO.",
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "title": "Policy"
+                },
+                "classification": {
+                  "description": "The classification the policy defines, e.g. UNCLASSIFIED.",
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "title": "Classification"
+                }
+              },
+              "required": [
+                "policy",
+                "classification"
+              ],
+              "additionalProperties": false,
+              "title": "Label"
+            },
+            "classification": {
+              "description": "map gives the objects and the stream the classification of ST 0102 tag 1, named by the names below; link-label gives them the link's label.",
+              "enum": [
+                "map",
+                "link-label"
+              ],
+              "default": "map",
+              "x-emc2": {
+                "hint": "map: the stream's classification by the names below; link-label: the link's",
+                "visibleWhen": {
+                  "property": "direction",
+                  "in": [
+                    "in"
+                  ]
+                }
+              },
+              "title": "Classification"
+            },
+            "classificationNames": {
+              "description": "The policy's classifications for ST 0102's classification 1 (unclassified) to 5 (top secret). In: names the stream's classification. Out: gives a pose's label its number. Default: NATO's.",
+              "type": "array",
+              "minItems": 5,
+              "maxItems": 5,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "default": [
+                "UNCLASSIFIED",
+                "RESTRICTED",
+                "CONFIDENTIAL",
+                "SECRET",
+                "COSMIC TOP SECRET"
+              ],
+              "x-emc2": {
+                "hint": "The names of classifications 1 (unclassified) to 5 (top secret)"
+              },
+              "title": "Classification names"
+            },
+            "time": {
+              "description": "received uses the server's clock when each set arrived (for replays of old recordings); stream uses the time stamp in the set (ST 0601 tag 2).",
+              "enum": [
+                "received",
+                "stream"
+              ],
+              "default": "received",
+              "x-emc2": {
+                "hint": "received: the server's clock; stream: the set's own time stamp",
+                "visibleWhen": {
+                  "property": "direction",
+                  "in": [
+                    "in"
+                  ]
+                }
+              },
+              "title": "Time"
+            },
+            "staleSeconds": {
+              "description": "After this long without a metadata set the panel says Stale; the objects stay.",
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 300,
+              "default": 10,
+              "x-emc2": {
+                "hint": "Without a set for this long the panel says Stale",
+                "unit": "s",
+                "visibleWhen": {
+                  "property": "direction",
+                  "in": [
+                    "in"
+                  ]
+                }
+              },
+              "title": "Stale after"
+            },
+            "bitrate": {
+              "title": "Bit rate",
+              "description": "out: the H.264 video's bit rate, 0.5 to 20 Mbit/s.",
+              "type": "number",
+              "minimum": 0.5,
+              "maximum": 20,
+              "default": 4,
+              "x-emc2": {
+                "unit": "Mbit/s",
+                "visibleWhen": {
+                  "property": "direction",
+                  "in": [
+                    "out"
+                  ]
+                }
+              }
+            },
+            "keyframeSeconds": {
+              "title": "Keyframe every",
+              "description": "out: the time between keyframes, 0.5 to 10 s: where a new viewer can start.",
+              "type": "number",
+              "minimum": 0.5,
+              "maximum": 10,
+              "default": 1,
+              "x-emc2": {
+                "unit": "s",
+                "visibleWhen": {
+                  "property": "direction",
+                  "in": [
+                    "out"
+                  ]
+                }
+              }
+            },
+            "metadataEvery": {
+              "title": "Metadata every",
+              "description": "out: an ST 0601 set with every Nth frame, 1 to 25; 1 sends one with every frame.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 25,
+              "default": 1,
+              "x-emc2": {
+                "unit": "frames",
+                "visibleWhen": {
+                  "property": "direction",
+                  "in": [
+                    "out"
+                  ]
+                }
+              }
+            },
+            "maxRate": {
+              "title": "Pacing rate",
+              "description": "out: the most the link sends, 1 to 50 Mbit/s. Datagrams are paced to it, so that a keyframe never leaves as one burst a receiver drops.",
+              "type": "number",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "x-emc2": {
+                "hint": "The most the link sends; paced, so a keyframe never leaves in one burst",
+                "unit": "Mbit/s",
+                "visibleWhen": {
+                  "property": "direction",
+                  "in": [
+                    "out"
+                  ]
+                }
+              }
+            },
+            "sampling": {
+              "title": "Sampling",
+              "description": "out: how the picture samples the imagery. bilinear is smoother; nearest is faster.",
+              "enum": [
+                "bilinear",
+                "nearest"
+              ],
+              "default": "bilinear",
+              "x-emc2": {
+                "hint": "bilinear: smoother; nearest: faster",
+                "visibleWhen": {
+                  "property": "direction",
+                  "in": [
+                    "out"
+                  ]
+                }
+              }
+            },
+            "haze": {
+              "title": "Haze",
+              "description": "out: haze that grows with distance, to 60 % at 25 km.",
+              "type": "boolean",
+              "default": true,
+              "x-emc2": {
+                "visibleWhen": {
+                  "property": "direction",
+                  "in": [
+                    "out"
+                  ]
+                }
+              }
+            },
+            "imagerySet": {
+              "title": "Imagery set",
+              "description": "out: the name of the imagery set the camera sees, a subfolder of the imagery folder. Empty: the first set that covers the camera.",
+              "type": "string",
+              "maxLength": 128,
+              "x-emc2": {
+                "hint": "Empty: the first set that covers the camera",
+                "visibleWhen": {
+                  "property": "direction",
+                  "in": [
+                    "out"
+                  ]
+                }
+              }
+            },
+            "highestClassification": {
+              "title": "Highest classification",
+              "description": "out: a camera whose platform's label is above it is not rendered or sent, and is counted. Absent: the classification of the server's default label (ADR-0037).",
+              "type": "object",
+              "x-emc2": {
+                "hint": "A camera above it is not sent; empty: the default label's",
+                "visibleWhen": {
+                  "property": "direction",
+                  "in": [
+                    "out"
+                  ]
+                }
+              },
+              "properties": {
+                "policy": {
+                  "title": "Policy",
+                  "description": "The security policy, e.g. NATO.",
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "classification": {
+                  "title": "Classification",
+                  "description": "The classification the policy defines, e.g. RESTRICTED.",
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                }
+              },
+              "required": [
+                "policy",
+                "classification"
+              ],
+              "additionalProperties": false
+            },
+            "classifyingCountry": {
+              "title": "Classifying country",
+              "description": "out: ST 0102's classifying country, // and 1 to 4 letters, e.g. //NATO or //SWE.",
+              "type": "string",
+              "pattern": "^//[A-Z]{1,4}$",
+              "default": "//NATO",
+              "x-emc2": {
+                "visibleWhen": {
+                  "property": "direction",
+                  "in": [
+                    "out"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "imageryFolder": {
+        "title": "Imagery folder",
+        "description": "The folder of orthophoto sets the output links' cameras see: one subfolder per set, each with an imagery.json (its name, source, licence, CRS and tiles) and its JPEG or PNG tiles. %emcc%/ is the folder emcc runs from. Read only; nothing outside it is read.",
+        "type": "string",
+        "default": "%emcc%/settings/imagery",
+        "maxLength": 1024,
+        "x-emc2": {
+          "hint": "Orthophoto sets, one subfolder each with an imagery.json"
+        }
+      },
+      "terrainFolder": {
+        "title": "Terrain folder",
+        "description": "The DTED height data (levels 0 to 2, e<lon>/n<lat>.dt<n>) the output links' cameras see the imagery draped over; by default the terrain plugin's folder. Where no height data covers a point the ground is flat at 0 m. Read only.",
+        "type": "string",
+        "default": "%emcc%/settings/terrain",
+        "maxLength": 1024,
+        "x-emc2": {
+          "hint": "DTED levels 0 to 2; empty ground is flat at 0 m"
+        }
+      },
+      "wms": {
+        "title": "WMS imagery",
+        "description": "Imagery for the output links' cameras from a WMS 1.3.0 server, where the imagery folder has none: tiles within 2 km of where a camera looks, fetched at most 4 at a time and 20 a second, and kept (at most 900 tiles) so that a flown area works offline. Nothing is fetched without a source and a licence. The video carries the imagery onward, so its terms decide where the video may go.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enabled"
+        ],
+        "default": {
+          "enabled": false,
+          "crs": "EPSG:3006",
+          "format": "image/jpeg",
+          "tilePixels": 256,
+          "metresPerPixel": 1
+        },
+        "x-emc2": {
+          "hint": "Off by default; tiles where the imagery folder has none"
+        },
+        "properties": {
+          "enabled": {
+            "title": "Fetch from a WMS",
+            "description": "On: the cameras fetch the tiles the imagery folder lacks from the WMS below. Off: no request is made; tiles already kept are still used.",
+            "type": "boolean",
+            "default": false,
+            "x-emc2": {
+              "hint": "Off: no request is made; the tiles already kept are still used"
+            }
+          },
+          "url": {
+            "title": "Server",
+            "description": "The WMS server's address, http or https, without the request's parameters or a user name, e.g. https://example.org/wms. Only this setting names the host.",
+            "type": "string",
+            "pattern": "^https?://[^\\s?#@\"<>\\\\^`{|}]+$",
+            "maxLength": 2048,
+            "x-emc2": {
+              "hint": "http or https, without parameters",
+              "visibleWhen": {
+                "property": "enabled",
+                "in": [
+                  true
+                ]
+              }
+            }
+          },
+          "layer": {
+            "title": "Layer",
+            "description": "The WMS layer's name, as GetCapabilities lists it.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "x-emc2": {
+              "visibleWhen": {
+                "property": "enabled",
+                "in": [
+                  true
+                ]
+              }
+            }
+          },
+          "crs": {
+            "title": "CRS",
+            "description": "The tiles' coordinate system: EPSG:3006 (SWEREF 99 TM) or EPSG:4326 (WGS84). The server must offer it for the layer.",
+            "enum": [
+              "EPSG:3006",
+              "EPSG:4326"
+            ],
+            "default": "EPSG:3006",
+            "x-emc2": {
+              "hint": "The server must offer it for the layer",
+              "visibleWhen": {
+                "property": "enabled",
+                "in": [
+                  true
+                ]
+              }
+            }
+          },
+          "format": {
+            "title": "Format",
+            "description": "The tiles' image format: image/jpeg is smaller, image/png is lossless.",
+            "enum": [
+              "image/jpeg",
+              "image/png"
+            ],
+            "default": "image/jpeg",
+            "x-emc2": {
+              "visibleWhen": {
+                "property": "enabled",
+                "in": [
+                  true
+                ]
+              }
+            }
+          },
+          "tilePixels": {
+            "title": "Tile size",
+            "description": "The width and height of one tile in pixels.",
+            "type": "integer",
+            "enum": [
+              256,
+              512
+            ],
+            "default": 256,
+            "x-emc2": {
+              "unit": "px",
+              "visibleWhen": {
+                "property": "enabled",
+                "in": [
+                  true
+                ]
+              }
+            }
+          },
+          "metresPerPixel": {
+            "title": "Ground resolution",
+            "description": "Metres on the ground per pixel, 0.25 to 10. In EPSG:4326 a pixel is this many metres of latitude, and the same angle of longitude.",
+            "type": "number",
+            "minimum": 0.25,
+            "maximum": 10,
+            "default": 1,
+            "x-emc2": {
+              "hint": "Metres on the ground per pixel, 0.25 to 10",
+              "unit": "m",
+              "visibleWhen": {
+                "property": "enabled",
+                "in": [
+                  true
+                ]
+              }
+            }
+          },
+          "source": {
+            "title": "Source",
+            "description": "Who made the imagery, e.g. Lantmäteriet. Required to fetch; shown in the Monitor with the licence.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "x-emc2": {
+              "hint": "Who made the imagery, e.g. Lantmäteriet; required to fetch",
+              "visibleWhen": {
+                "property": "enabled",
+                "in": [
+                  true
+                ]
+              }
+            }
+          },
+          "licence": {
+            "title": "Licence",
+            "description": "The imagery's licence or terms, e.g. CC0-1.0. Required to fetch: the video carries the imagery onward, so its terms decide where the video may go.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "x-emc2": {
+              "hint": "The imagery's terms, e.g. CC0-1.0; required to fetch",
+              "visibleWhen": {
+                "property": "enabled",
+                "in": [
+                  true
+                ]
+              }
+            }
+          },
+          "token": {
+            "title": "Access token",
+            "description": "The name of an access token in the server's credentials (emc2.http.credentials.<name>.token), sent as Authorization: Bearer. Empty: none. The token itself is never a setting.",
+            "type": "string",
+            "pattern": "^([A-Za-z0-9][A-Za-z0-9._-]{0,63})?$",
+            "default": "",
+            "x-emc2": {
+              "hint": "A token's name in the server's credentials; empty: none",
+              "width": "short",
+              "visibleWhen": {
+                "property": "enabled",
+                "in": [
+                  true
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "folders": [
+    {
+      "id": "imagery",
+      "setting": "/imageryFolder",
+      "reason": "Orthophoto tiles (JPEG or PNG with an imagery.json each) that the output links' simulated cameras see"
+    },
+    {
+      "id": "terrain",
+      "setting": "/terrainFolder",
+      "reason": "DTED height data (levels 0 to 2) that the output links' simulated cameras see the imagery draped over"
+    }
+  ],
+  "compute": {
+    "threads": 8,
+    "reason": "Renders and muxes one simulated camera per thread for the output links."
+  },
+  "channelKinds": [
+    {
+      "name": "camera-pose",
+      "title": "Camera pose",
+      "description": "One simulated camera's pose for one frame: where it is, where it looks, how wide, and the frame.",
+      "payload": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "camera",
+          "time",
+          "platform",
+          "pointing",
+          "fieldOfView",
+          "frame"
+        ],
+        "properties": {
+          "camera": {
+            "type": "string",
+            "format": "uuid",
+            "minLength": 36,
+            "maxLength": 36
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time",
+            "minLength": 20,
+            "maxLength": 35
+          },
+          "platform": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "position",
+              "heading",
+              "pitch",
+              "roll"
+            ],
+            "properties": {
+              "position": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 3,
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -1000,
+                    "maximum": 20000
+                  }
+                ],
+                "items": false
+              },
+              "heading": {
+                "type": "number",
+                "minimum": 0,
+                "exclusiveMaximum": 360
+              },
+              "pitch": {
+                "type": "number",
+                "minimum": -90,
+                "maximum": 90
+              },
+              "roll": {
+                "type": "number",
+                "minimum": -180,
+                "maximum": 180
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          },
+          "pointing": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "azimuth",
+              "depression",
+              "roll"
+            ],
+            "properties": {
+              "azimuth": {
+                "type": "number",
+                "minimum": 0,
+                "exclusiveMaximum": 360
+              },
+              "depression": {
+                "type": "number",
+                "minimum": -90,
+                "maximum": 90
+              },
+              "roll": {
+                "type": "number",
+                "minimum": -180,
+                "maximum": 180
+              }
+            }
+          },
+          "fieldOfView": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "horizontal",
+              "vertical"
+            ],
+            "properties": {
+              "horizontal": {
+                "type": "number",
+                "minimum": 0.1,
+                "maximum": 120
+              },
+              "vertical": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 120
+              }
+            }
+          },
+          "frame": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "width",
+              "height",
+              "rate"
+            ],
+            "properties": {
+              "width": {
+                "type": "integer",
+                "enum": [
+                  640,
+                  1280,
+                  1920
+                ]
+              },
+              "height": {
+                "type": "integer",
+                "enum": [
+                  360,
+                  720,
+                  1080
+                ]
+              },
+              "rate": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 30
+              }
+            },
+            "anyOf": [
+              {
+                "properties": {
+                  "width": {
+                    "const": 640
+                  },
+                  "height": {
+                    "const": 360
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "width": {
+                    "const": 1280
+                  },
+                  "height": {
+                    "const": 720
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "width": {
+                    "const": 1920
+                  },
+                  "height": {
+                    "const": 1080
+                  }
+                }
+              }
+            ]
+          },
+          "mission": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        }
+      }
+    }
+  ]
+}

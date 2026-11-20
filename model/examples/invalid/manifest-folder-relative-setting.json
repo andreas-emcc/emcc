@@ -1,0 +1,17 @@
+{
+  "id": "terrain",
+  "name": "Terrain",
+  "version": "0.1.0",
+  "sdkVersion": "^1.4.0",
+  "kind": "general",
+  "folders": [
+    {
+      "id": "heights",
+      "setting": "heightDataFolder",
+      "reason": "Height data"
+    }
+  ],
+  "server": {
+    "entryClass": "dev.emcc.plugins.terrain.TerrainPlugin"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "basemap-wms",
+  "name": "WMS background maps",
+  "version": "0.1.0",
+  "sdkVersion": "^1.2.0",
+  "kind": "background-map",
+  "internet": {
+    "hosts": [],
+    "reason": "WMS background maps from the servers an admin configures; no default server."
+  },
+  "server": {
+    "entryClass": "dev.emcc.plugins.basemapwms.BasemapWmsPlugin"
+  }
+}

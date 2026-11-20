@@ -1,0 +1,10 @@
+{
+  "requestId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e25",
+  "entityType": "object",
+  "operation": "create",
+  "entityId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e19",
+  "code": "VALIDATION_FAILED",
+  "message": "The polygon's ring is not closed.",
+  "details": [{ "path": "/data/geometry/coordinates/0", "problem": "first and last positions differ (rule 1)" }],
+  "at": "2026-10-05T09:06:00.000Z"
+}

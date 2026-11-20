@@ -1,0 +1,54 @@
+{
+  "description": "Demo scenario for release zips (node tools/release.mjs --scenario tools/demo/scenario.json). Fictitious units, APP-6D land units; positions in lon/lat (ADR-0007).",
+  "source": "demo-scenario",
+  "layers": [
+    {
+      "name": "Own forces",
+      "drawOrder": 40,
+      "symbols": [
+        { "sidc": "10031000001211000000", "at": [18.02, 59.40], "name": "1 INF" },
+        { "sidc": "10031000001205000000", "at": [17.88, 59.28], "name": "2 ARM" },
+        { "sidc": "10031000001303000000", "at": [18.21, 59.22], "name": "3 ART" },
+        { "sidc": "10031000001213000000", "at": [18.46, 59.56], "name": "4 RECCE", "direction": 70 },
+        { "sidc": "10031000001211000000", "at": [17.64, 59.86], "name": "5 INF" }
+      ]
+    },
+    {
+      "name": "Opposing forces",
+      "drawOrder": 30,
+      "symbols": [
+        { "sidc": "10061000001205000000", "at": [18.31, 57.66], "name": "A ARM", "direction": 330 },
+        { "sidc": "10061000001211000000", "at": [18.72, 57.41], "name": "B INF" },
+        { "sidc": "10061000001213000000", "at": [19.24, 58.12], "name": "C RECCE", "direction": 300 }
+      ]
+    },
+    {
+      "name": "Neutral and unknown",
+      "drawOrder": 20,
+      "symbols": [
+        { "sidc": "10041000001211000000", "at": [19.94, 60.10], "name": "N1" },
+        { "sidc": "10011000001213000000", "at": [20.53, 58.81], "name": "U1" }
+      ]
+    },
+    {
+      "name": "Arctic",
+      "drawOrder": 10,
+      "symbols": [
+        { "sidc": "10031000001213000000", "at": [15.63, 78.22], "name": "SVALBARD" },
+        { "sidc": "10031000001211000000", "at": [-51.72, 64.18], "name": "NUUK" },
+        { "sidc": "10031000001213000000", "at": [-62.35, 82.50], "name": "ALERT" },
+        { "sidc": "10011000001213000000", "at": [30.40, 88.60], "name": "U2" },
+        { "sidc": "10061000001205000000", "at": [33.08, 68.97], "name": "D ARM" }
+      ]
+    },
+    {
+      "name": "Antarctic",
+      "drawOrder": 5,
+      "symbols": [
+        { "sidc": "10031000001213000000", "at": [166.67, -77.85], "name": "MCMURDO" },
+        { "sidc": "10031000001213000000", "at": [2.53, -72.01], "name": "TROLL" },
+        { "sidc": "10011000001213000000", "at": [-139.27, -89.90], "name": "U3" }
+      ]
+    }
+  ]
+}

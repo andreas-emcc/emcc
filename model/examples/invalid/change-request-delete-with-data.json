@@ -1,0 +1,15 @@
+{
+  "requestId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e37",
+  "entityType": "object",
+  "operation": "delete",
+  "entityId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e14",
+  "data": {
+    "type": "core.shape",
+    "dataType": "core.general",
+    "dataSource": "manual",
+    "layerId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e01",
+    "geometry": { "type": "Circle", "center": [11.9746, 57.7089], "radius": 2500 },
+    "label": { "policyIdentifier": { "name": "NATO" }, "classification": "UNCLASSIFIED" }
+  },
+  "source": { "plugin": "draw-symbols" }
+}

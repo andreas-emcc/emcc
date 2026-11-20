@@ -1,0 +1,24 @@
+{
+  "id": "bookmarks",
+  "name": "Bookmarks",
+  "version": "0.1.0",
+  "sdkVersion": "^1.8.0",
+  "icon": "Bookmark",
+  "kind": "utility",
+  "category": "general",
+  "uses": ["emc2.map-view", "emc2.coordinates"],
+  "web": { "entry": "index.js", "css": ["bookmarks.css"] },
+  "settings": {
+    "type": "object",
+    "properties": {
+      "maxItems": {
+        "title": "Most bookmarks and folders per user",
+        "description": "How many bookmarks and folders one user may keep together. ECore's limit per document (256 KiB) applies as well.",
+        "type": "integer",
+        "minimum": 1,
+        "default": 1000,
+        "x-emc2": { "hint": "Bookmarks and folders together; a document holds at most 256 KiB", "unit": "items" }
+      }
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "id": "cot",
+  "name": "Cursor on Target",
+  "version": "0.3.0",
+  "sdkVersion": "^1.2.0",
+  "kind": "general",
+  "properties": [
+    "ingoing",
+    "outgoing"
+  ],
+  "fields": [
+    {
+      "name": "callsign",
+      "type": "text",
+      "label": "Callsign",
+      "maxLength": 64,
+      "editableByOthers": true
+    },
+    {
+      "name": "role",
+      "type": "choice",
+      "label": "Role",
+      "choices": [
+        {
+          "value": "team-member",
+          "label": "Team member"
+        },
+        {
+          "value": "hq",
+          "label": "HQ"
+        }
+      ],
+      "editableByOthers": true,
+      "dataTypes": [
+        "core.general"
+      ]
+    },
+    {
+      "name": "staleAfter",
+      "type": "integer",
+      "label": "Stale after",
+      "unit": "s",
+      "minimum": 1,
+      "maximum": 86400
+    },
+    {
+      "name": "remarks",
+      "type": "text",
+      "label": "Remarks",
+      "description": "Free text sent as the CoT remarks.",
+      "editableByOthers": true
+    },
+    {
+      "name": "hideInTak",
+      "type": "boolean",
+      "label": "Hide in TAK",
+      "required": true
+    }
+  ],
+  "server": {
+    "entryClass": "dev.emcc.plugins.cot.CotPlugin"
+  }
+}

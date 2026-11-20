@@ -1,0 +1,42 @@
+{
+  "requestId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e32",
+  "entityType": "object",
+  "operation": "update",
+  "entityId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e16",
+  "baseVersion": 3,
+  "data": {
+    "type": "core.symbol",
+    "dataType": "core.general",
+    "dataSource": "manual",
+    "layerId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e01",
+    "geometry": {
+      "type": "Point",
+      "coordinates": [
+        18.0723,
+        59.3311
+      ]
+    },
+    "symbol": {
+      "standard": "APP-6D",
+      "sidc": "10061000001211000000"
+    },
+    "label": {
+      "policyIdentifier": {
+        "name": "NATO"
+      },
+      "classification": "UNCLASSIFIED"
+    }
+  },
+  "source": {
+    "plugin": "draw-symbols"
+  },
+  "fields": [
+    {
+      "plugin": "cot",
+      "name": "callsign",
+      "value": {
+        "text": "ALPHA-1"
+      }
+    }
+  ]
+}

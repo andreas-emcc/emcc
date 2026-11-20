@@ -1,0 +1,7 @@
+{
+  "id": "empty-plugin",
+  "name": "A plugin with neither a server nor a web part",
+  "version": "0.1.0",
+  "sdkVersion": "^1.0.0",
+  "kind": "utility"
+}

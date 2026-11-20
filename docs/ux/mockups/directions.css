@@ -1,0 +1,182 @@
+/*
+ * UXA mockups: the proposed looks and the three directions. Loaded after the real tokens.css, so
+ * every value here is a PROPOSED change to a real token, or a mock-only token (--ux-*) that would
+ * need a new token (PDA) or a wider ADR-0034 (ACA) to ship. Nothing here is shipped.
+ *
+ *   data-dir   lines | surfaces | cards     how panes and panels are told apart
+ *   data-look  night-watch | chart-room | signal
+ */
+
+/* ================= The looks: proposed values ================= */
+
+/* ---- Night Watch: quiet, cool, thin. Made for dim rooms. ---- */
+:root[data-look='night-watch'] {
+  --emc2-radius: 3px;
+  --ux-control-radius: 3px;
+  --ux-edge-w: 1px;
+  --ux-label-font: var(--emc2-font-text);
+  --ux-label-case: none;
+  --ux-label-spacing: normal;
+  --ux-tab-style: underline;
+  --ux-head-weight: 600;
+  --ux-button-bg: transparent;
+}
+:root[data-look='night-watch'][data-scheme='dark'] {
+  /* Owner, 2026-11-13: Night Watch dark goes green-teal, so that it stands apart from Chart Room dark. */
+  --emc2-color-ground: #070e0e;
+  --emc2-color-pane: #0f1a1a;
+  --emc2-color-panel: #172525;
+  --emc2-color-border: #2a3d3b;
+  --emc2-color-field-border: #5f7673;
+  --emc2-color-text: #e0ebe8;
+  --emc2-color-muted: #8ba39e;
+  --emc2-color-accent: #45d0b5;
+  --emc2-color-on-accent: #03201b;
+  --emc2-color-accent-soft: #123631;
+  --ux-edge: #5f7673;
+  --ux-raised: #1c2c2b;
+}
+:root[data-look='night-watch'][data-scheme='light'] {
+  /* Owner, 2026-11-13: Night Watch light follows the dark scheme: green-teal, with a dark teal accent. */
+  --emc2-color-ground: #e4ebe9;
+  --emc2-color-pane: #f2f6f5;
+  --emc2-color-panel: #ffffff;
+  --emc2-color-border: #bfcdca;
+  --emc2-color-field-border: #6a7f7b;
+  --emc2-color-text: #121c1a;
+  --emc2-color-muted: #4f625e;
+  --emc2-color-accent: #0a6b5f;
+  --emc2-color-on-accent: #ffffff;
+  --emc2-color-accent-soft: #d3eee8;
+  --ux-edge: #667b77;
+  --ux-raised: #ffffff;
+}
+
+/* ---- Chart Room: soft, rounded, roomy. Made for daylight and projectors. ---- */
+:root[data-look='chart-room'] {
+  --emc2-radius: 8px;
+  --ux-control-radius: 999px;
+  --ux-edge-w: 1px;
+  --ux-label-font: var(--emc2-font-text);
+  --ux-label-case: none;
+  --ux-label-spacing: normal;
+  --ux-tab-style: pill;
+  --ux-head-weight: 650;
+  --ux-button-bg: var(--emc2-color-panel);
+}
+:root[data-look='chart-room'][data-scheme='light'] {
+  /* Warmer paper, so that it stays apart from Night Watch light's green-teal. */
+  --emc2-color-ground: #eeece3;
+  --emc2-color-pane: #f9f8f2;
+  --emc2-color-panel: #ffffff;
+  --emc2-color-border: #d6d2c3;
+  --emc2-color-field-border: #7b8078;
+  --ux-edge: #74786f;
+  --ux-raised: #ffffff;
+}
+:root[data-look='chart-room'][data-scheme='dark'] {
+  --emc2-color-ground: #091016;
+  --emc2-color-pane: #14202a;
+  --emc2-color-panel: #1e2c38;
+  --emc2-color-border: #30424f;
+  --ux-edge: #6a7b86;
+  --ux-raised: #263746;
+  --emc2-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --emc2-shadow-menu: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* ---- Signal: hard, square, loud. A console. ---- */
+:root[data-look='signal'] {
+  --emc2-radius: 0px;
+  --ux-control-radius: 0px;
+  --ux-edge-w: 2px;
+  --ux-label-font: var(--emc2-font-data);
+  --ux-label-case: uppercase;
+  --ux-label-spacing: 0.04em;
+  --ux-tab-style: block;
+  --ux-head-weight: 700;
+  --ux-button-bg: transparent;
+}
+:root[data-look='signal'][data-scheme='dark'] {
+  --emc2-color-ground: #000000;
+  --emc2-color-pane: #101010;
+  --emc2-color-panel: #1d1d1d;
+  --emc2-color-border: #474747;
+  --ux-edge: #8c8c88;
+  --ux-raised: #2a2a2a;
+}
+:root[data-look='signal'][data-scheme='light'] {
+  --emc2-color-ground: #f1f1ee;
+  --emc2-color-pane: #ffffff;
+  --emc2-color-panel: #f4f4f0;
+  --emc2-color-border: #8a8a85;
+  --ux-edge: #111111;
+  --ux-raised: #ffffff;
+}
+
+/* ================= The directions ================= */
+
+/* ---- 1 · Lines: today's flat layout, with edges you can see ---- */
+:root[data-dir='lines'] {
+  --ux-gutter: 0px;
+  --ux-pane-pad: 0px;
+  --ux-panel-gap: 0px;
+  --ux-pane-bg: var(--emc2-color-pane);
+  --ux-pane-edge: var(--ux-edge-w) solid var(--ux-edge);
+  --ux-panel-border: 0px solid transparent;
+  --ux-panel-sep: 1px solid var(--emc2-color-border);
+  --ux-panel-radius: 0px;
+  --ux-panel-shadow: none;
+  --ux-head-bg: var(--emc2-color-panel);
+  --ux-body-bg: var(--emc2-color-pane);
+  --ux-open-mark: inset 3px 0 0 var(--emc2-color-accent);
+}
+
+/* ---- 2 · Surfaces: tone steps and gutters, hardly any lines ---- */
+:root[data-dir='surfaces'] {
+  --ux-gutter: 6px;
+  --ux-pane-pad: 0px;
+  --ux-panel-gap: 3px;
+  --ux-pane-bg: var(--emc2-color-ground);
+  --ux-pane-edge: 0px solid transparent;
+  --ux-panel-border: 0px solid transparent;
+  --ux-panel-sep: 0px solid transparent;
+  --ux-panel-radius: 0px;
+  --ux-panel-shadow: none;
+  --ux-head-bg: var(--ux-raised);
+  --ux-body-bg: var(--emc2-color-pane);
+  --ux-open-mark: inset 0 2px 0 var(--emc2-color-accent);
+}
+:root[data-dir='surfaces'][data-scheme='light'] {
+  --ux-head-bg: var(--emc2-color-panel);
+}
+
+/* ---- 3 · Cards: every panel is its own framed card ---- */
+:root[data-dir='cards'] {
+  --ux-gutter: 0px;
+  --ux-pane-pad: 6px;
+  --ux-panel-gap: 6px;
+  --ux-pane-bg: var(--emc2-color-ground);
+  --ux-pane-edge: 0px solid transparent;
+  --ux-panel-border: var(--ux-edge-w) solid var(--emc2-color-border);
+  --ux-panel-sep: 0px solid transparent;
+  --ux-panel-radius: calc(var(--emc2-radius) + 2px);
+  --ux-panel-shadow: var(--emc2-shadow-card);
+  --ux-head-bg: var(--emc2-color-panel);
+  --ux-body-bg: var(--emc2-color-pane);
+  --ux-open-mark: none;
+}
+:root[data-dir='cards'][data-look='signal'] {
+  --ux-panel-border: var(--ux-edge-w) solid var(--ux-edge);
+  --ux-panel-radius: 0px;
+}
+/* Owner, 2026-11-13: in Signal dark the cards' lines were too bright. The look's field-border grey:
+   3.2:1 or more on ground, pane and panel head, against 5:1 before. */
+:root[data-dir='cards'][data-look='signal'][data-scheme='dark'] {
+  --ux-edge: #6c6c69;
+}
+/* Night Watch dark's card frame: a step above the hairline border, in the look's green-teal.
+   Mock-only, decoration (about 2:1): the cards also differ from the ground in tone. */
+:root[data-dir='cards'][data-look='night-watch'][data-scheme='dark'] {
+  --ux-panel-border: 1px solid #3f5855;
+}

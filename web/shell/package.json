@@ -1,0 +1,42 @@
+{
+  "name": "@emc2/shell",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "The emc2 web client shell: layout, plugin loading, connection to the server, and the shared libraries (vendor build and import map) for plugin web parts.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --configLoader runner",
+    "build": "tsc -p tsconfig.app.json && tsc -p tsconfig.node.json && vite build --configLoader runner",
+    "lint": "eslint .",
+    "test": "eslint . && tsc -p tsconfig.app.json && tsc -p tsconfig.node.json && vitest run --configLoader runner",
+    "preview": "vite preview --configLoader runner",
+    "typecheck": "tsc -p tsconfig.app.json && tsc -p tsconfig.node.json"
+  },
+  "dependencies": {
+    "@emc2/plugin-sdk": "1.9.0",
+    "lucide-react": "1.49.0",
+    "milsymbol": "3.0.4",
+    "ol": "10.10.0",
+    "proj4": "2.22.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@testing-library/react": "16.3.3",
+    "@types/node": "24.19.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "eslint": "10.12.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.7",
+    "globals": "17.13.0",
+    "jsdom": "30.1.2",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.0",
+    "vite": "8.3.5",
+    "vitest": "5.0.3"
+  }
+}

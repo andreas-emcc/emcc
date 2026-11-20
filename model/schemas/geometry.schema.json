@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:emc2:schema:geometry",
+  "title": "emc2 geometry",
+  "description": "Geometry of a map object. GeoJSON geometry types (RFC 7946) plus emc2 types for shapes GeoJSON lacks. All positions are WGS84 [longitude, latitude] or [longitude, latitude, altitude]. Distances are metres on the WGS84 ellipsoid (geodesic); bearings are degrees clockwise from true north. The edge between two consecutive positions is the shorter geodesic between them, whatever the map projection (model/README.md, rule 10). Data model 1.9.0 (PDA), see model/README.md.",
+  "oneOf": [
+    { "$ref": "#/$defs/point" },
+    { "$ref": "#/$defs/multiPoint" },
+    { "$ref": "#/$defs/lineString" },
+    { "$ref": "#/$defs/polygon" },
+    { "$ref": "#/$defs/circle" },
+    { "$ref": "#/$defs/ellipse" },
+    { "$ref": "#/$defs/corridor" },
+    { "$ref": "#/$defs/arcBand" }
+  ],
+  "$defs": {
+    "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+    "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+    "altitude": {
+      "description": "Metres above the WGS84 ellipsoid (HAE). Conversion to mean sea level happens only for display and at format boundaries.",
+      "type": "number"
+    },
+    "position": {
+      "description": "[longitude, latitude] or [longitude, latitude, altitude]. Longitude first, always.",
+      "type": "array",
+      "prefixItems": [
+        { "$ref": "#/$defs/longitude" },
+        { "$ref": "#/$defs/latitude" },
+        { "$ref": "#/$defs/altitude" }
+      ],
+      "items": false,
+      "minItems": 2
+    },
+    "distance": { "description": "Metres, geodesic.", "type": "number", "exclusiveMinimum": 0 },
+    "bearing": { "description": "Degrees clockwise from true north.", "type": "number", "minimum": 0, "exclusiveMaximum": 360 },
+    "linearRing": {
+      "description": "Closed ring: at least four positions, the first equal to the last (closure is checked in code, not by the schema).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/position" },
+      "minItems": 4
+    },
+    "point": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "Point" },
+        "coordinates": { "$ref": "#/$defs/position" }
+      },
+      "required": ["type", "coordinates"],
+      "additionalProperties": false
+    },
+    "multiPoint": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "MultiPoint" },
+        "coordinates": { "type": "array", "items": { "$ref": "#/$defs/position" }, "minItems": 1 }
+      },
+      "required": ["type", "coordinates"],
+      "additionalProperties": false
+    },
+    "lineString": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "LineString" },
+        "coordinates": { "type": "array", "items": { "$ref": "#/$defs/position" }, "minItems": 2 }
+      },
+      "required": ["type", "coordinates"],
+      "additionalProperties": false
+    },
+    "polygon": {
+      "description": "First ring is the exterior, further rings are holes.",
+      "type": "object",
+      "properties": {
+        "type": { "const": "Polygon" },
+        "coordinates": { "type": "array", "items": { "$ref": "#/$defs/linearRing" }, "minItems": 1 }
+      },
+      "required": ["type", "coordinates"],
+      "additionalProperties": false
+    },
+    "circle": {
+      "description": "emc2 type (not in GeoJSON).",
+      "type": "object",
+      "properties": {
+        "type": { "const": "Circle" },
+        "center": { "$ref": "#/$defs/position" },
+        "radius": { "$ref": "#/$defs/distance" }
+      },
+      "required": ["type", "center", "radius"],
+      "additionalProperties": false
+    },
+    "ellipse": {
+      "description": "emc2 type (not in GeoJSON).",
+      "type": "object",
+      "properties": {
+        "type": { "const": "Ellipse" },
+        "center": { "$ref": "#/$defs/position" },
+        "semiMajorAxis": { "$ref": "#/$defs/distance" },
+        "semiMinorAxis": { "$ref": "#/$defs/distance" },
+        "rotation": { "description": "Bearing of the major axis.", "$ref": "#/$defs/bearing" }
+      },
+      "required": ["type", "center", "semiMajorAxis", "semiMinorAxis", "rotation"],
+      "additionalProperties": false
+    },
+    "corridor": {
+      "description": "emc2 type (not in GeoJSON): a centre line with a width.",
+      "type": "object",
+      "properties": {
+        "type": { "const": "Corridor" },
+        "coordinates": { "type": "array", "items": { "$ref": "#/$defs/position" }, "minItems": 2 },
+        "width": { "description": "Total width in metres.", "$ref": "#/$defs/distance" }
+      },
+      "required": ["type", "coordinates", "width"],
+      "additionalProperties": false
+    },
+    "arcBand": {
+      "description": "emc2 type (not in GeoJSON): the area between two radii, clockwise from startBearing to endBearing. A sector has innerRadius 0.",
+      "type": "object",
+      "properties": {
+        "type": { "const": "ArcBand" },
+        "center": { "$ref": "#/$defs/position" },
+        "innerRadius": { "type": "number", "minimum": 0 },
+        "outerRadius": { "$ref": "#/$defs/distance" },
+        "startBearing": { "$ref": "#/$defs/bearing" },
+        "endBearing": { "$ref": "#/$defs/bearing" }
+      },
+      "required": ["type", "center", "innerRadius", "outerRadius", "startBearing", "endBearing"],
+      "additionalProperties": false
+    }
+  }
+}

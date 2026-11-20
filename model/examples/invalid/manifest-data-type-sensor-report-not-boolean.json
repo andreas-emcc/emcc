@@ -1,0 +1,17 @@
+{
+  "id": "gmti",
+  "name": "GMTI",
+  "version": "0.2.0",
+  "sdkVersion": "^1.5.0",
+  "kind": "general",
+  "dataTypes": [
+    {
+      "id": "gmti.detection",
+      "name": "GMTI detection",
+      "sensorReport": "yes"
+    }
+  ],
+  "server": {
+    "entryClass": "dev.emcc.plugins.gmti.GmtiPlugin"
+  }
+}

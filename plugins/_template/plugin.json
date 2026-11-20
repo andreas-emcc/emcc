@@ -1,0 +1,137 @@
+{
+  "id": "template",
+  "name": "Plugin template",
+  "version": "0.1.0",
+  "sdkVersion": "^1.9.0",
+  "kind": "general",
+  "category": "general",
+  "icon": "Puzzle",
+  "server": { "entryClass": "dev.emcc.plugins.template.TemplatePlugin" },
+  "web": { "entry": "index.js", "css": ["template.css"] },
+  "connections": [
+    {
+      "kinds": ["tcp-client", "tcp-server", "udp"],
+      "direction": "both",
+      "settings": "/links",
+      "reason": "Lines of text to and from the peers each link in the settings names: a TCP client (with TLS if chosen), a TCP server on loopback unless an admin chooses an address, or UDP. The hosts and ports come only from the links."
+    }
+  ],
+  "settings": {
+    "type": "object",
+    "x-emc2": {
+      "groups": [
+        { "id": "greeting", "label": "Greeting", "description": "What the template's panel and endpoint show.", "properties": ["greeting"] },
+        { "id": "links", "label": "Links", "description": "The connections the template keeps, one entry per link. Replace this example with your plugin's own.", "properties": ["links"] }
+      ]
+    },
+    "properties": {
+      "greeting": {
+        "title": "Greeting",
+        "description": "The text the greeting endpoint and panel show.",
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "default": "Hello from the template",
+        "x-emc2": { "hint": "Any short text" }
+      },
+      "links": {
+        "title": "Links",
+        "description": "The connections to peers, one entry per link. Without an entry the template opens none. A link receives lines of text, sends them, or both; its state shows in the plugin's status.",
+        "type": "array",
+        "default": [],
+        "maxItems": 32,
+        "x-emc2": {
+          "hint": "One entry per peer or port",
+          "item": { "name": "name", "noun": "link", "state": "enabled", "columns": ["mode", "direction", "host", "port"], "id": "id" }
+        },
+        "items": {
+          "type": "object",
+          "required": ["name"],
+          "x-emc2": {
+            "groups": [
+              { "id": "peer", "label": "Peer", "description": "Where a TCP client connects and where UDP sends.", "properties": ["host", "port", "tls", "tlsCredential"] },
+              { "id": "listen", "label": "Listening", "description": "Where a TCP server or a receiving UDP link listens.", "properties": ["listen"] },
+              { "id": "timing", "label": "Timing", "description": "When a quiet connection is opened again.", "properties": ["idleSeconds"] }
+            ]
+          },
+          "properties": {
+            "id": { "title": "Id", "description": "The link's stable id, which ECore fills in and never changes: a rename keeps it.", "type": "string", "readOnly": true },
+            "name": {
+              "title": "Name",
+              "description": "The link's name: lowercase words joined by hyphens, at most 64 characters. It names the link's connection task and its line in the status.",
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+              "maxLength": 64,
+              "x-emc2": { "hint": "Lowercase words with hyphens, e.g. feed-north" }
+            },
+            "mode": {
+              "title": "Mode",
+              "description": "tcp-client connects to a peer; tcp-server lets peers connect, one connection each; udp sends and receives datagrams, one line each.",
+              "enum": ["tcp-client", "tcp-server", "udp"],
+              "default": "tcp-client",
+              "x-emc2": { "hint": "How the link reaches its peer" }
+            },
+            "direction": {
+              "title": "Direction",
+              "description": "in receives lines; out sends them; both does both on one socket.",
+              "enum": ["in", "out", "both"],
+              "default": "in",
+              "x-emc2": { "hint": "in receives, out sends, both does both" }
+            },
+            "enabled": { "title": "Enabled", "description": "Whether the plugin runs this link.", "type": "boolean", "default": true },
+            "host": {
+              "title": "Host",
+              "description": "tcp-client: the peer to connect to. udp: where an out or both link sends.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253,
+              "x-emc2": { "hint": "A host name or address", "visibleWhen": { "property": "mode", "in": ["tcp-client", "udp"] } }
+            },
+            "port": {
+              "title": "Port",
+              "description": "tcp-client and udp: the peer's port.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535,
+              "x-emc2": { "visibleWhen": { "property": "mode", "in": ["tcp-client", "udp"] } }
+            },
+            "tls": {
+              "title": "TLS",
+              "description": "tcp-client: talk TLS, with a client certificate from the server's TLS credentials.",
+              "type": "boolean",
+              "default": false,
+              "x-emc2": { "visibleWhen": { "property": "mode", "in": ["tcp-client"] } }
+            },
+            "tlsCredential": {
+              "title": "TLS credential",
+              "description": "The TLS credential the link uses, from those the server's local configuration names. Empty: the credential named like the link.",
+              "type": "string",
+              "default": "",
+              "x-emc2": { "kind": "tls-credential", "visibleWhen": { "property": "mode", "in": ["tcp-client"] }, "enabledWhen": { "property": "tls", "in": [true] } }
+            },
+            "listen": {
+              "title": "Listen on",
+              "description": "tcp-server and a receiving udp link: the local address and port. The address is 127.0.0.1, only this computer, unless an administrator sets another.",
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["port"],
+              "x-emc2": { "visibleWhen": { "property": "mode", "in": ["tcp-server", "udp"] } },
+              "properties": {
+                "address": { "title": "Address", "description": "The local address to listen on; 0.0.0.0 receives from the network.", "type": "string", "minLength": 1, "maxLength": 253, "default": "127.0.0.1" },
+                "port": { "title": "Port", "description": "The local port to listen on.", "type": "integer", "minimum": 1, "maximum": 65535 }
+              }
+            },
+            "idleSeconds": {
+              "title": "Idle seconds",
+              "description": "A TCP link that receives and gets nothing for this long connects again; 0: never.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 86400,
+              "default": 120
+            }
+          }
+        }
+      }
+    }
+  }
+}

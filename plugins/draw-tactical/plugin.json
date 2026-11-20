@@ -1,0 +1,33 @@
+{
+  "id": "draw-tactical",
+  "name": "Draw tactical graphics",
+  "version": "0.1.0",
+  "sdkVersion": "^1.8.0",
+  "icon": "Swords",
+  "kind": "general",
+  "category": "drawing",
+  "requires": ["emc2.map-view", "emc2.symbols"],
+  "web": { "entry": "index.js", "css": ["draw-tactical.css"] },
+  "permissions": ["objects.edit"],
+  "settings": {
+    "type": "object",
+    "properties": {
+      "standard": {
+        "title": "Standard",
+        "description": "The APP-6 standard of new tactical graphics.",
+        "type": "string",
+        "enum": ["APP-6D", "APP-6E"],
+        "default": "APP-6D",
+        "x-emc2": { "hint": "Which catalogue the Graphics panel offers." }
+      },
+      "standardIdentity": {
+        "title": "Standard identity",
+        "description": "The standard identity new tactical graphics start with.",
+        "type": "string",
+        "enum": ["Friend", "Hostile", "Neutral", "Unknown"],
+        "default": "Friend",
+        "x-emc2": { "hint": "The panel starts with this; users can change it there." }
+      }
+    }
+  }
+}

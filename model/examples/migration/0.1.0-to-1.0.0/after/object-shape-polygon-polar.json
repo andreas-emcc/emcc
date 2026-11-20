@@ -1,0 +1,19 @@
+{
+  "id": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e15",
+  "type": "core.shape",
+  "dataType": "core.general",
+  "dataSource": "manual",
+  "layerId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e01",
+  "version": 1,
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [[[10.0, 78.0], [20.0, 78.0], [20.0, 80.5], [10.0, 80.5], [10.0, 78.0]]]
+  },
+  "style": { "strokeColor": "#1F6F8B", "strokeWidth": 1.5, "fillColor": "#80E0FF", "fillOpacity": 0.15 },
+  "properties": { "name": "Area of interest, Svalbard" },
+  "label": { "policyIdentifier": { "name": "NATO" }, "classification": "UNCLASSIFIED" },
+  "meta": {
+    "created": { "at": "2026-10-03T09:00:00.000Z", "by": { "plugin": "draw-symbols", "user": "3f2c9a10-5d7e-4b8a-9c41-2e6f8d0a7b15" } },
+    "modified": { "at": "2026-10-03T09:00:00.000Z", "by": { "plugin": "draw-symbols", "user": "3f2c9a10-5d7e-4b8a-9c41-2e6f8d0a7b15" } }
+  }
+}

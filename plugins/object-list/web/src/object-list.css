@@ -1,0 +1,125 @@
+/* Plugin styles: every class starts with the plugin id, and every colour, font, size and space
+   comes from the shell's design tokens (ADR-0029, ADR-0034). Nothing global; the shared components
+   bring their own CSS, this file only arranges content. The shell draws the panel's head and
+   padding. */
+
+/* The panel is the container its table queries: it adapts to the width of its pane, not of the
+   window, because the user may put it in the left, the right or the bottom pane. */
+.object-list {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  min-width: 0;
+  color: var(--emc2-color-text);
+}
+
+/* The controls stay in view while the rows scroll under them: in a low pane the list is what scrolls. */
+.object-list-controls {
+  position: sticky;
+  top: calc(-1 * var(--emc2-space-padding));
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  margin-top: calc(-1 * var(--emc2-space-padding));
+  padding-top: var(--emc2-space-padding);
+  padding-bottom: var(--emc2-space-gap);
+  background: var(--emc2-color-pane);
+}
+
+/* One row of controls that wraps: in a wide, low pane it is a single line. */
+.object-list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--emc2-space-gap);
+}
+
+.object-list-chooser {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.object-list-hint {
+  margin: 0;
+  color: var(--emc2-color-muted);
+}
+
+.object-list-count,
+.object-list-range,
+.object-list-data {
+  color: var(--emc2-color-muted);
+  font-family: var(--emc2-font-data);
+  white-space: nowrap;
+}
+
+.object-list-pager-buttons {
+  display: flex;
+  gap: var(--emc2-space-gap);
+}
+
+.object-list-failure {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--emc2-space-gap);
+}
+
+.object-list-head,
+.object-list-row {
+  display: grid;
+  grid-template-columns: var(--emc2-size-row) minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr);
+  align-items: center;
+  column-gap: var(--emc2-space-gap);
+  min-width: 0;
+}
+
+.object-list-head {
+  padding: 0 var(--emc2-space-padding);
+  color: var(--emc2-color-muted);
+  font-size: var(--emc2-size-text-small);
+}
+
+/* A row that the keyboard focuses scrolls clear of the controls above it, which stay in view. The
+   panel measures them (`--object-list-controls-height`, set by the script). */
+.object-list-rows li {
+  scroll-margin-top: var(--object-list-controls-height, 0);
+}
+
+.object-list-row {
+  width: 100%;
+  min-height: var(--emc2-size-row);
+  /* A double-click is the zoom, not a text selection. */
+  user-select: none;
+}
+
+.object-list-row > span,
+.object-list-head > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.object-list-cell-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.object-list-image {
+  display: block;
+}
+
+/* Narrow: the image, the name and the kind. The rest is in the row's tooltip (brief, function 4).
+   The breakpoint is in the font's own unit, so it follows the density. */
+@container (max-width: 40em) {
+  .object-list-head,
+  .object-list-row {
+    grid-template-columns: var(--emc2-size-row) minmax(0, 2fr) minmax(0, 1fr);
+  }
+
+  .object-list-cell-extra {
+    display: none;
+  }
+}

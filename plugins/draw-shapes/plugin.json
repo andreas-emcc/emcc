@@ -1,0 +1,79 @@
+{
+  "id": "draw-shapes",
+  "name": "Draw shapes",
+  "version": "0.1.0",
+  "sdkVersion": "^1.8.0",
+  "kind": "general",
+  "category": "drawing",
+  "icon": "Shapes",
+  "requires": ["emc2.map-view"],
+  "web": { "entry": "index.js", "css": ["draw-shapes.css"] },
+  "permissions": ["objects.edit"],
+  "settings": {
+    "type": "object",
+    "x-emc2": {
+      "groups": [
+        { "id": "outline", "label": "Outline", "description": "How the outline of a new shape is drawn.", "properties": ["outlineColor", "outlineWidth", "outlineDash"] },
+        { "id": "fill", "label": "Fill", "description": "How the inside of a new shape with an area is filled.", "properties": ["fill", "fillColor", "fillOpacity"] }
+      ]
+    },
+    "properties": {
+      "dataType": {
+        "title": "Data type",
+        "description": "The data type of new shapes until a user chooses one in this browser. It must be an available data type (ADR-0023), else core.general is used.",
+        "type": "string",
+        "default": "core.general",
+        "x-emc2": { "hint": "Until a user chooses one here; an unavailable type gives core.general" }
+      },
+      "outlineColor": {
+        "title": "Outline colour",
+        "description": "The outline colour of new shapes, as #rrggbb.",
+        "type": "string",
+        "pattern": "^#[0-9a-fA-F]{6}$",
+        "default": "#1f3a93",
+        "x-emc2": { "width": "short" }
+      },
+      "outlineWidth": {
+        "title": "Outline width",
+        "description": "The outline width of new shapes, in pixels.",
+        "type": "number",
+        "minimum": 1,
+        "maximum": 20,
+        "default": 2,
+        "x-emc2": { "unit": "px" }
+      },
+      "outlineDash": {
+        "title": "Outline dash",
+        "description": "The outline dash of new shapes.",
+        "type": "string",
+        "enum": ["solid", "dash", "dot"],
+        "default": "solid"
+      },
+      "fill": {
+        "title": "Fill",
+        "description": "The fill of new shapes that have an area: none, transparent (a colour and an opacity) or hatched (diagonal lines in the fill colour).",
+        "type": "string",
+        "enum": ["none", "transparent", "hatched"],
+        "default": "none",
+        "x-emc2": { "hint": "None, transparent (a colour and an opacity) or hatched (diagonal lines)" }
+      },
+      "fillColor": {
+        "title": "Fill colour",
+        "description": "The fill colour of new shapes when the fill is transparent or hatched, as #rrggbb.",
+        "type": "string",
+        "pattern": "^#[0-9a-fA-F]{6}$",
+        "default": "#1f3a93",
+        "x-emc2": { "hint": "Used when the fill is transparent or hatched, as #rrggbb", "width": "short" }
+      },
+      "fillOpacity": {
+        "title": "Fill opacity",
+        "description": "The fill opacity of new shapes when the fill is transparent or hatched, from 0 to 1 (0.2 is 20 %).",
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "default": 0.2,
+        "x-emc2": { "hint": "Used when the fill is transparent or hatched; 0 to 1, 0.2 is 20 %" }
+      }
+    }
+  }
+}

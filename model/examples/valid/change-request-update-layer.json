@@ -1,0 +1,14 @@
+{
+  "requestId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e22",
+  "entityType": "layer",
+  "operation": "update",
+  "entityId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e01",
+  "baseVersion": 4,
+  "data": {
+    "name": "Own forces",
+    "drawOrder": 35.25,
+    "visible": true,
+    "label": { "policyIdentifier": { "name": "NATO" }, "classification": "UNCLASSIFIED" }
+  },
+  "source": { "plugin": "layer-panel", "user": "3f2c9a10-5d7e-4b8a-9c41-2e6f8d0a7b15" }
+}

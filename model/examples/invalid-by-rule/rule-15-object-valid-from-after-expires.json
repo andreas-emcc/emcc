@@ -1,0 +1,15 @@
+{
+  "id": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e56",
+  "type": "core.shape",
+  "dataType": "cot-in.cot",
+  "dataSource": "tak-north",
+  "time": { "validFrom": "2026-10-03T08:30:00.000Z", "expires": "2026-10-03T08:25:00.000Z" },
+  "layerId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e01",
+  "version": 1,
+  "geometry": { "type": "Point", "coordinates": [11.9746, 57.7089] },
+  "label": { "policyIdentifier": { "name": "NATO" }, "classification": "UNCLASSIFIED" },
+  "meta": {
+    "created": { "at": "2026-10-03T08:00:00.000Z", "by": { "plugin": "cot-in", "system": "tak-north" } },
+    "modified": { "at": "2026-10-03T08:00:00.000Z", "by": { "plugin": "cot-in", "system": "tak-north" } }
+  }
+}

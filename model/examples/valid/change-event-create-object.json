@@ -1,0 +1,27 @@
+{
+  "sequenceNo": 1042,
+  "requestId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e21",
+  "entityType": "object",
+  "operation": "create",
+  "entityId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e16",
+  "version": 1,
+  "previousVersion": null,
+  "state": {
+    "id": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e16",
+    "type": "core.symbol",
+    "dataType": "core.general",
+    "dataSource": "manual",
+    "layerId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e01",
+    "version": 1,
+    "geometry": { "type": "Point", "coordinates": [18.0723, 59.3311] },
+    "symbol": { "standard": "APP-6D", "sidc": "10061000001211000000" },
+    "label": { "policyIdentifier": { "name": "NATO" }, "classification": "UNCLASSIFIED" },
+    "meta": {
+      "created": { "at": "2026-10-03T09:10:00.120Z", "by": { "plugin": "draw-symbols", "user": "3f2c9a10-5d7e-4b8a-9c41-2e6f8d0a7b15" } },
+      "modified": { "at": "2026-10-03T09:10:00.120Z", "by": { "plugin": "draw-symbols", "user": "3f2c9a10-5d7e-4b8a-9c41-2e6f8d0a7b15" } }
+    }
+  },
+  "label": { "policyIdentifier": { "name": "NATO" }, "classification": "UNCLASSIFIED" },
+  "at": "2026-10-03T09:10:00.120Z",
+  "by": { "plugin": "draw-symbols", "user": "3f2c9a10-5d7e-4b8a-9c41-2e6f8d0a7b15" }
+}

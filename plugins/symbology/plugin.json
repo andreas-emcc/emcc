@@ -1,0 +1,66 @@
+{
+  "id": "symbology",
+  "name": "Symbology",
+  "version": "0.1.0",
+  "sdkVersion": "^1.8.0",
+  "icon": "Hexagon",
+  "kind": "utility",
+  "category": "map-and-symbols",
+  "provides": ["emc2.symbols"],
+  "web": { "entry": "index.js" },
+  "settings": {
+    "type": "object",
+    "properties": {
+      "imageCacheSize": {
+        "title": "Symbol images in the cache",
+        "description": "How many symbol images the render cache keeps (least recently used are dropped first).",
+        "type": "integer",
+        "minimum": 1,
+        "default": 2000,
+        "x-emc2": { "hint": "How many symbol images to keep; the least recently used go first", "unit": "images" }
+      },
+      "graphicTimeoutSeconds": {
+        "title": "Tactical graphic timeout",
+        "description": "How long a tactical graphic may take to draw, in seconds; a slower one is not drawn (\"timeout\").",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 30,
+        "default": 5,
+        "x-emc2": { "hint": "A tactical graphic that takes longer is not drawn", "unit": "s" }
+      },
+      "sensorReportShape": {
+        "title": "Sensor report shape",
+        "description": "The shape every sensor report (e.g. a GMTI detection) is drawn as on the map: dot, cross, ring, diamond or square.",
+        "type": "string",
+        "enum": ["dot", "cross", "ring", "diamond", "square"],
+        "default": "dot",
+        "x-emc2": { "hint": "Every sensor report, e.g. a GMTI detection, is drawn as this shape" }
+      },
+      "sensorReportColor": {
+        "title": "Sensor report colour",
+        "description": "The colour of the sensor report symbol; it has a black outline (white for black).",
+        "type": "string",
+        "enum": ["yellow", "orange", "red", "magenta", "cyan", "green", "blue", "white", "black"],
+        "default": "orange",
+        "x-emc2": { "hint": "The symbol's colour; its outline is black, white for a black symbol" }
+      },
+      "sensorReportSize": {
+        "title": "Sensor report size",
+        "description": "The size of the sensor report symbol, in pixels.",
+        "type": "integer",
+        "minimum": 4,
+        "maximum": 32,
+        "default": 10,
+        "x-emc2": { "unit": "px" }
+      }
+    },
+    "required": ["imageCacheSize", "graphicTimeoutSeconds", "sensorReportShape", "sensorReportColor", "sensorReportSize"],
+    "additionalProperties": false,
+    "x-emc2": {
+      "groups": [
+        { "id": "sensorReports", "label": "Sensor reports", "description": "How sensor reports, such as GMTI detections, are drawn on the map.", "properties": ["sensorReportShape", "sensorReportColor", "sensorReportSize"] },
+        { "id": "advanced", "label": "Advanced", "description": "Limits of the symbol renderer: its image cache and how long a tactical graphic may take.", "properties": ["imageCacheSize", "graphicTimeoutSeconds"], "advanced": true }
+      ]
+    }
+  }
+}

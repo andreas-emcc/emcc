@@ -1,0 +1,35 @@
+{
+  "id": "map-view-2d",
+  "name": "2D map view",
+  "version": "1.0.0",
+  "sdkVersion": "^1.0.0",
+  "kind": "map-view",
+  "provides": [
+    "emc2.map-view"
+  ],
+  "uses": [
+    "emc2.symbols"
+  ],
+  "web": {
+    "entry": "index.js",
+    "css": [
+      "map-view-2d.css"
+    ],
+    "shared": {
+      "react": "19.3.0",
+      "ol": "10.10.0",
+      "@emc2/plugin-sdk": "1.0.0"
+    }
+  },
+  "settings": {
+    "type": "object",
+    "properties": {
+      "symbolSize": {
+        "type": "integer",
+        "minimum": 8,
+        "maximum": 128,
+        "default": 30
+      }
+    }
+  }
+}

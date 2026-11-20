@@ -1,0 +1,26 @@
+{
+  "id": "cot",
+  "name": "Cursor on Target",
+  "version": "0.3.0",
+  "sdkVersion": "^1.2.0",
+  "kind": "general",
+  "properties": [
+    "ingoing",
+    "outgoing"
+  ],
+  "connections": [
+    {
+      "kinds": [
+        "tcp-client",
+        "udp",
+        "multicast"
+      ],
+      "direction": "both",
+      "settings": "/links",
+      "reason": "CoT to and from TAK Servers and the local network, as each link in the settings names it."
+    }
+  ],
+  "server": {
+    "entryClass": "dev.emcc.plugins.cot.CotPlugin"
+  }
+}

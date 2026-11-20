@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>emc2 Data Model v0</title>
+<!--
+  Readable description of the emc2 common data model v0, frozen at 0.1.0 (tag contracts-0.1.0, 930e696, 2026-10-06).
+  Snapshot of model/ on main at f12ba56 (2026-10-09), which includes the compatible clarification of CR-0004.
+  The normative contract is model/ (schemas and README), owned by the PDA. Maintained by the ACA.
+  Self-contained: no external fonts, scripts or styles (ADR-0014).
+-->
+<style>
+  :root {
+    --bg: #FFFFFF; --panel: #F4F6F8; --panel-2: #E9EDF1; --text: #1F2933; --muted: #52606D; --rule: #D5DBE1;
+    --core: #1F6F8B; --plugin: #2E7D32; --label: #A33A3A; --meta: #5B6670; --accent: #7B5EA7;
+    --tint: 13%;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12171C; --panel: #1B2229; --panel-2: #232C35; --text: #E6EBF0; --muted: #9AA7B4; --rule: #2F3A45;
+      --core: #6CC3E0; --plugin: #8BD18F; --label: #F28B82; --meta: #A7B3BF; --accent: #B39DDB;
+      --tint: 20%;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12171C; --panel: #1B2229; --panel-2: #232C35; --text: #E6EBF0; --muted: #9AA7B4; --rule: #2F3A45;
+    --core: #6CC3E0; --plugin: #8BD18F; --label: #F28B82; --meta: #A7B3BF; --accent: #B39DDB;
+    --tint: 20%;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 "Segoe UI", Calibri, system-ui, -apple-system, Arial, sans-serif; }
+  main { max-width: 1060px; margin: 0 auto; padding: 28px 16px 56px; }
+  h1 { font-size: 30px; margin: 2px 0 0; letter-spacing: -0.3px; }
+  h2 { font-size: 21px; margin: 44px 0 10px; padding-top: 8px; border-top: 1px solid var(--rule); }
+  h3 { font-size: 16px; margin: 24px 0 8px; }
+  p { margin: 0 0 10px; }
+  ul, ol { margin: 0 0 10px; padding-left: 22px; }
+  li { margin-bottom: 4px; }
+  a { color: var(--core); }
+  code { font-family: Consolas, "Cascadia Mono", "Courier New", monospace; font-size: 13px; background: var(--panel-2); padding: 1px 4px; border-radius: 3px; }
+  pre { margin: 0; padding: 12px 14px; background: var(--panel); border-radius: 8px; overflow-x: auto; font: 12.5px/1.5 Consolas, "Cascadia Mono", "Courier New", monospace; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .eyebrow { color: var(--muted); font-size: 13px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; }
+  .lead { font-size: 16px; color: var(--muted); max-width: 760px; margin-top: 8px; }
+  .note { background: var(--panel); border-radius: 10px; padding: 12px 16px; margin: 16px 0; font-size: 14px; }
+  .note b { color: var(--text); }
+  .warn { background: color-mix(in srgb, var(--label) var(--tint), var(--bg)); }
+  nav.toc { columns: 3 220px; column-gap: 24px; margin: 18px 0 0; padding: 14px 18px; background: var(--panel); border-radius: 10px; font-size: 14px; }
+  nav.toc a { display: block; padding: 2px 0; text-decoration: none; color: var(--text); }
+  nav.toc a:hover { color: var(--core); }
+  figure { margin: 14px 0 18px; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .table-wrap { overflow-x: auto; margin: 6px 0 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; vertical-align: top; padding: 7px 10px; border-bottom: 1px solid var(--rule); }
+  th { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  td.f { white-space: nowrap; }
+  td.t { white-space: nowrap; color: var(--muted); }
+  .req, .opt, .store { white-space: nowrap; }
+  .req { display: inline-block; font-size: 11px; font-weight: 700; padding: 0 6px; border-radius: 999px; color: var(--core); background: color-mix(in srgb, var(--core) var(--tint), var(--bg)); }
+  .opt { display: inline-block; font-size: 11px; font-weight: 700; padding: 0 6px; border-radius: 999px; color: var(--muted); background: var(--panel-2); }
+  .store { display: inline-block; font-size: 11px; font-weight: 700; padding: 0 6px; border-radius: 999px; color: var(--meta); background: color-mix(in srgb, var(--meta) var(--tint), var(--bg)); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .geo { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 10px 0 14px; }
+  .geo .card, .grid3 .card, .grid2 .card { background: var(--panel); border-radius: 10px; padding: 12px 14px; }
+  .geo svg { width: 100%; max-width: 120px; height: 64px; display: block; margin-bottom: 6px; }
+  .geo b { display: block; font-size: 14px; }
+  .geo span { display: block; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+  .chips code { background: var(--panel); border: 1px solid var(--rule); padding: 2px 7px; border-radius: 999px; font-size: 12.5px; }
+  .chips code.num { border-color: var(--core); color: var(--core); }
+  .rules { counter-reset: r; list-style: none; padding-left: 0; }
+  .rules > li { counter-increment: r; position: relative; padding: 9px 12px 9px 46px; margin-bottom: 8px; background: var(--panel); border-radius: 8px; }
+  .rules > li::before { content: counter(r); position: absolute; left: 12px; top: 9px; width: 24px; height: 24px; border-radius: 50%; background: var(--core); color: var(--bg); font-weight: 700; font-size: 13px; text-align: center; line-height: 24px; }
+  .merge { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 10px; align-items: start; }
+  .merge .op { font-size: 22px; color: var(--muted); text-align: center; align-self: center; padding-top: 18px; }
+  .merge h4 { margin: 0 0 6px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .k-plugin { color: var(--plugin); font-weight: 700; }
+  .k-other { color: var(--accent); font-weight: 700; }
+  footer { margin-top: 44px; padding-top: 14px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--muted); }
+
+  /* Diagram styling (works in light and dark) */
+  svg text { font-family: "Segoe UI", Calibri, Arial, sans-serif; fill: var(--text); }
+  .d-box { fill: var(--panel); stroke: var(--rule); stroke-width: 1.2; }
+  .d-core { fill: color-mix(in srgb, var(--core) var(--tint), var(--bg)); stroke: var(--core); stroke-width: 1.5; }
+  .d-plugin { fill: color-mix(in srgb, var(--plugin) var(--tint), var(--bg)); stroke: var(--plugin); stroke-width: 1.5; }
+  .d-label { fill: color-mix(in srgb, var(--label) var(--tint), var(--bg)); stroke: var(--label); stroke-width: 1.5; }
+  .d-meta { fill: color-mix(in srgb, var(--meta) var(--tint), var(--bg)); stroke: var(--meta); stroke-width: 1.5; }
+  .d-ln { stroke: var(--muted); stroke-width: 1.3; fill: none; }
+  .d-ln-d { stroke: var(--muted); stroke-width: 1.3; fill: none; stroke-dasharray: 5 4; }
+  .d-t { font-size: 14px; font-weight: 700; }
+  .d-s { font-size: 12px; fill: var(--muted); }
+  .d-f { font-size: 12px; font-family: Consolas, "Cascadia Mono", "Courier New", monospace; }
+  .d-c { text-anchor: middle; }
+  .g-stroke { stroke: var(--core); stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .g-fill { fill: color-mix(in srgb, var(--core) 22%, var(--bg)); stroke: var(--core); stroke-width: 2; stroke-linejoin: round; }
+  .g-dot { fill: var(--core); }
+  .g-band { stroke: color-mix(in srgb, var(--core) 28%, var(--bg)); stroke-width: 14; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .g-thin { stroke: var(--muted); stroke-width: 1.2; fill: none; stroke-dasharray: 3 3; }
+
+  @media (max-width: 760px) {
+    .grid2, .grid3 { grid-template-columns: 1fr; }
+    .geo { grid-template-columns: repeat(2, 1fr); }
+    .merge { grid-template-columns: 1fr; }
+    .merge .op { transform: rotate(90deg); }
+    h1 { font-size: 25px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/>
+      </marker>
+    </defs>
+  </svg>
+
+  <div class="eyebrow">emc2 · Common data model</div>
+  <h1>Data model v0</h1>
+  <p class="lead">The information that the core, the plugins and the browsers exchange: map objects, layers, and the messages that change them. Written in JSON and specified in JSON Schema, so that Java and TypeScript share one contract (ADR-0007).</p>
+
+  <div class="note"><b>Frozen at 0.1.0.</b> Data model v0 was frozen together with SDK v0 on 2026-10-06, with the owner's approval after the ACA's reviews (tag <code>contracts-0.1.0</code>). Since then it changes only through change requests. This page shows <code>model/</code> as it is on <code>main</code> at <code>f12ba56</code> (2026-10-09), including the compatible clarification of CR-0004 (how numbers are compared). The normative contract is <code>model/</code>, meaning its schemas and its README, owned by the PDA. This page is a readable view of it.</div>
+
+  <nav class="toc" aria-label="Contents">
+    <a href="#overview">1 Overview</a>
+    <a href="#conventions">2 Conventions</a>
+    <a href="#object">3 Map object</a>
+    <a href="#geometry">4 Geometry</a>
+    <a href="#symbol">5 Symbol and modifiers</a>
+    <a href="#style">6 Style and properties</a>
+    <a href="#label">7 Security label</a>
+    <a href="#extensions">8 Extensions</a>
+    <a href="#layer">9 Layer</a>
+    <a href="#changes">10 Changing objects and layers</a>
+    <a href="#rules">11 Rules beyond the schema</a>
+    <a href="#decisions">12 Decisions and deferred items</a>
+    <a href="#versioning">13 Versioning and validation</a>
+  </nav>
+
+  <!-- ===================================================== 1 -->
+  <h2 id="overview">1 Overview</h2>
+  <figure>
+    <svg viewBox="0 0 760 344" role="img" aria-label="Entities of the data model: a layer contains map objects; a map object has geometry, an optional symbol, style and properties, a mandatory security label, plugin extensions and metadata set by the object store">
+      <rect class="d-core" x="16" y="56" width="176" height="176" rx="8"/>
+      <text class="d-t" x="30" y="80">Layer</text>
+      <text class="d-f" x="30" y="104">id</text>
+      <text class="d-f" x="30" y="124">name</text>
+      <text class="d-f" x="30" y="144">drawOrder</text>
+      <text class="d-f" x="30" y="164">visible</text>
+      <text class="d-f" x="30" y="184">label</text>
+      <text class="d-f" x="30" y="204">extensions?</text>
+      <text class="d-f" x="30" y="224">version, meta</text>
+
+      <line class="d-ln" x1="192" y1="144" x2="262" y2="144"/>
+      <text class="d-s d-c" x="206" y="136">1</text>
+      <text class="d-s d-c" x="250" y="136">*</text>
+
+      <rect class="d-core" x="262" y="16" width="212" height="312" rx="8"/>
+      <text class="d-t" x="278" y="40">MapObject</text>
+      <text class="d-f" x="278" y="66">id</text>
+      <text class="d-f" x="278" y="88">type</text>
+      <text class="d-f" x="278" y="110">layerId</text>
+      <text class="d-f" x="278" y="132">version</text>
+      <text class="d-f" x="278" y="154">geometry</text>
+      <text class="d-f" x="278" y="176">symbol?</text>
+      <text class="d-f" x="278" y="198">style?</text>
+      <text class="d-f" x="278" y="220">properties?</text>
+      <text class="d-f" x="278" y="242">label</text>
+      <text class="d-f" x="278" y="264">extensions?</text>
+      <text class="d-f" x="278" y="286">meta</text>
+      <text class="d-s" x="278" y="314">? = optional</text>
+
+      <rect class="d-box" x="540" y="16" width="204" height="52" rx="8"/>
+      <text class="d-t" x="554" y="38">Geometry</text>
+      <text class="d-s" x="554" y="57">8 types, WGS84 lon/lat</text>
+      <rect class="d-box" x="540" y="80" width="204" height="52" rx="8"/>
+      <text class="d-t" x="554" y="102">Symbol</text>
+      <text class="d-s" x="554" y="121">APP-6 B/D/E, SIDC, modifiers</text>
+      <rect class="d-label" x="540" y="144" width="204" height="52" rx="8"/>
+      <text class="d-t" x="554" y="166">SecurityLabel</text>
+      <text class="d-s" x="554" y="185">STANAG 4774, mandatory</text>
+      <rect class="d-plugin" x="540" y="208" width="204" height="52" rx="8"/>
+      <text class="d-t" x="554" y="230">Extensions</text>
+      <text class="d-s" x="554" y="249">per plugin, forwarded untouched</text>
+      <rect class="d-meta" x="540" y="272" width="204" height="52" rx="8"/>
+      <text class="d-t" x="554" y="294">Meta</text>
+      <text class="d-s" x="554" y="313">set by the object store</text>
+
+      <path class="d-ln" d="M346,150 H500 V42 H538" marker-end="url(#arr)"/>
+      <path class="d-ln" d="M346,172 H508 V106 H538" marker-end="url(#arr)"/>
+      <path class="d-ln" d="M330,238 H516 V170 H538" marker-end="url(#arr)"/>
+      <path class="d-ln" d="M370,260 H524 V234 H538" marker-end="url(#arr)"/>
+      <path class="d-ln" d="M330,282 H530 V298 H538" marker-end="url(#arr)"/>
+    </svg>
+    <figcaption>A layer holds map objects. Blue: the entities. Red: the mandatory security label. Green: data owned by individual plugins. Grey: set by the object store, never by clients.</figcaption>
+  </figure>
+
+  <figure>
+    <svg viewBox="0 0 760 222" role="img" aria-label="Change flow: a requester sends a change request to the object store, the single writer; it answers with exactly one message, either a change event published to everyone or a change rejection sent to the requester only">
+      <rect class="d-plugin" x="10" y="64" width="170" height="68" rx="8"/>
+      <text class="d-t d-c" x="95" y="92">Requester</text>
+      <text class="d-s d-c" x="95" y="112">a plugin or a browser</text>
+
+      <line class="d-ln" x1="182" y1="98" x2="290" y2="98" marker-end="url(#arr)"/>
+      <text class="d-f d-c" x="236" y="88">ChangeRequest</text>
+
+      <rect class="d-core" x="292" y="56" width="180" height="84" rx="8"/>
+      <text class="d-t d-c" x="382" y="88">Object store</text>
+      <text class="d-s d-c" x="382" y="108">the single writer</text>
+      <text class="d-s d-c" x="382" y="126">(ADR-0005)</text>
+
+      <path class="d-ln" d="M474,80 C510,80 516,38 552,38" marker-end="url(#arr)"/>
+      <rect class="d-core" x="554" y="12" width="196" height="54" rx="8"/>
+      <text class="d-f" x="568" y="35">ChangeEvent</text>
+      <text class="d-s" x="568" y="54">to everyone: objects.changed</text>
+
+      <path class="d-ln" d="M474,116 C510,116 516,158 552,158" marker-end="url(#arr)"/>
+      <rect class="d-label" x="554" y="130" width="196" height="54" rx="8"/>
+      <text class="d-f" x="568" y="153">ChangeRejection</text>
+      <text class="d-s" x="568" y="172">to the requester only</text>
+
+      <path class="d-ln-d" d="M554,180 C420,216 200,216 95,134" marker-end="url(#arr)"/>
+      <text class="d-s d-c" x="330" y="174">exactly one answer per request, matched by requestId</text>
+    </svg>
+    <figcaption>Objects and layers change only through change requests. The object store answers each one with exactly one message: a change event or a change rejection (rule 12).</figcaption>
+  </figure>
+
+  <!-- ===================================================== 2 -->
+  <h2 id="conventions">2 Conventions</h2>
+  <div class="table-wrap"><table>
+    <tr><th>Topic</th><th>Convention</th></tr>
+    <tr><td>Format</td><td>JSON in UTF-8, property names in camelCase. JSON Schema draft 2020-12; schema ids are URNs (<code>urn:emc2:schema:&lt;name&gt;</code>), so no tool ever tries to download them.</td></tr>
+    <tr><td>Ids</td><td>Lowercase UUIDs, <b>generated by whoever creates the entity</b>, so the requester knows the id at once and retries are safe. Use UUID version 7, which is time-ordered; the SDKs provide a generator.</td></tr>
+    <tr><td>Timestamps</td><td>RFC 3339 in UTC with a trailing <code>Z</code>, millisecond precision, e.g. <code>2026-10-05T09:05:00.000Z</code>.</td></tr>
+    <tr><td><b>Coordinates</b></td><td>WGS84 <code>[longitude, latitude]</code> or <code>[longitude, latitude, altitude]</code> in decimal degrees. <b>Longitude first, always.</b> Altitude in metres above the ellipsoid (HAE).</td></tr>
+    <tr><td>Distances and bearings</td><td>Distances are geodesic metres. Bearings are degrees clockwise from true north.</td></tr>
+    <tr><td>Numbers</td><td>Numbers in the core fields (coordinates, radii, opacities, versions and so on) have <b>double precision</b> (IEEE 754), as the SDKs hold them (Java <code>double</code>, TypeScript <code>number</code>), and are compared as doubles. A writer may write the nearest double for a longer decimal. <b>Only free-form JSON keeps exact decimals:</b> extension data, and a plugin manifest's settings (CR-0004).</td></tr>
+    <tr><td>Empty values</td><td>An empty optional object or array (<code>{}</code>, <code>[]</code>) means the same as a missing one. Writers leave it out; readers accept both (rule 13).</td></tr>
+    <tr><td>Plugin ids</td><td>Lowercase words separated by hyphens, e.g. <code>draw-symbols</code>. The plugin id is also the plugin's extension namespace.</td></tr>
+    <tr><td>Type names</td><td><code>&lt;namespace&gt;.&lt;name&gt;</code>, where the namespace is <code>core</code> or a plugin id, e.g. <code>core.symbol</code>.</td></tr>
+  </table></div>
+
+  <!-- ===================================================== 3 -->
+  <h2 id="object">3 Map object</h2>
+  <p>Everything drawn on the map is a map object. The part its creator controls (<code>content</code>) travels in change requests, together with the id. The object store adds the bookkeeping: <code>version</code> and <code>meta</code>.</p>
+  <div class="table-wrap"><table>
+    <tr><th>Field</th><th>Type</th><th></th><th>Meaning</th></tr>
+    <tr><td class="f"><code>id</code></td><td class="t">UUID</td><td><span class="req">required</span></td><td>Globally unique, never reused. Chosen by the creator.</td></tr>
+    <tr><td class="f"><code>type</code></td><td class="t">type name</td><td><span class="req">required</span></td><td>One of the core types below, or a plugin type <code>&lt;plugin-id&gt;.&lt;name&gt;</code>. Plugins should prefer a core type plus an extension, so that every plugin can show the object.</td></tr>
+    <tr><td class="f"><code>layerId</code></td><td class="t">UUID</td><td><span class="req">required</span></td><td>The layer the object belongs to. Must exist.</td></tr>
+    <tr><td class="f"><code>geometry</code></td><td class="t">Geometry</td><td><span class="req">required</span></td><td>Where the object is (section 4).</td></tr>
+    <tr><td class="f"><code>symbol</code></td><td class="t">Symbol</td><td><span class="opt">optional</span></td><td>APP-6 symbol (section 5). Required for symbols and tactical graphics, forbidden for shapes.</td></tr>
+    <tr><td class="f"><code>style</code></td><td class="t">Style</td><td><span class="opt">optional</span></td><td>Stroke and fill, mainly for shapes (section 6).</td></tr>
+    <tr><td class="f"><code>properties</code></td><td class="t">object</td><td><span class="opt">optional</span></td><td><code>name</code> (max 256 characters) and <code>description</code> (max 4 096).</td></tr>
+    <tr><td class="f"><code>label</code></td><td class="t">SecurityLabel</td><td><span class="req">required</span></td><td>Confidentiality label (section 7). Every object has one.</td></tr>
+    <tr><td class="f"><code>extensions</code></td><td class="t">map</td><td><span class="opt">optional</span></td><td>Plugin-specific data, one entry per plugin id (section 8).</td></tr>
+    <tr><td class="f"><code>version</code></td><td class="t">integer ≥ 1</td><td><span class="store">object store</span></td><td>1 on create, plus one for every change.</td></tr>
+    <tr><td class="f"><code>meta</code></td><td class="t">object</td><td><span class="store">object store</span></td><td><code>created</code> and <code>modified</code> (when, and by which plugin, user or external system), and <code>externalRef</code> (<code>system</code>, <code>id</code>) for objects that come from another system, such as a CoT uid.</td></tr>
+  </table></div>
+
+  <h3>Core object types</h3>
+  <div class="grid3">
+    <div class="card"><b><code>core.symbol</code></b><p style="margin:6px 0 0">A single-point APP-6 symbol. Geometry must be a <b>Point</b>; <code>symbol</code> is required.</p></div>
+    <div class="card"><b><code>core.multipoint</code></b><p style="margin:6px 0 0">An APP-6 tactical graphic defined by control points. Geometry is a <b>LineString</b>, <b>Polygon</b> or <b>MultiPoint</b>; <code>symbol</code> is required.</p></div>
+    <div class="card"><b><code>core.shape</code></b><p style="margin:6px 0 0">Any geometry drawn with a <code>style</code>. It has <b>no</b> <code>symbol</code>.</p></div>
+  </div>
+
+  <h3>Example: a track received from a TAK system</h3>
+  <pre><code>{
+  "id": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e12",
+  "type": "core.symbol",
+  "layerId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e02",
+  "version": 57,
+  "geometry": { "type": "Point", "coordinates": [18.1012, 59.3507, 45.2] },
+  "symbol": {
+    "standard": "APP-6B",
+    "sidc": "SFGPUCI--------",
+    "modifiers": { "uniqueDesignation": "VIPER 2", "speed": 4.2, "direction": 270 }
+  },
+  "label": {
+    "policyIdentifier": { "name": "NATO" },
+    "classification": "UNCLASSIFIED"
+  },
+  "extensions": {
+    "cot-in": { "how": "m-g", "stale": "2026-10-03T08:25:00.000Z", "cotType": "a-f-G-U-C-I" }
+  },
+  "meta": {
+    "created": { "at": "2026-10-03T07:02:11.000Z", "by": { "plugin": "cot-in", "system": "tak:server-1" } },
+    "modified": { "at": "2026-10-03T08:20:00.000Z", "by": { "plugin": "cot-in", "system": "tak:server-1" } },
+    "externalRef": { "system": "cot", "id": "ANDROID-358240051111110" }
+  }
+}</code></pre>
+  <p style="margin-top:8px;font-size:13px;color:var(--muted)">From <code>model/examples/valid/object-track-from-cot.json</code>. Note the longitude-first position with altitude, the speed in metres per second, the <code>cot-in</code> plugin's own data in its extension, and the CoT uid in <code>externalRef</code>.</p>
+
+  <!-- ===================================================== 4 -->
+  <h2 id="geometry">4 Geometry</h2>
+  <p>Four GeoJSON types (RFC 7946) plus four emc2 types for shapes GeoJSON lacks, which CoT and NVG need. All positions are WGS84, longitude first.</p>
+  <div class="geo">
+    <div class="card">
+      <svg viewBox="0 0 120 64" aria-hidden="true"><circle class="g-dot" cx="60" cy="32" r="6"/></svg>
+      <b>Point</b><span><code>coordinates</code>: one position</span>
+    </div>
+    <div class="card">
+      <svg viewBox="0 0 120 64" aria-hidden="true"><circle class="g-dot" cx="28" cy="40" r="5"/><circle class="g-dot" cx="60" cy="18" r="5"/><circle class="g-dot" cx="92" cy="42" r="5"/></svg>
+      <b>MultiPoint</b><span><code>coordinates</code>: one or more positions</span>
+    </div>
+    <div class="card">
+      <svg viewBox="0 0 120 64" aria-hidden="true"><polyline class="g-stroke" points="14,50 40,18 72,40 106,14"/></svg>
+      <b>LineString</b><span><code>coordinates</code>: two or more positions</span>
+    </div>
+    <div class="card">
+      <svg viewBox="0 0 120 64" aria-hidden="true"><path class="g-fill" fill-rule="evenodd" d="M16,54 L28,10 L84,8 L104,40 L64,58 Z M50,26 L66,24 L68,38 L52,40 Z"/></svg>
+      <b>Polygon</b><span>Rings of ≥ 4 positions, closed; first ring outer, others holes</span>
+    </div>
+    <div class="card">
+      <svg viewBox="0 0 120 64" aria-hidden="true"><circle class="g-fill" cx="60" cy="32" r="26"/><circle class="g-dot" cx="60" cy="32" r="3"/><line class="g-thin" x1="60" y1="32" x2="86" y2="32"/></svg>
+      <b>Circle</b><span><code>center</code>, <code>radius</code> (m)</span>
+    </div>
+    <div class="card">
+      <svg viewBox="0 0 120 64" aria-hidden="true"><ellipse class="g-fill" cx="60" cy="32" rx="44" ry="18" transform="rotate(-20 60 32)"/><line class="g-thin" x1="19" y1="47" x2="101" y2="17"/></svg>
+      <b>Ellipse</b><span><code>center</code>, <code>semiMajorAxis</code>, <code>semiMinorAxis</code> (m), <code>rotation</code> (bearing)</span>
+    </div>
+    <div class="card">
+      <svg viewBox="0 0 120 64" aria-hidden="true"><polyline class="g-band" points="16,48 44,22 74,40 104,16"/><polyline class="g-thin" points="16,48 44,22 74,40 104,16"/></svg>
+      <b>Corridor</b><span>Centre line <code>coordinates</code>, total <code>width</code> (m)</span>
+    </div>
+    <div class="card">
+      <svg viewBox="0 0 120 64" aria-hidden="true"><path class="g-fill" d="M43,39.4 L58,12.9 A46 46 0 0 1 80,58 L54,58 A20 20 0 0 0 43,39.4 Z"/><circle class="g-dot" cx="34" cy="58" r="3"/></svg>
+      <b>ArcBand</b><span><code>center</code>, <code>innerRadius</code>, <code>outerRadius</code>, <code>startBearing</code> → <code>endBearing</code> clockwise. A sector has innerRadius 0</span>
+    </div>
+  </div>
+  <div class="note"><b>Edges are geodesic (rule 10).</b> The edge between two consecutive positions is the shorter geodesic between them, whatever the map projection. Renderers densify edges, so a shape looks the same in Web Mercator and in polar projections. An edge may cross the antimeridian (from 179° to −179° is 2° long), so geometries are never split there. Limitation in v0: a polygon that encloses a pole cannot be expressed; use a Circle or ArcBand around the pole instead.</div>
+
+  <!-- ===================================================== 5 -->
+  <h2 id="symbol">5 Symbol and modifiers</h2>
+  <p>A symbol names the standard, its symbol identification code (SIDC) and optional modifiers. It is drawn by the <code>symbology</code> plugin with milsymbol (ADR-0010).</p>
+  <div class="table-wrap"><table>
+    <tr><th>Standard</th><th>SIDC form</th><th>Example</th></tr>
+    <tr><td><code>APP-6B</code></td><td>15 characters, letter-based</td><td><code>SFGPUCI--------</code></td></tr>
+    <tr><td><code>APP-6D</code></td><td>20 digits; version (digits 1–2) is 10, 11 or 12</td><td><code>10031000001211000000</code></td></tr>
+    <tr><td><code>APP-6E</code></td><td>30 digits; version is 13 or 14. <b>20 digits mean the 30-digit code with digits 21–30 all zero</b></td><td><code>130310000012110000000000000752</code><br><code>13031000001211000000</code></td></tr>
+  </table></div>
+  <p><b>One APP-6E symbol, two spellings</b> (owner, 2026-10-05): when digits 21–30 are all zero, writers write the short 20-digit form, as with every empty value (rule 13). Readers accept both forms, and every comparison treats them as equal, including symbol caches keyed by appearance.</p>
+  <p style="font-size:13px;color:var(--muted)">The version digits follow milsymbol 3.0.4. The meaning of APP-6E digits 21–30 is not checked against the standard's text.</p>
+
+  <h3>Modifiers: a closed list of 30 names</h3>
+  <p>Named as in milsymbol's options. A misspelt name is rejected; adding a name later is a minor change. Two are machine values, the rest are text as displayed (1–128 characters).</p>
+  <div class="chips">
+    <code>additionalInformation</code><code>altitudeDepth</code><code>auxiliaryEquipmentIndicator</code><code>combatEffectiveness</code><code>commonIdentifier</code><code>country</code><code class="num">direction · degrees</code><code>dtg</code><code>engagementBar</code><code>engagementType</code><code>equipmentTeardownTime</code><code>evaluationRating</code><code>guardedUnit</code><code>headquartersElement</code><code>higherFormation</code><code>hostile</code><code>iffSif</code><code>installationComposition</code><code>location</code><code>platformType</code><code>quantity</code><code>reinforcedReduced</code><code>sigint</code><code>signatureEquipment</code><code>specialDesignator</code><code>specialHeadquarters</code><code class="num">speed · m/s</code><code>staffComments</code><code>type</code><code>uniqueDesignation</code>
+  </div>
+  <ul>
+    <li><b><code>direction</code></b>: direction of movement in degrees clockwise from true north, drawn as an arrow.</li>
+    <li><b><code>speed</code></b>: speed over ground in metres per second. The <code>symbology</code> plugin formats it for display.</li>
+    <li><b><code>location</code></b> is display text only. The real position is always the geometry.</li>
+  </ul>
+
+  <!-- ===================================================== 6 -->
+  <h2 id="style">6 Style and properties</h2>
+  <div class="grid2">
+    <div class="card">
+      <b>Style</b>
+      <div class="table-wrap"><table>
+        <tr><td class="f"><code>strokeColor</code>, <code>fillColor</code></td><td><code>#RRGGBB</code></td></tr>
+        <tr><td class="f"><code>strokeWidth</code></td><td>0–50 screen pixels</td></tr>
+        <tr><td class="f"><code>strokeOpacity</code>, <code>fillOpacity</code></td><td>0–1</td></tr>
+        <tr><td class="f"><code>strokeDash</code></td><td><code>solid</code>, <code>dash</code> or <code>dot</code></td></tr>
+      </table></div>
+      <p style="font-size:13px;color:var(--muted);margin:0">All fields optional. Used by <code>core.shape</code>, and by a symbol's outline where supported.</p>
+    </div>
+    <div class="card">
+      <b>Properties</b>
+      <div class="table-wrap"><table>
+        <tr><td class="f"><code>name</code></td><td>up to 256 characters</td></tr>
+        <tr><td class="f"><code>description</code></td><td>up to 4 096 characters</td></tr>
+      </table></div>
+      <p style="font-size:13px;color:var(--muted);margin:0">Only these two. Plugin-specific data belongs in extensions.</p>
+    </div>
+  </div>
+
+  <!-- ===================================================== 7 -->
+  <h2 id="label">7 Security label</h2>
+  <p>Every object and every layer carries a confidentiality label in the structure of STANAG 4774 (ADatP-4774). Labels are stored, shown and forwarded; access control based on them comes after M1 (owner, 2026-10-10). The binding of labels to data (STANAG 4778) is not part of the model.</p>
+  <div class="table-wrap"><table>
+    <tr><th>JSON field</th><th></th><th>ADatP-4774 XML</th></tr>
+    <tr><td class="f"><code>policyIdentifier.name</code></td><td><span class="req">required</span></td><td><code>ConfidentialityInformation/PolicyIdentifier</code> (text)</td></tr>
+    <tr><td class="f"><code>policyIdentifier.uri</code></td><td><span class="opt">optional</span></td><td><code>…/PolicyIdentifier/@URI</code></td></tr>
+    <tr><td class="f"><code>classification</code></td><td><span class="req">required</span></td><td><code>ConfidentialityInformation/Classification</code>. A string, because the values depend on the policy</td></tr>
+    <tr><td class="f"><code>categories[].tagName</code></td><td><span class="opt">optional</span></td><td><code>Category/@TagName</code></td></tr>
+    <tr><td class="f"><code>categories[].type</code></td><td></td><td><code>Category/@Type</code>: <code>permissive</code>, <code>restrictive</code>, <code>informative</code></td></tr>
+    <tr><td class="f"><code>categories[].uri</code></td><td></td><td><code>Category/@URI</code></td></tr>
+    <tr><td class="f"><code>categories[].values[]</code></td><td></td><td><code>Category/GenericValue</code>, one per value</td></tr>
+    <tr><td class="f"><code>creationDateTime</code></td><td><span class="opt">optional</span></td><td><code>CreationDateTime</code></td></tr>
+    <tr><td class="f"><code>reviewDateTime</code></td><td><span class="opt">optional</span></td><td><code>ConfidentialityLabel/@ReviewDateTime</code></td></tr>
+  </table></div>
+  <ul>
+    <li><b>Default label:</b> configured on the server (ECore) and handed to plugins by the SDKs. Plugins use it for everything they create.</li>
+    <li><b>Object and layer labels (ADR-0020):</b> an object's label covers the object; a layer's label covers the layer's own data (name, order, existence).
+      <ul>
+        <li><b>Seeing an object:</b> a user sees it only if cleared for <b>both</b> its label and its layer's label.</li>
+        <li><b>Seeing a layer:</b> a user sees it only if cleared for its label.</li>
+        <li><b>No constraint between them:</b> stored labels are not checked against each other, so existing data never needs a migration.</li>
+      </ul>
+    </li>
+    <li>This JSON form is emc2's own. Before the real STANAG 4778 binding is built, the mapping must be checked against the official ADatP-4774 XML schema, and aligning with ADatP-4774's JSON encoding is decided then.</li>
+  </ul>
+
+  <!-- ===================================================== 8 -->
+  <h2 id="extensions">8 Extensions</h2>
+  <p>A plugin stores its own data on an object under its plugin id. <b>Only that plugin writes it; everyone else forwards it untouched</b> (blind forwarding), so no information is lost on its way through the system. Values are JSON objects that only the owning plugin understands.</p>
+  <h3>How an update merges extensions (rule 5)</h3>
+  <div class="merge">
+    <div>
+      <h4>Stored object</h4>
+      <pre><code>"extensions": {
+  <span class="k-plugin">"cot-in"</span>: { "stale": "…08:25…" },
+  <span class="k-other">"notes"</span>:  { "text": "at the bridge" }
+}</code></pre>
+    </div>
+    <div class="op" aria-hidden="true">+</div>
+    <div>
+      <h4>Update from <code>cot-in</code></h4>
+      <pre><code>"extensions": {
+  <span class="k-plugin">"cot-in"</span>: { "stale": "…08:40…" }
+}</code></pre>
+    </div>
+    <div class="op" aria-hidden="true">=</div>
+    <div>
+      <h4>Result</h4>
+      <pre><code>"extensions": {
+  <span class="k-plugin">"cot-in"</span>: { "stale": "…08:40…" },
+  <span class="k-other">"notes"</span>:  { "text": "at the bridge" }
+}</code></pre>
+    </div>
+  </div>
+  <p style="margin-top:10px">On <b>update</b>, the object store applies only the requesting plugin's own namespace. Present: it replaces the stored value. An empty object <code>{}</code>: it removes it. Absent: it is kept. All other namespaces always come from the stored object, whatever the request contains. (<code>notes</code> is a hypothetical plugin used for the illustration.)</p>
+  <p>On <b>create</b>, all namespaces in the request are accepted. An imported object therefore keeps the extensions it was exported with, for example an emc2 export read back through NVG.</p>
+  <ul>
+    <li><b>The object store enforces this</b> (ADR-0018). Foreign namespaces in an update are ignored, never rejected, so blind forwarding never fails. The SDKs do not filter.</li>
+    <li><b>Extension data keeps its numbers exactly as written</b>, even beyond double precision (CR-0004). The SDKs hold it as their own JSON type, never as plain doubles.</li>
+  </ul>
+
+  <!-- ===================================================== 9 -->
+  <h2 id="layer">9 Layer</h2>
+  <div class="table-wrap"><table>
+    <tr><th>Field</th><th>Type</th><th></th><th>Meaning</th></tr>
+    <tr><td class="f"><code>id</code></td><td class="t">UUID</td><td><span class="req">required</span></td><td>Chosen by the creator.</td></tr>
+    <tr><td class="f"><code>name</code></td><td class="t">string</td><td><span class="req">required</span></td><td>1–256 characters.</td></tr>
+    <tr><td class="f"><code>drawOrder</code></td><td class="t">number</td><td><span class="req">required</span></td><td>Higher is drawn on top. A number rather than an integer, so a layer can be moved between two others by changing only its own value. Ties are broken by id.</td></tr>
+    <tr><td class="f"><code>visible</code></td><td class="t">boolean</td><td><span class="req">required</span></td><td>Default visibility for users.</td></tr>
+    <tr><td class="f"><code>label</code></td><td class="t">SecurityLabel</td><td><span class="req">required</span></td><td>Covers the layer's own data.</td></tr>
+    <tr><td class="f"><code>extensions</code></td><td class="t">map</td><td><span class="opt">optional</span></td><td>As for objects.</td></tr>
+    <tr><td class="f"><code>version</code>, <code>meta</code></td><td class="t"></td><td><span class="store">object store</span></td><td>As for objects.</td></tr>
+  </table></div>
+  <ul>
+    <li>Layers are <b>flat</b> in v0, with no groups or folders.</li>
+    <li>Background maps are not layers in this sense; they belong to the map view and the background map plugins.</li>
+    <li>ECore creates a layer named "Default" when there are none, and <b>only empty layers can be deleted</b> (rule 11).</li>
+    <li>Layers change through the same change requests as objects (<code>entityType: "layer"</code>).</li>
+  </ul>
+
+  <!-- ===================================================== 10 -->
+  <h2 id="changes">10 Changing objects and layers</h2>
+  <h3>ChangeRequest: sent by a plugin or a browser</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Field</th><th>Meaning</th></tr>
+    <tr><td class="f"><code>requestId</code></td><td>UUID that correlates the request with its answer.</td></tr>
+    <tr><td class="f"><code>entityType</code></td><td><code>object</code> or <code>layer</code>.</td></tr>
+    <tr><td class="f"><code>operation</code></td><td><code>create</code>, <code>update</code> or <code>delete</code>.</td></tr>
+    <tr><td class="f"><code>entityId</code></td><td>The entity's id. On create, the new id chosen by the requester.</td></tr>
+    <tr><td class="f"><code>baseVersion</code></td><td>Optional: the version the change is based on. Recorded but not enforced in v0 (last write wins); prepared for optimistic locking.</td></tr>
+    <tr><td class="f"><code>data</code></td><td>The content: the object's or layer's fields without <code>id</code>, <code>version</code> and <code>meta</code>. Required for create and update, absent for delete. An update sends the <b>complete</b> core content.</td></tr>
+    <tr><td class="f"><code>source</code></td><td>The requesting plugin. The user is set by the server from the login session and is never trusted from the client.</td></tr>
+  </table></div>
+  <pre><code>{
+  "requestId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e21",
+  "entityType": "object",
+  "operation": "create",
+  "entityId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e16",
+  "data": {
+    "type": "core.symbol",
+    "layerId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e01",
+    "geometry": { "type": "Point", "coordinates": [18.0723, 59.3311] },
+    "symbol": { "standard": "APP-6D", "sidc": "10061000001211000000" },
+    "label": { "policyIdentifier": { "name": "NATO" }, "classification": "UNCLASSIFIED" }
+  },
+  "source": { "plugin": "draw-symbols", "user": "3f2c9a10-5d7e-4b8a-9c41-2e6f8d0a7b15" }
+}</code></pre>
+
+  <div class="grid2" style="margin-top:16px">
+    <div class="card">
+      <b>ChangeEvent: published to everyone</b>
+      <p style="margin:6px 0 8px;font-size:14px">On topic <code>objects.changed</code> after a change is applied.</p>
+      <ul style="font-size:14px;margin:0">
+        <li><code>sequenceNo</code>: global, gapless order of all changes on one server</li>
+        <li><code>requestId</code>, <code>entityType</code>, <code>operation</code>, <code>entityId</code></li>
+        <li><code>version</code> after the change; <code>previousVersion</code> (<code>null</code> on create); <code>baseVersion</code> if sent</li>
+        <li><code>state</code>: the complete entity after the change, <code>null</code> on delete</li>
+        <li><code>label</code>: the entity's label, also on delete, so receivers can filter without the state</li>
+        <li><code>at</code>, <code>by</code>: when and by whom</li>
+      </ul>
+    </div>
+    <div class="card">
+      <b>ChangeRejection: to the requester only</b>
+      <p style="margin:6px 0 8px;font-size:14px">When the object store does not apply a request.</p>
+      <ul style="font-size:14px;margin:0">
+        <li><code>requestId</code>, <code>entityType</code>, <code>operation</code>, <code>entityId</code></li>
+        <li><code>code</code>: one of the codes below</li>
+        <li><code>message</code>: an English explanation for logs and notifications</li>
+        <li><code>details</code>: for validation failures, up to 50 items of <code>path</code> (a JSON Pointer into the request) and <code>problem</code></li>
+        <li><code>at</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Rejection codes</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Code</th><th>When</th></tr>
+    <tr><td class="f"><code>VALIDATION_FAILED</code></td><td>The request breaks the schema or one of the rules in section 11.</td></tr>
+    <tr><td class="f"><code>ENTITY_NOT_FOUND</code></td><td>Update or delete of an entity that does not exist.</td></tr>
+    <tr><td class="f"><code>ENTITY_EXISTS</code></td><td>Create with an id that is already in use.</td></tr>
+    <tr><td class="f"><code>LAYER_NOT_FOUND</code></td><td>The object's <code>layerId</code> refers to no layer.</td></tr>
+    <tr><td class="f"><code>LAYER_NOT_EMPTY</code></td><td>Delete of a layer that still has objects.</td></tr>
+    <tr><td class="f"><code>PERMISSION_DENIED</code></td><td>The user or plugin may not do this.</td></tr>
+    <tr><td class="f"><code>INTERNAL_ERROR</code></td><td>The object store failed; the request may be retried.</td></tr>
+  </table></div>
+  <pre><code>{
+  "requestId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e24",
+  "entityType": "layer",
+  "operation": "delete",
+  "entityId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e01",
+  "code": "LAYER_NOT_EMPTY",
+  "message": "Layer \"Own forces\" still has 12 objects. Only empty layers can be deleted.",
+  "at": "2026-10-05T09:05:00.000Z"
+}</code></pre>
+
+  <!-- ===================================================== 11 -->
+  <h2 id="rules">11 Rules beyond the schema</h2>
+  <p>JSON Schema cannot express everything. These rules are just as binding for the object store, the SDKs and the plugins. The object store rejects a request that breaks rules 1–4 or 11, and implements rules 1–8 and 10–13.</p>
+  <ol class="rules">
+    <li><b>Polygon rings are closed:</b> the first and last positions are equal. Either orientation is accepted and normalized so that, going along the outer ring, <b>the inside lies to the left</b>; holes run the other way. The orientation is determined <b>along the geodesic edges</b>, not in longitude and latitude, so a ring from 179° to −179° is a small ring, not one around the whole Earth.</li>
+    <li><b>Geometry sanity:</b> for an ArcBand, <code>innerRadius &lt; outerRadius</code>; for an Ellipse, <code>semiMinorAxis ≤ semiMajorAxis</code>.</li>
+    <li><b>References:</b> <code>layerId</code> must exist (<code>LAYER_NOT_FOUND</code>); a create needs a new id (<code>ENTITY_EXISTS</code>); an update or delete needs an existing entity (<code>ENTITY_NOT_FOUND</code>).</li>
+    <li><b>Clients never send <code>version</code> or <code>meta</code>.</b> The object store sets them.</li>
+    <li><b>Update semantics:</b> the core fields are replaced as a whole, so a missing field is removed. Extensions merge per plugin as in section 8.</li>
+    <li><b>Delete</b> increases the version by one. Its event has <code>state: null</code> and carries the entity's label.</li>
+    <li><b>Sequence numbers</b> are global and gapless per server.</li>
+    <li><b>Actor:</b> <code>source.plugin</code> names the requester; <code>source.user</code> comes from the login session, never from the client.</li>
+    <li><b>Axis order:</b> the schema only catches swapped coordinates when the latitude value is outside ±90. Every converter is tested with a point where latitude ≠ longitude.</li>
+    <li><b>Edges are geodesic</b> and never split at the antimeridian. Renderers densify them. A polygon around a pole cannot be expressed in v0.</li>
+    <li><b>Only empty layers can be deleted</b> (<code>LAYER_NOT_EMPTY</code>).</li>
+    <li><b>Every change request gets exactly one answer,</b> a change event or a change rejection, with the request's <code>requestId</code>. An update equal to the stored state is still applied, with a new version and an event.</li>
+    <li><b>Empty means absent</b> for optional objects and arrays: <code>extensions</code>, <code>symbol.modifiers</code>, <code>style</code>, <code>properties</code>, <code>label.categories</code> and <code>details</code>. Writers leave them out when empty; readers accept both forms; comparisons, including the codec round trip, treat them as equal. Not for the value of one extension namespace: on update, <code>{}</code> there removes that namespace (rule 5).</li>
+  </ol>
+
+  <!-- ===================================================== 12 -->
+  <h2 id="decisions">12 Decisions and deferred items</h2>
+  <h3>Decided for v0</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Decision</th><th>Reason</th></tr>
+    <tr><td>Layers change through the same change requests as objects</td><td>One single writer and one event stream for everything on the map</td></tr>
+    <tr><td>Updates replace core fields as a whole and merge extensions per plugin</td><td>Simple last-write-wins without losing other plugins' data</td></tr>
+    <tr><td>Altitude is height above the ellipsoid (HAE)</td><td>Matches WGS84 and CoT; mean sea level only at display and format boundaries</td></tr>
+    <tr><td>Circle, Ellipse, Corridor and ArcBand added to GeoJSON's types</td><td>Needed for shapes and for NVG and CoT exchange</td></tr>
+    <tr><td>Flat layers; <code>drawOrder</code> is a number</td><td>Simplest start; moving a layer changes only that layer</td></tr>
+    <tr><td>Ids generated by the requester (UUID v7)</td><td>The requester knows the id at once, which makes retries safe</td></tr>
+    <tr><td>A change rejection with fixed codes</td><td>Plugins need to know why a change was refused</td></tr>
+    <tr><td>Closed modifier list; <code>direction</code> and <code>speed</code> as numbers</td><td>Catches misspelt names; machine values for CoT exchange</td></tr>
+    <tr><td>SIDC version digits checked per standard</td><td>Catches a SIDC labelled with the wrong standard</td></tr>
+    <tr><td>Geodesic edges</td><td>Shapes must not change with the projection</td></tr>
+    <tr><td>Only empty layers can be deleted</td><td>Owner decision, 2026-10-05</td></tr>
+    <tr><td>Exactly one answer per change request; the object store enforces extension ownership</td><td>The requester always learns the outcome; blind forwarding cannot be broken by a plugin (ADR-0018)</td></tr>
+    <tr><td>A 20-digit APP-6E SIDC equals the 30-digit one with zeros; writers write the short form</td><td>One symbol must not look like two in caches and comparisons (owner, 2026-10-05)</td></tr>
+    <tr><td>A user sees an object only if cleared for its label and its layer's label</td><td>No constraint between stored labels, so no migration is ever needed (ADR-0020)</td></tr>
+    <tr><td>Empty means absent (rule 13)</td><td>One canonical form makes round trips and comparisons simple</td></tr>
+    <tr><td>Core numbers are doubles; free-form JSON keeps exact decimals</td><td>Matches the SDKs' types; blind forwarding of extensions stays exact (CR-0004)</td></tr>
+    <tr><td>Java and TypeScript types written by hand, checked by contract tests against the examples</td><td>Generators produce poor Java for the schema's conditional rules; the examples keep both sides honest</td></tr>
+  </table></div>
+  <h3>Deferred</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Item</th><th>When</th></tr>
+    <tr><td>Layer groups (folders)</td><td>Later; an optional <code>parentId</code> would be a minor change</td></tr>
+    <tr><td>Time attributes on objects: observation time, expiry</td><td>M1, with <code>cot-in</code>. Until then in the <code>cot-in</code> extension</td></tr>
+    <tr><td>Text annotations (<code>core.text</code>, e.g. for NVG)</td><td>When an NVG plugin is planned</td></tr>
+    <tr><td>Event ordering across several servers</td><td>When more servers are added</td></tr>
+    <tr><td>Polygons around a pole</td><td>When needed</td></tr>
+  </table></div>
+
+  <!-- ===================================================== 13 -->
+  <h2 id="versioning">13 Versioning and validation</h2>
+  <ul>
+    <li>One SemVer version for all schemas, in <code>model/package.json</code>. Data model v0 is <b>0.1.0, frozen</b> together with SDK v0 for milestone M0 (2026-10-06, tag <code>contracts-0.1.0</code>). Changes go through change requests.</li>
+    <li><b>Minor change:</b> every previously valid document stays valid, e.g. a new optional field, a new modifier name, a relaxed limit. <b>Major change:</b> anything else; stored data then needs a migration through the persistence manager.</li>
+    <li><b>No field may change its meaning in a minor version</b>, even if the schema stays the same (for example a unit, or what an empty value means).</li>
+    <li><b>Before 1.0.0</b> the data model is numbered like the SDKs: compatible additions during M0 are 0.1.x, 0.2.0 is breaking, and M1 brings 1.0.0.</li>
+    <li><b>History (later):</b> the event log is append-only and never rewritten. Old events are read through <b>upcasters</b> that turn them into the current form when read.</li>
+    <li>The <b>plugin manifest schema</b> (<code>plugin.json</code>) also lives in <code>model/</code>, so it is tested the same way, but it is versioned with the SDK and described in <code>docs/plugins/sdk-v0.md</code>.</li>
+    <li>All parts of emc2 come from one repository and are released together, so a running system always uses one model version. That is why the schemas can be strict: unknown fields are rejected. Documents do not carry the model version; the WebSocket protocol and the persistence manager record it.</li>
+    <li><b>Validation:</b> <code>cd model</code>, <code>npm ci</code>, <code>npm test</code>. The tests validate every schema and example, check that each invalid example fails for its stated reason, and that each example under <code>invalid-by-rule/</code> passes the schema but breaks a rule (for the object store's and SDKs' contract tests).</li>
+  </ul>
+
+  <footer>
+    Readable view of <code>model/</code> (data model v0, frozen at 0.1.0) on <code>main</code> at <code>f12ba56</code> (2026-10-09). The schemas and <code>model/README.md</code> are the normative contract and are owned by the PDA. This page is maintained by the ACA in <code>documents/design/</code>. Related decisions: ADR-0005 (single writer), ADR-0007 (common data model), ADR-0010 (symbology), ADR-0014 (no internet at runtime), ADR-0017 (client rendering), ADR-0018 (change protocol), ADR-0019 (geodesic edges), ADR-0020 (object and layer labels), CR-0004 (numbers).
+  </footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "requestId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e24",
+  "entityType": "layer",
+  "operation": "delete",
+  "entityId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e01",
+  "baseVersion": 4,
+  "source": { "plugin": "layer-panel" }
+}

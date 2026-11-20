@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The parent POM of a plugin's server part (owned by the PDA; M9 plan D3, gap G1; owner, 2026-11-17).
+  Stand-alone on purpose: it has no parent, so a plugin built outside the repository from the SDK kit
+  needs only this POM and the SDK's jars, never server/pom.xml. Its version is the SDK's.
+
+  It manages the SDK, the test kit and the libraries a plugin's tests use, pins every build plugin,
+  and sets the Java release. A plugin names it by its coordinates; in the repository the template's
+  relativePath finds it in the reactor, outside Maven falls back to the local repository, where the
+  kit installs it.
+
+  Its versions equal server/pom.xml's: the test kit's ParentPomTest fails the build when they drift.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>dev.emcc</groupId>
+  <artifactId>emc2-plugin-parent</artifactId>
+  <!-- The SDK version (CR-0005), as emc2-plugin-sdk-parent's. -->
+  <version>1.9.0</version>
+  <packaging>pom</packaging>
+  <name>emcc plugin parent</name>
+  <description>The parent POM of an emcc plugin's server part: the SDK, the test kit and the build, pinned.</description>
+
+  <licenses>
+    <license>
+      <name>Apache-2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+  </licenses>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <maven.compiler.release>25</maven.compiler.release>
+
+    <!-- The SDK and test kit version: this POM's own, written out, since ${project.version} would be the plugin's. -->
+    <emcc.sdk.version>1.9.0</emcc.sdk.version>
+    <!-- SLF4J comes with the test kit's ArchUnit; pinned as ECore pins it, so a plugin's tests use the same. -->
+    <slf4j.version>2.0.18</slf4j.version>
+    <jspecify.version>1.0.1</jspecify.version>
+    <junit.version>6.0.3</junit.version>
+    <assertj.version>3.27.7</assertj.version>
+    <archunit.version>1.5.1</archunit.version>
+
+    <maven-enforcer-plugin.version>3.6.3</maven-enforcer-plugin.version>
+    <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
+    <maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
+    <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
+    <maven-surefire-plugin.version>3.6.0</maven-surefire-plugin.version>
+    <maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
+    <maven-install-plugin.version>3.2.0</maven-install-plugin.version>
+    <maven-deploy-plugin.version>3.2.0</maven-deploy-plugin.version>
+    <maven-site-plugin.version>3.22.0</maven-site-plugin.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>dev.emcc</groupId>
+        <artifactId>emc2-plugin-sdk</artifactId>
+        <version>${emcc.sdk.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>dev.emcc</groupId>
+        <artifactId>emc2-plugin-sdk-testkit</artifactId>
+        <version>${emcc.sdk.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jspecify</groupId>
+        <artifactId>jspecify</artifactId>
+        <version>${jspecify.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.assertj</groupId>
+        <artifactId>assertj-core</artifactId>
+        <version>${assertj.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.tngtech.archunit</groupId>
+        <artifactId>archunit</artifactId>
+        <version>${archunit.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-clean-plugin</artifactId>
+          <version>${maven-clean-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>${maven-resources-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${maven-compiler-plugin.version}</version>
+          <configuration>
+            <compilerArgs>
+              <arg>-Xlint:all</arg>
+            </compilerArgs>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${maven-surefire-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>${maven-jar-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-install-plugin</artifactId>
+          <version>${maven-install-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-deploy-plugin</artifactId>
+          <version>${maven-deploy-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-site-plugin</artifactId>
+          <version>${maven-site-plugin.version}</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>${maven-enforcer-plugin.version}</version>
+        <executions>
+          <execution>
+            <id>enforce-build-environment</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireJavaVersion>
+                  <version>[25,26)</version>
+                  <message>An emcc plugin needs JDK 25, as emcc (ADR-0001).</message>
+                </requireJavaVersion>
+                <requireMavenVersion>
+                  <version>[3.9,)</version>
+                </requireMavenVersion>
+                <requirePluginVersions>
+                  <message>Pin every plugin version, as this parent does.</message>
+                </requirePluginVersions>
+                <dependencyConvergence/>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

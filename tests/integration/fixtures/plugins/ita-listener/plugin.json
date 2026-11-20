@@ -1,0 +1,38 @@
+{
+  "id": "ita-listener",
+  "name": "ITA listener test plugin",
+  "version": "0.1.0",
+  "sdkVersion": "^1.0.0",
+  "kind": "utility",
+  "server": { "entryClass": "dev.emcc.itatest.listener.ListenerPlugin" },
+  "network": {
+    "endpoints": ["/stream"],
+    "reason": "The TAK test double of the integration tests, on this machine."
+  },
+  "settings": {
+    "type": "object",
+    "properties": {
+      "stream": {
+        "description": "Where the TAK test double listens; port 0 means no listener.",
+        "type": "object",
+        "properties": {
+          "host": { "type": "string" },
+          "port": { "type": "integer", "minimum": 0, "maximum": 65535 }
+        },
+        "required": ["host", "port"],
+        "additionalProperties": false,
+        "default": { "host": "127.0.0.1", "port": 0 }
+      },
+      "transport": {
+        "description": "tcp, or tls with the credentials below (local server configuration).",
+        "enum": ["tcp", "tls"],
+        "default": "tcp"
+      },
+      "credentials": {
+        "description": "The name of the listener credentials (emc2.listeners.credentials.<name>.*).",
+        "type": "string",
+        "default": "ita-tak"
+      }
+    }
+  }
+}

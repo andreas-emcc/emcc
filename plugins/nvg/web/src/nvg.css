@@ -1,0 +1,84 @@
+/* Plugin styles: every class starts with the plugin id, and every colour, font, size and space
+   comes from the shell's design tokens (ADR-0029, ADR-0034). No element selectors at top level, no
+   :root, nothing global. The shared components bring their own CSS; this file only arranges content. */
+.nvg-panel {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--emc2-space-gap) * 3);
+  color: var(--emc2-color-text);
+  font-family: var(--emc2-font-text);
+  font-size: var(--emc2-size-text);
+}
+
+.nvg-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  min-width: 0;
+}
+
+.nvg-heading {
+  margin: 0;
+  font-family: var(--emc2-font-heading);
+  font-size: var(--emc2-size-text-small);
+  font-weight: var(--emc2-heading-weight);
+  letter-spacing: var(--emc2-heading-letter-spacing);
+  text-transform: var(--emc2-heading-case);
+  color: var(--emc2-color-muted);
+}
+
+.nvg-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--emc2-space-gap);
+  min-width: 0;
+}
+
+.nvg-row-spread {
+  justify-content: space-between;
+}
+
+.nvg-file {
+  display: none;
+}
+
+.nvg-file-name,
+.nvg-link-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.nvg-layers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+}
+
+.nvg-link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  padding-top: var(--emc2-space-gap);
+  border-top: 1px solid var(--emc2-color-border);
+}
+
+.nvg-muted {
+  color: var(--emc2-color-muted);
+  overflow-wrap: anywhere;
+}
+
+.nvg-problem {
+  color: var(--emc2-color-warning);
+  overflow-wrap: anywhere;
+}
+
+.nvg-data {
+  font-family: var(--emc2-font-data);
+}
+
+.nvg-capabilities {
+  margin: 0;
+  padding-left: var(--emc2-space-padding);
+  overflow-wrap: anywhere;
+}

@@ -1,0 +1,79 @@
+{
+  "id": "cot-in",
+  "name": "CoT in",
+  "version": "1.0.0",
+  "sdkVersion": "^1.0.0",
+  "kind": "general",
+  "properties": [
+    "ingoing"
+  ],
+  "network": {
+    "endpoints": [
+      "streams"
+    ],
+    "reason": "Receives CoT from the TAK Servers configured as streams, on the local network."
+  },
+  "dataTypes": [
+    {
+      "id": "cot-in.cot",
+      "name": "CoT",
+      "description": "Cursor on Target reports received from TAK systems.",
+      "defaults": {
+        "fadeWhenExpired": true,
+        "removeAfterExpirySeconds": 600
+      }
+    }
+  ],
+  "server": {
+    "entryClass": "dev.emcc.plugins.cotin.CotInPlugin"
+  },
+  "settings": {
+    "type": "object",
+    "properties": {
+      "streams": {
+        "type": "array",
+        "default": [],
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+              "maxLength": 64
+            },
+            "host": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            "transport": {
+              "enum": [
+                "tcp",
+                "tls"
+              ]
+            },
+            "enabled": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "name",
+            "host",
+            "port",
+            "transport"
+          ]
+        }
+      },
+      "idleSeconds": {
+        "type": "integer",
+        "minimum": 10,
+        "default": 300
+      }
+    }
+  }
+}

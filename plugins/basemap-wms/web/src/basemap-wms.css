@@ -1,0 +1,141 @@
+/* WMS background maps settings panel: every class starts with the plugin id. Design tokens only (ADR-0034): every
+   colour, font, size, space and radius is a --emc2- token; besides them only 0, percentages and 1px hairlines. The panel
+   arranges shared components and must work in a narrow pane as well as a wide one: everything wraps. */
+.basemap-wms-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  min-width: 0;
+  color: var(--emc2-color-text);
+  font-family: var(--emc2-font-text);
+  font-size: var(--emc2-size-text);
+}
+
+/* Save and Discard stay in reach while a long list of layers scrolls under them. */
+.basemap-wms-actions {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--emc2-space-gap);
+  padding: var(--emc2-space-gap) 0;
+  background: var(--emc2-color-ground);
+}
+
+.basemap-wms-unsaved {
+  color: var(--emc2-color-warning);
+}
+
+.basemap-wms-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  min-width: 0;
+}
+
+.basemap-wms-heading {
+  margin: 0;
+  font-family: var(--emc2-font-heading);
+  font-weight: var(--emc2-heading-weight);
+  text-transform: var(--emc2-heading-case);
+  letter-spacing: var(--emc2-heading-letter-spacing);
+  font-size: var(--emc2-size-text);
+}
+
+.basemap-wms-subheading {
+  margin: 0;
+  font-size: var(--emc2-size-text-small);
+  color: var(--emc2-color-muted);
+}
+
+.basemap-wms-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  min-width: 0;
+  padding: var(--emc2-space-padding);
+  border: 1px solid var(--emc2-color-border);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-panel);
+}
+
+.basemap-wms-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--emc2-space-gap);
+}
+
+.basemap-wms-card-title {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--emc2-size-text);
+}
+
+.basemap-wms-hint {
+  margin: 0;
+  color: var(--emc2-color-muted);
+  font-size: var(--emc2-size-text-small);
+}
+
+.basemap-wms-error {
+  color: var(--emc2-color-error);
+  font-size: var(--emc2-size-text-small);
+}
+
+.basemap-wms-problems {
+  margin: 0;
+  padding-left: var(--emc2-space-padding);
+}
+
+.basemap-wms-layers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  min-width: 0;
+}
+
+.basemap-wms-layer-list,
+.basemap-wms-order {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.basemap-wms-layer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--emc2-space-gap);
+  min-width: 0;
+}
+
+.basemap-wms-layer-missing {
+  color: var(--emc2-color-warning);
+}
+
+.basemap-wms-projections {
+  color: var(--emc2-color-muted);
+  font-family: var(--emc2-font-data);
+  font-size: var(--emc2-size-text-small);
+  overflow-wrap: anywhere;
+}
+
+.basemap-wms-order-row {
+  display: flex;
+  align-items: center;
+  gap: var(--emc2-space-gap);
+  min-width: 0;
+}
+
+.basemap-wms-order-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

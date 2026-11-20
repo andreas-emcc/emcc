@@ -1,0 +1,17 @@
+{
+  "id": "temporal-test",
+  "name": "Temporal test",
+  "version": "0.1.0",
+  "sdkVersion": "^1.4.0",
+  "kind": "utility",
+  "capabilities": [
+    "temporal",
+    "history"
+  ],
+  "server": {
+    "entryClass": "dev.emcc.sdk.testkit.TemporalTestPlugin"
+  },
+  "web": {
+    "entry": "index.js"
+  }
+}

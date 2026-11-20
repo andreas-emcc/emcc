@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Java Plugin SDK (owned by the PDA). Two modules:
+  - api:     the only code that server parts of plugins depend on (ADR-0003). Depends on JSpecify, and on
+             GeographicLib-Java, used only inside the SDK (CR-0025 part 7).
+  - testkit: fake plugin context, ArchUnit rule set and codec contract test, for plugin and ECore tests.
+  And plugin-parent: the stand-alone parent POM of a plugin's server part (M9, D3), which inherits nothing.
+  Design: docs/plugins/sdk-v1.md (and sdk-v0.md for what v1 keeps). All versions come from the parent POM (server/pom.xml), except GeographicLib-Java's, pinned in api/pom.xml.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>dev.emcc</groupId>
+    <artifactId>emc2-server</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>emc2-plugin-sdk-parent</artifactId>
+  <!-- The SDK version (CR-0005): equal to dev.emcc.sdk.Sdk.VERSION and the web SDK's SDK_VERSION; -SNAPSHOT while a version is open, none once it is frozen (1.9.0: owner ACH A, 2026-11-18). -->
+  <version>1.9.0</version>
+  <packaging>pom</packaging>
+  <name>emc2 Plugin SDK (parent)</name>
+
+  <modules>
+    <module>api</module>
+    <module>testkit</module>
+    <!-- The stand-alone parent of a plugin's server part (D3, G1): no parent of its own, so the SDK kit can ship it. -->
+    <module>plugin-parent</module>
+  </modules>
+</project>

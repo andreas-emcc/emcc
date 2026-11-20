@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>emcc – Extensible Modular Command and Control</title>
+<meta name="description" content="emcc, Extensible Modular Command and Control: a lightweight C2 (and simulation) system. A shared live map for units, tactical graphics and tracks, with links to other systems and a simulator; extend the functionality with plugins. Built by Claude Code agents.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+:root{
+  --sea:#0b0c0d; --shoal:#141517; --grid:rgba(222,226,232,.075); --grid-minor:rgba(222,226,232,.03);
+  --land:#1f2124; --coast:#8e949a; --contour:#2b2e32; --land-high:#25282b;
+  --ink:#e8eaed; --muted:#b6bbc1; --label:#8f959c;
+  --surface:#151618; --surface-2:#1c1e21; --rule:#33363b; --rule-strong:#a9aeb4;
+  --route:#ff8a1f; --route-ink:#1b1c1e; --route-soft:rgba(255,138,31,.13);
+  --friend:#3e4248; --hostile:#3e4248; --neutral:#3e4248; --unknown:#3e4248; --frame:#d9dce0;
+  --neat-a:#a9aeb4; --neat-b:#0b0c0d;
+  --shadow:0 1px 0 rgba(0,0,0,.35),0 12px 30px -14px rgba(0,0,0,.85);
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","Cascadia Code",Consolas,"SF Mono",Menlo,"Liberation Mono",monospace;
+  --serif:Georgia,"Times New Roman",Times,serif;
+  --lane:96px; --gut:16px;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-padding-top:72px}
+body{
+  margin:0;position:relative;color:var(--ink);font:16px/1.55 var(--sans);
+  background-color:var(--sea);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px),linear-gradient(var(--grid-minor) 1px,transparent 1px),linear-gradient(90deg,var(--grid-minor) 1px,transparent 1px);
+  background-size:160px 160px,160px 160px,32px 32px,32px 32px;
+}
+img{max-width:100%;height:auto;display:block}
+a{color:inherit}
+h1,h2,h3,h4{margin:0;line-height:1.15}
+p{margin:0}
+ul{margin:0;padding:0;list-style:none}
+:focus-visible{outline:3px solid var(--route);outline-offset:2px}
+.skip{position:absolute;left:16px;top:-60px;z-index:50;background:var(--surface);padding:8px 12px;border:2px solid var(--route)}
+.skip:focus{top:8px}
+
+/* ---------- the chart under everything ---------- */
+.decor{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.neat{position:absolute;top:0;bottom:0;width:6px;background:repeating-linear-gradient(to bottom,var(--neat-a) 0 32px,var(--neat-b) 32px 64px);border:1px solid var(--neat-a)}
+.neat-l{left:0}.neat-r{right:0}
+.lats{position:absolute;top:160px;display:flex;flex-direction:column;font:11px/1 var(--mono);color:var(--label);letter-spacing:.02em}
+.lats span{height:160px;padding-top:4px}
+.lats-l{left:12px}.lats-r{right:12px;text-align:right}
+.chart-map{position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:cover;object-position:50% 0;opacity:.95}
+.ld0{top:1.2%;right:-110px;width:640px}
+.ld1{top:6%;left:-150px;width:560px}
+.ld2{top:12.5%;left:58%;width:180px}
+.ld3{top:15%;right:-130px;width:600px}
+.ld4{top:23%;left:-140px;width:620px}
+.ld5{top:31%;right:-150px;width:580px}
+.ld6{top:36%;left:46%;width:150px}
+.ld7{top:40%;left:-130px;width:600px}
+.ld8{top:49%;right:-120px;width:640px}
+.ld9{top:57%;left:-150px;width:560px}
+.ld10{top:62%;left:30%;width:170px}
+.ld11{top:66%;right:-140px;width:600px}
+.ld12{top:75%;left:-120px;width:620px}
+.ld13{top:83%;right:-150px;width:580px}
+.ld14{top:90%;left:-140px;width:560px}
+.land .shoal{fill:var(--shoal)}
+.land .coast{fill:var(--land);stroke:var(--coast);stroke-width:1.6}
+.land .c1{fill:var(--land-high);stroke:var(--contour);stroke-width:1.2}
+.land .c2{fill:none;stroke:var(--contour);stroke-width:1.2;stroke-dasharray:5 4}
+.rose{position:absolute;width:300px;height:300px;opacity:.42}
+.r-ring{fill:none;stroke:var(--route);stroke-width:1}
+.r-tick{stroke:var(--route);stroke-width:1.2}
+.r-star{fill:var(--route);opacity:.8}
+.r-star2{fill:none;stroke:var(--route);stroke-width:1}
+.r-n{font:italic 700 15px var(--serif);fill:var(--route);text-anchor:middle}
+
+/* ---------- top bar ---------- */
+.top{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--rule-strong)}
+.top::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:5px;background:repeating-linear-gradient(90deg,var(--neat-a) 0 32px,var(--neat-b) 32px 64px);border-bottom:1px solid var(--neat-a)}
+.top-in{max-width:1280px;margin:0 auto;padding:10px var(--gut);display:flex;align-items:center;gap:24px}
+.logo{display:block;flex:none;line-height:0}
+.logo img{width:77px;height:32px;box-shadow:0 0 0 1px var(--rule)}
+.top nav{display:flex;flex-wrap:wrap;gap:4px 20px;margin-left:auto;font-size:15px}
+.top nav a{text-decoration:none;padding:4px 0;border-bottom:2px solid transparent}
+.top nav a:hover{border-bottom-color:var(--route)}
+.ruler{position:relative;z-index:1;height:30px;overflow:hidden;margin-top:6px;display:flex;padding-left:164px;white-space:nowrap}
+.ruler span{flex:none;width:160px;padding-top:10px;font:11px/1 var(--mono);color:var(--label)}
+
+.chart{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:0 var(--gut)}
+
+/* ---------- hero: the chart's title block ---------- */
+.hero{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.38fr);gap:28px;align-items:start;padding:28px 0 8px}
+.cartouche{background:var(--surface);border:1px solid var(--rule-strong);outline:1px solid var(--rule-strong);outline-offset:4px;margin:5px;padding:26px 28px 24px;box-shadow:var(--shadow)}
+.tag{display:inline-flex;align-items:center;gap:8px;font:700 12px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--route);border:1.5px solid var(--route);background:var(--route-soft);padding:7px 10px}
+.tag::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--route)}
+.hero h1{margin-top:20px}
+.brand{display:block;line-height:0}
+.brand-svg{display:block;height:clamp(50px,6.4vw,86px);width:auto;fill:currentColor}
+.h1-sub{display:block;margin-top:14px;font-size:clamp(23px,2.35vw,31px);font-weight:650;letter-spacing:-.01em;line-height:1.18}
+.lede{margin-top:14px;font-size:18px;color:var(--muted);max-width:40ch}
+.built{margin-top:16px;padding-left:12px;border-left:3px solid var(--route);font-weight:600}
+.readout{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px 28px;margin-top:12px;padding:14px 4px 2px;border-top:1px solid var(--rule)}
+.readout-k{font:600 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:flex;gap:8px;align-items:center}
+.readout-v{display:block;margin-top:8px;font:600 clamp(26px,3.1vw,42px)/1.05 var(--mono);letter-spacing:-.02em;white-space:nowrap}
+.scale{display:flex;align-items:flex-end;gap:16px;color:var(--ink)}
+.scale svg{width:210px;height:30px;flex:none}
+.scale small{font:11px/1.3 var(--mono);color:var(--muted)}
+.sb-a{fill:var(--ink)}.sb-b{fill:var(--surface);stroke:var(--ink);stroke-width:1.5}
+.sb-t{font:11px var(--mono);fill:var(--ink)}
+.hero-pic{margin:5px 0 0;background:var(--surface);border:1px solid var(--rule);padding:10px 10px 12px;box-shadow:var(--shadow)}
+.hero-pic img{border:1px solid var(--rule)}
+.hero-pic figcaption,.shot figcaption{margin-top:9px;font-size:14px;color:var(--muted);line-height:1.45}
+.hero-pic figcaption::before,.shot figcaption::before{content:"▲ ";color:var(--route);font-size:11px}
+.hero .rose{right:30px;bottom:-360px;z-index:-1;width:320px;height:320px}
+
+/* ---------- the route ---------- */
+.wp{position:relative;padding-left:var(--lane)}
+.wp-r{padding-left:0;padding-right:var(--lane)}
+.lane{position:absolute;top:0;bottom:0;left:0;width:var(--lane)}
+.wp-r .lane{left:auto;right:0}
+.lane::before,.leg-s::before{content:"";position:absolute;top:0;bottom:0;left:calc(50% - 1.5px);width:3px;background:repeating-linear-gradient(to bottom,var(--route) 0 10px,transparent 10px 18px);animation:march 1.4s linear infinite}
+.leg-s::before{left:calc(var(--lane) / 2 - 1.5px)}
+.pt{position:absolute;top:20px;left:50%;transform:translateX(-50%);width:38px;height:38px;border-radius:50%;background:var(--route);color:var(--route-ink);border:3px solid var(--sea);box-shadow:0 0 0 2px var(--route);display:grid;place-items:center;font:800 15px/1 var(--mono)}
+.lane.start::before{top:30px}
+.lane.start .pt{width:22px;height:22px;background:var(--sea);border:4px solid var(--route);box-shadow:0 0 0 3px var(--sea),0 0 0 5px var(--route);top:22px}
+.leg{position:relative;height:96px}
+.leg-s{height:28px}
+.legline{position:absolute;left:calc(var(--lane) / 2);top:0;width:calc(100% - var(--lane));height:100%;overflow:visible}
+.legline line{stroke:var(--route);stroke-width:3;stroke-dasharray:10 8;animation:marchs 1.4s linear infinite}
+.leg-end{height:70px}
+.leg-end::after{content:"";position:absolute;bottom:0;left:calc(var(--lane) / 2 - 15px);width:30px;height:30px;border-radius:50%;background:radial-gradient(circle,var(--route) 0 5px,var(--sea) 5.5px 9px,var(--route) 9.5px 12px,transparent 12.5px);box-shadow:0 0 0 2px var(--route) inset}
+.leg-end::before{content:"";position:absolute;top:0;bottom:30px;left:calc(var(--lane) / 2 - 1.5px);width:3px;background:repeating-linear-gradient(to bottom,var(--route) 0 10px,transparent 10px 18px);animation:march 1.4s linear infinite}
+@keyframes march{to{background-position:0 18px}}
+@keyframes marchs{to{stroke-dashoffset:-18}}
+@media (prefers-reduced-motion:reduce){.lane::before,.leg-s::before,.leg-end::before,.legline line{animation:none}}
+
+/* ---------- cards ---------- */
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:3px;box-shadow:var(--shadow)}
+.eyebrow{display:flex;flex-wrap:wrap;gap:4px 12px;font:600 12px/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.eyebrow b{color:var(--route)}
+.sec-head{padding:22px 26px 24px;max-width:780px}
+.sec-head h2{margin-top:10px;font-size:clamp(28px,3.2vw,38px);letter-spacing:-.02em;font-weight:780}
+.sec-head p.lead{margin-top:10px;font-size:18px;color:var(--muted)}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.tabs a{font:600 14px/1 var(--sans);text-decoration:none;padding:9px 12px;border:1px solid var(--rule);background:var(--surface-2);border-radius:2px}
+.tabs a:hover{border-color:var(--route)}
+.tabs a span{font:600 11px var(--mono);color:var(--route);margin-right:6px}
+
+.ws{display:grid;grid-template-columns:minmax(0,1.62fr) minmax(0,1fr);grid-template-areas:"head head" "shot text";gap:18px 30px;padding:22px 26px 26px}
+.wp-r .ws{grid-template-columns:minmax(0,1fr) minmax(0,1.62fr);grid-template-areas:"head head" "text shot"}
+.ws-head{grid-area:head}
+.ws h3{margin-top:8px;font-size:clamp(24px,2.6vw,32px);font-weight:780;letter-spacing:-.02em}
+.ws-sub{font-weight:450;color:var(--muted)}
+.colon{color:var(--muted);font-weight:450}
+.ws .shot{grid-area:shot}
+.ws .ticks{grid-area:text;align-self:center}
+.shot{margin:0}
+.shot img{border:1px solid var(--rule)}
+.ticks>li{position:relative;padding:0 0 0 26px;margin:0 0 12px}
+.ticks>li:last-child{margin-bottom:0}
+.ticks>li::before{content:"";position:absolute;left:2px;top:.42em;width:10px;height:10px;border-radius:50%;background:var(--route);box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--route)}
+.ticks>li::after{content:"";position:absolute;left:6px;top:calc(.42em + 15px);bottom:-10px;border-left:2px dotted var(--rule)}
+.ticks>li:last-child::after{display:none}
+
+/* ---------- ideas: cards pinned next to unit frames ---------- */
+.ideas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px 22px;margin-top:22px}
+#ideas{--friend:#80e0ff;--hostile:#ff8080;--neutral:#aaffaa;--unknown:#ffff80;--frame:#000}
+.idea{display:grid;grid-template-columns:66px minmax(0,1fr);align-items:start;position:relative}
+.idea .sym{width:62px;height:50px;margin-top:10px;position:relative;z-index:1;overflow:visible}
+.idea::before{content:"";position:absolute;left:31px;top:34px;width:36px;border-top:2px solid var(--route);z-index:0}
+.idea-card{padding:14px 16px 16px;height:100%}
+.idea h3{font-size:17px;font-weight:720;letter-spacing:-.005em}
+.idea p{margin-top:6px;font-size:15px;color:var(--muted);line-height:1.5}
+.idea.wide{grid-column:1 / -1}
+.idea.wide .idea-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.1fr);gap:22px;align-items:center;padding:16px}
+.idea.wide h3{font-size:22px}
+.idea.wide p{font-size:16px}
+.fr{stroke:var(--frame);stroke-width:2.2;stroke-linejoin:miter}
+.fr-friend{fill:var(--friend)}.fr-hostile{fill:var(--hostile)}.fr-neutral{fill:var(--neutral)}.fr-unknown{fill:var(--unknown)}
+.ic{fill:none;stroke:var(--frame);stroke-width:2}
+.ic .fill{fill:var(--frame);stroke:none}
+.ic .q{font:700 20px var(--sans);fill:var(--frame);stroke:none;text-anchor:middle}
+
+/* ---------- parts ---------- */
+.zones{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) minmax(0,1fr);gap:28px;margin-top:22px;align-items:stretch}
+.zone{position:relative;padding:18px 20px 20px}
+.zone + .zone::before{content:"";position:absolute;left:-29px;top:30px;width:28px;border-top:3px solid var(--ink)}
+.zone + .zone::after{content:"";position:absolute;left:-33px;top:25px;width:9px;height:9px;border-radius:50%;background:var(--ink);box-shadow:30px 0 0 var(--ink)}
+.zone-k{font:600 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--route)}
+.zone h3{margin-top:0;font-size:21px;font-weight:760}
+.zone p{margin-top:8px;color:var(--muted);font-size:15px}
+.zone .ticks{margin-top:12px;font-size:15px}
+.zone .ticks>li{margin-bottom:10px}
+.ecore{margin-top:10px;padding:12px;border:1.5px dashed var(--route);background:var(--route-soft);border-radius:2px}
+.ecore strong{font-size:16px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chips li{font-size:13px;line-height:1.2;padding:5px 8px;background:var(--surface);border:1px solid var(--rule);border-radius:2px}
+.plugins{margin-top:28px;padding:22px 24px 24px}
+.plugins-top{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 22px;align-items:center}
+.count{font:800 64px/.9 var(--sans);letter-spacing:-.04em;color:var(--route)}
+.plugins h3{font-size:22px;font-weight:760}
+.plugins-top p{margin-top:6px;color:var(--muted);font-size:15px;max-width:72ch}
+.pgroups{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:18px;margin-top:20px;padding-top:18px;border-top:1px solid var(--rule)}
+.pgroup h4{font:600 11px/1.2 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.pgroup li{position:relative;padding-left:26px;margin-bottom:8px;font-size:15px;line-height:1.3}
+.pgroup li::before{content:"";position:absolute;left:0;top:2px;width:16px;height:11px;background:var(--friend);border:1.6px solid var(--frame)}
+
+/* ---------- built by agents ---------- */
+.agents{overflow:hidden}
+.agents-text{padding:22px 26px 26px}
+.agents-text h2{margin-top:10px;font-size:clamp(28px,3.2vw,38px);letter-spacing:-.02em;font-weight:780}
+.agents-text p{margin-top:12px;color:var(--muted)}
+.agents-text p.first{color:var(--ink);font-size:18px}
+
+/* ---------- status ---------- */
+.status{padding:22px 26px 26px}
+.status h2{margin-top:10px;font-size:clamp(28px,3.2vw,38px);letter-spacing:-.02em;font-weight:780}
+.track{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));margin:24px 0 6px;padding:0;list-style:none}
+.track li{position:relative;text-align:center;font:700 13px/1 var(--mono);padding-top:34px;color:var(--muted)}
+.track li::before{content:"";position:absolute;top:12px;left:0;right:0;height:3px;background:var(--route)}
+.track li:first-child::before{left:50%}
+.track li.now::before{background:linear-gradient(90deg,var(--route) 0 50%,transparent 50%),repeating-linear-gradient(90deg,var(--route) 0 7px,transparent 7px 12px)}
+.track li.next::before{right:50%;background:repeating-linear-gradient(90deg,var(--route) 0 7px,transparent 7px 12px)}
+.track li::after{content:"";position:absolute;top:5px;left:calc(50% - 8px);width:17px;height:17px;border-radius:50%;background:var(--route);box-shadow:0 0 0 3px var(--surface)}
+.track li.now{color:var(--ink)}
+.track li.now::after{top:1px;left:calc(50% - 12px);width:25px;height:25px;box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--route)}
+.track li.next{color:var(--ink)}
+.track li.next::after{top:3px;left:calc(50% - 10px);width:21px;height:21px;background:var(--surface);border:3px solid var(--route);box-shadow:0 0 0 3px var(--surface)}
+.track small{display:block;margin-top:6px;font:500 11px/1.25 var(--sans);color:var(--muted)}
+.status dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 22px;margin:22px 0 0;padding-top:18px;border-top:1px solid var(--rule)}
+.status dt{font:600 12px/1.6 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--route)}
+.status dd{margin:0}
+
+/* ---------- footer ---------- */
+.foot{position:relative;z-index:1;margin-top:0;background:var(--surface);border-top:1px solid var(--rule-strong)}
+.foot::before{content:"";position:absolute;left:0;right:0;top:-7px;height:5px;background:repeating-linear-gradient(90deg,var(--neat-a) 0 32px,var(--neat-b) 32px 64px);border-top:1px solid var(--neat-a)}
+.foot-in{max-width:1280px;margin:0 auto;padding:30px var(--gut) 40px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px 40px}
+.foot-in img{width:96px;height:40px}
+.foot-text{max-width:84ch;display:flex;flex-direction:column;gap:12px;font-size:15px;color:var(--muted)}
+.foot-text .disc{color:var(--ink);font-size:16px}
+.space{height:40px}
+
+/* ---------- tablet ---------- */
+@media (max-width:1060px){
+  .hero{grid-template-columns:minmax(0,1fr)}
+  .cartouche{max-width:680px}
+  .hero .rose{display:none}
+  .ideas{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .zones{grid-template-columns:minmax(0,1fr)}
+  .zone + .zone::before{left:46px;top:-27px;width:0;height:26px;border-top:0;border-left:3px solid var(--ink)}
+  .zone + .zone::after{left:43px;top:-31px;box-shadow:0 30px 0 var(--ink)}
+  .pgroups{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .idea.wide .idea-card{grid-template-columns:minmax(0,1fr) minmax(0,1.5fr)}
+}
+/* ---------- the route folds to the left edge ---------- */
+@media (max-width:900px){
+  :root{--lane:44px}
+  .wp-r{padding-left:var(--lane);padding-right:0}
+  .wp-r .lane{left:0;right:auto}
+  .legline{display:none}
+  .leg::before{content:"";position:absolute;top:0;bottom:0;left:calc(var(--lane) / 2 - 1.5px);width:3px;background:repeating-linear-gradient(to bottom,var(--route) 0 10px,transparent 10px 18px);animation:march 1.4s linear infinite}
+  .leg{height:44px}
+  .leg-s{height:20px}
+  .leg-end::before{right:auto;left:calc(var(--lane) / 2 - 1.5px);bottom:30px}
+  .leg-end::after{right:auto;left:calc(var(--lane) / 2 - 15px)}
+  .pt{width:32px;height:32px;font-size:13px;top:18px}
+  .ws,.wp-r .ws{grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "shot" "text"}
+  .lats-l{display:none}
+}
+@media (prefers-reduced-motion:reduce){.leg::before{animation:none}}
+/* ---------- phone ---------- */
+@media (max-width:640px){
+  :root{--lane:34px}
+  body{font-size:16px}
+  html{scroll-padding-top:12px}
+  .top{position:relative}
+  .top-in{flex-wrap:wrap;gap:8px 16px;padding-top:12px;padding-bottom:12px}
+  .top nav{margin-left:0;width:100%;gap:2px 16px;font-size:14px}
+  .ruler{height:24px}
+  .ruler span{padding-top:7px;font-size:10px}
+  .neat{width:5px}
+  .lats-r{right:7px;font-size:9px}
+  .lats-r span{writing-mode:vertical-rl}
+  .hero{padding-top:18px}
+  .cartouche{padding:20px 18px 20px}
+  .tag{font-size:11px;letter-spacing:.07em}
+  .lede{font-size:17px}
+  .readout-v{font-size:clamp(22px,7.4vw,28px)}
+  .scale svg{width:170px}
+  .hero-pic{padding:6px 6px 10px}
+  .pt{width:28px;height:28px;font-size:12px;border-width:2px;top:16px}
+  .lane.start .pt{width:18px;height:18px;border-width:3px}
+  .sec-head,.ws,.status,.agents-text,.plugins{padding:16px 16px 18px}
+  .ws{gap:14px}
+  .ideas{grid-template-columns:minmax(0,1fr);gap:14px}
+  .idea{grid-template-columns:56px minmax(0,1fr)}
+  .idea .sym{width:53px;height:43px}
+  .idea::before{left:26px;top:30px;width:30px}
+  .idea.wide .idea-card{grid-template-columns:minmax(0,1fr);gap:12px;padding:14px}
+  .pgroups{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px}
+  .plugins-top{grid-template-columns:minmax(0,1fr)}
+  .count{font-size:52px}
+  .track li{font-size:11px}
+  .track small{display:none}
+  .status dl{grid-template-columns:minmax(0,1fr);gap:2px 0}
+  .status dd{margin-bottom:10px}
+  .foot-in{grid-template-columns:minmax(0,1fr);padding-bottom:32px}
+}
+
+/* ---------- pictures at full size (HTML popover, no JavaScript) ---------- */
+.zoom{display:block;position:relative;width:100%;padding:0;margin:0;border:0;background:none;color:inherit;font:inherit;cursor:zoom-in;line-height:0}
+.zoom img{width:100%}
+.zoom-hint{position:absolute;right:10px;bottom:10px;padding:5px 9px;font:600 12px/1 var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--route-ink);background:var(--route);border-radius:2px;opacity:.0;transition:opacity .15s}
+.zoom:hover .zoom-hint,.zoom:focus-visible .zoom-hint{opacity:1}
+@media (hover:none){.zoom-hint{opacity:.9}}
+.pop{padding:0;border:1px solid var(--rule-strong);background:var(--sea);color:var(--ink);max-width:calc(100vw - 24px);max-height:calc(100vh - 24px);overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.pop::backdrop{background:rgba(4,4,5,.88)}
+.pop-img{display:block;padding:0;margin:0;border:0;background:none;cursor:zoom-out;line-height:0}
+.pop-img img{display:block;max-width:none;width:1600px;height:900px}
+.pop-close{position:fixed;top:16px;right:16px;z-index:2;padding:8px 14px;font:600 13px/1 var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--route-ink);background:var(--route);border:0;border-radius:2px;cursor:pointer}
+.pop-close:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+
+/* ---------- plugins: a small pop-over each (HTML popover, no JavaScript) ---------- */
+.plug{all:unset;cursor:pointer;color:var(--ink);text-decoration:underline;text-decoration-color:var(--route);text-decoration-thickness:1.5px;text-underline-offset:3px}
+.plug:hover{color:var(--route)}
+.plug:focus-visible{outline:3px solid var(--route);outline-offset:2px}
+.plug-pop{width:min(420px,calc(100vw - 32px));padding:20px 22px 18px;border:1px solid var(--route);border-radius:2px;background:var(--surface);color:var(--ink);box-shadow:0 18px 50px rgba(0,0,0,.7)}
+.plug-pop::backdrop{background:rgba(4,4,5,.6)}
+.plug-pop h4{font-size:20px;font-weight:760;margin:4px 0 10px;text-transform:none;letter-spacing:-.01em;color:var(--ink);font-family:var(--sans)}
+.plug-pop p{font-size:15px;line-height:1.55;color:var(--muted);margin:0 0 10px}
+.plug-pop .plug-kind{font:600 11px/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--route);margin:0}
+.plug-pop .plug-agent{font-size:14px;color:var(--ink)}
+.plug-close{margin-top:4px;padding:7px 12px;font:600 12px/1 var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--route-ink);background:var(--route);border:0;border-radius:2px;cursor:pointer}
+
+/* ---------- milestones: radio buttons decide the panel (no JavaScript) ---------- */
+.ms{position:relative}
+.ms-r{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.ms-hint{margin:18px 0 0;font:12px/1.4 var(--mono);color:var(--label)}
+.track li{padding-top:0}
+.track label{display:block;padding-top:34px;cursor:pointer}
+.track li::before,.track li::after{pointer-events:none}
+.track label:hover{color:var(--route)}
+.ms-p{display:none;margin-top:20px;padding:16px 18px;border-left:3px solid var(--route);background:var(--surface-2)}
+.ms-p h3{font-size:20px;font-weight:760;margin:2px 0 10px}
+.ms-when{font:600 12px/1.4 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--route)}
+.ms-list{margin:0;padding:0 0 0 20px;list-style:square}
+.ms-list li{margin:0 0 6px;color:var(--muted)}
+.ms-list li::marker{color:var(--route)}
+#ms-m0:checked~.ms-panels .ms-p-m0{display:block}
+#ms-m0:checked~.track li:nth-child(1) label{color:var(--route)}
+#ms-m0:checked~.track li:nth-child(1)::after{box-shadow:0 0 0 3px var(--surface),0 0 0 6px var(--ink)}
+#ms-m0:focus-visible~.track li:nth-child(1) label{outline:3px solid var(--route);outline-offset:4px}
+#ms-m1:checked~.ms-panels .ms-p-m1{display:block}
+#ms-m1:checked~.track li:nth-child(2) label{color:var(--route)}
+#ms-m1:checked~.track li:nth-child(2)::after{box-shadow:0 0 0 3px var(--surface),0 0 0 6px var(--ink)}
+#ms-m1:focus-visible~.track li:nth-child(2) label{outline:3px solid var(--route);outline-offset:4px}
+#ms-m2:checked~.ms-panels .ms-p-m2{display:block}
+#ms-m2:checked~.track li:nth-child(3) label{color:var(--route)}
+#ms-m2:checked~.track li:nth-child(3)::after{box-shadow:0 0 0 3px var(--surface),0 0 0 6px var(--ink)}
+#ms-m2:focus-visible~.track li:nth-child(3) label{outline:3px solid var(--route);outline-offset:4px}
+#ms-m3:checked~.ms-panels .ms-p-m3{display:block}
+#ms-m3:checked~.track li:nth-child(4) label{color:var(--route)}
+#ms-m3:checked~.track li:nth-child(4)::after{box-shadow:0 0 0 3px var(--surface),0 0 0 6px var(--ink)}
+#ms-m3:focus-visible~.track li:nth-child(4) label{outline:3px solid var(--route);outline-offset:4px}
+#ms-m4:checked~.ms-panels .ms-p-m4{display:block}
+#ms-m4:checked~.track li:nth-child(5) label{color:var(--route)}
+#ms-m4:checked~.track li:nth-child(5)::after{box-shadow:0 0 0 3px var(--surface),0 0 0 6px var(--ink)}
+#ms-m4:focus-visible~.track li:nth-child(5) label{outline:3px solid var(--route);outline-offset:4px}
+#ms-m5:checked~.ms-panels .ms-p-m5{display:block}
+#ms-m5:checked~.track li:nth-child(6) label{color:var(--route)}
+#ms-m5:checked~.track li:nth-child(6)::after{box-shadow:0 0 0 3px var(--surface),0 0 0 6px var(--ink)}
+#ms-m5:focus-visible~.track li:nth-child(6) label{outline:3px solid var(--route);outline-offset:4px}
+#ms-m6:checked~.ms-panels .ms-p-m6{display:block}
+#ms-m6:checked~.track li:nth-child(7) label{color:var(--route)}
+#ms-m6:checked~.track li:nth-child(7)::after{box-shadow:0 0 0 3px var(--surface),0 0 0 6px var(--ink)}
+#ms-m6:focus-visible~.track li:nth-child(7) label{outline:3px solid var(--route);outline-offset:4px}
+#ms-m7:checked~.ms-panels .ms-p-m7{display:block}
+#ms-m7:checked~.track li:nth-child(8) label{color:var(--route)}
+#ms-m7:checked~.track li:nth-child(8)::after{box-shadow:0 0 0 3px var(--surface),0 0 0 6px var(--ink)}
+#ms-m7:focus-visible~.track li:nth-child(8) label{outline:3px solid var(--route);outline-offset:4px}
+
+/* ---------- standards ---------- */
+.standards{padding:22px 26px 26px}
+.standards h2{margin-top:10px;font-size:clamp(28px,3.2vw,38px);letter-spacing:-.02em;font-weight:780}
+.std-intro{margin-top:10px;color:var(--muted);max-width:62ch}
+.std-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 34px;margin-top:22px}
+.std-group h3{font:600 11px/1.2 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding-bottom:8px;border-bottom:1px solid var(--rule);margin-bottom:4px}
+.std-group dl{margin:0}
+.std{padding:10px 0;border-bottom:1px dotted var(--rule)}
+.std:last-child{border-bottom:0}
+.std dt{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;font-weight:720;font-size:16px}
+.std dd{margin:3px 0 0;font-size:15px;line-height:1.5;color:var(--muted)}
+.std-tag{font:600 10.5px/1 var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--route);border:1px solid var(--route);padding:3px 6px 2px;border-radius:2px}
+.std-tag.plan{border-style:dashed}
+.std-tag.mock{color:var(--muted);border-color:var(--rule-strong)}
+@media (max-width:900px){.std-groups{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:600px){.standards{padding:16px 16px 18px}}
+
+/* ---------- the shout-out ---------- */
+.thanks{position:relative;z-index:1;padding:0 var(--gut) 56px}
+.thanks-in{max-width:1088px;margin:0 auto;display:grid;grid-template-columns:auto minmax(0,1fr);gap:22px 28px;align-items:start;padding:26px 28px;background:var(--surface);border:1px solid var(--route);border-left:6px solid var(--route);box-shadow:var(--shadow)}
+.thanks-k{font:600 12px/1.4 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--route)}
+.thanks h2{font-size:clamp(28px,3.2vw,40px);letter-spacing:-.02em;font-weight:780;margin:6px 0 12px}
+.thanks p{color:var(--muted);max-width:70ch}
+.thanks p+p{margin-top:14px}
+.thanks-link{display:inline-block;padding:9px 14px;font:600 14px/1 var(--mono);letter-spacing:.03em;color:var(--route-ink);background:var(--route);text-decoration:none;border-radius:2px}
+.thanks-link::after{content:" ↗"}
+.thanks-link:hover{filter:brightness(1.1)}
+.thanks-sym{margin-top:6px}
+a.si{color:var(--ink);text-decoration-color:var(--route);text-underline-offset:3px}
+@media (max-width:600px){.thanks-in{grid-template-columns:minmax(0,1fr);padding:18px 16px}.thanks-sym{width:56px;height:45px}}
+#ms-m8:checked~.ms-panels .ms-p-m8{display:block}
+#ms-m8:checked~.track li:nth-child(9) label{color:var(--route)}
+#ms-m8:checked~.track li:nth-child(9)::after{box-shadow:0 0 0 3px var(--surface),0 0 0 6px var(--ink)}
+#ms-m8:focus-visible~.track li:nth-child(9) label{outline:3px solid var(--route);outline-offset:4px}
+
+/* ---------- highlights: four pictures that slide by themselves, without JavaScript ---------- */
+.highlights{padding:22px 26px 22px;margin-bottom:22px}
+.highlights h2{margin-top:10px;font-size:clamp(28px,3.2vw,38px);letter-spacing:-.02em;font-weight:780}
+.hl{margin-top:16px}
+.hl-r{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.hl-view{display:grid;overflow:hidden;margin:0;padding:0;list-style:none}
+.hl-slide{grid-area:1 / 1;display:grid;grid-template-columns:minmax(0,2.1fr) minmax(0,1fr);gap:22px;align-items:center;transition:transform .6s ease}
+.hl-b,.hl-c,.hl-d{visibility:hidden;transform:translateX(100%)}
+.hl-text h3{font-size:22px;font-weight:720;letter-spacing:-.01em}
+.hl-text p{margin-top:8px;color:var(--muted);line-height:1.55}
+.hl-dots{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:16px}
+.hl-dots label{cursor:pointer;display:inline-flex;align-items:center;gap:8px;font:600 12px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.hl-dots label::before{content:"";width:22px;height:4px;border-radius:2px;background:var(--rule-strong)}
+.hl-d1::before{background:var(--route)}
+.hl-dots label:hover{color:var(--ink)}
+@keyframes hl-slide{0%,21.875%{transform:translateX(0);visibility:visible}25%{transform:translateX(-100%);visibility:hidden}96.875%{transform:translateX(100%);visibility:hidden}100%{transform:translateX(0);visibility:visible}}
+@keyframes hl-dot{0%,21.875%{background:var(--route)}25%,96.875%{background:var(--rule-strong)}100%{background:var(--route)}}
+@media (prefers-reduced-motion:no-preference){
+  .hl-slide{animation:hl-slide 32s infinite}
+  .hl-b{animation-delay:-24s}
+  .hl-c{animation-delay:-16s}
+  .hl-d{animation-delay:-8s}
+  .hl-d1::before,.hl-d2::before,.hl-d3::before,.hl-d4::before{animation:hl-dot 32s infinite}
+  .hl-d2::before{animation-delay:-24s}
+  .hl-d3::before{animation-delay:-16s}
+  .hl-d4::before{animation-delay:-8s}
+  .hl:hover .hl-slide,.hl:focus-within .hl-slide,.hl:hover .hl-dots label::before,.hl:focus-within .hl-dots label::before{animation-play-state:paused}
+}
+/* A reader who picks a picture stops the sliding. */
+.hl:has(.hl-r:checked) .hl-slide,.hl:has(.hl-r:checked) .hl-dots label::before{animation:none}
+.hl:has(.hl-r:checked) .hl-slide{visibility:hidden;transform:translateX(100%)}
+.hl:has(.hl-r:checked) .hl-dots label::before{background:var(--rule-strong)}
+#hl-1:checked~.hl-view .hl-a,#hl-2:checked~.hl-view .hl-b,#hl-3:checked~.hl-view .hl-c,#hl-4:checked~.hl-view .hl-d{visibility:visible;transform:none}
+#hl-1:checked~.hl-dots .hl-d1,#hl-2:checked~.hl-dots .hl-d2,#hl-3:checked~.hl-dots .hl-d3,#hl-4:checked~.hl-dots .hl-d4{color:var(--ink)}
+#hl-1:checked~.hl-dots .hl-d1::before,#hl-2:checked~.hl-dots .hl-d2::before,#hl-3:checked~.hl-dots .hl-d3::before,#hl-4:checked~.hl-dots .hl-d4::before{background:var(--route)}
+#hl-1:focus-visible~.hl-dots .hl-d1,#hl-2:focus-visible~.hl-dots .hl-d2,#hl-3:focus-visible~.hl-dots .hl-d3,#hl-4:focus-visible~.hl-dots .hl-d4{outline:3px solid var(--route);outline-offset:4px}
+@media (prefers-reduced-motion:reduce){.hl-slide{transition:none}}
+@media (max-width:900px){.hl-slide{grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}}
+@media (max-width:600px){.highlights{padding:16px 16px 18px}}
+#ms-m9:checked~.ms-panels .ms-p-m9{display:block}
+#ms-m9:checked~.track li:nth-child(10) label{color:var(--route)}
+#ms-m9:checked~.track li:nth-child(10)::after{box-shadow:0 0 0 3px var(--surface),0 0 0 6px var(--ink)}
+#ms-m9:focus-visible~.track li:nth-child(10) label{outline:3px solid var(--route);outline-offset:4px}
+.ms-note{margin-top:12px;font-size:14px;color:var(--muted);border-left:2px dashed var(--route);padding-left:10px}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<div class="decor" aria-hidden="true">
+<img class="chart-map" src="img/archipelago.svg" alt="" width="1000" height="4603">
+<span class="neat neat-l"></span><span class="neat neat-r"></span>
+<div class="lats lats-l"><span>60°18′N</span><span>60°14′N</span><span>60°11′N</span><span>60°08′N</span><span>60°05′N</span><span>60°01′N</span><span>59°58′N</span><span>59°55′N</span><span>59°52′N</span><span>59°48′N</span><span>59°45′N</span><span>59°42′N</span><span>59°38′N</span><span>59°35′N</span><span>59°32′N</span><span>59°29′N</span><span>59°25′N</span><span>59°22′N</span><span>59°19′N</span><span>59°16′N</span><span>59°12′N</span><span>59°09′N</span><span>59°06′N</span><span>59°03′N</span><span>58°59′N</span><span>58°56′N</span><span>58°53′N</span><span>58°50′N</span><span>58°46′N</span><span>58°43′N</span><span>58°40′N</span><span>58°37′N</span><span>58°33′N</span><span>58°30′N</span><span>58°27′N</span><span>58°23′N</span><span>58°20′N</span><span>58°17′N</span><span>58°14′N</span><span>58°10′N</span><span>58°07′N</span><span>58°04′N</span><span>58°01′N</span><span>57°57′N</span><span>57°54′N</span><span>57°51′N</span><span>57°48′N</span><span>57°44′N</span><span>57°41′N</span><span>57°38′N</span><span>57°35′N</span><span>57°31′N</span><span>57°28′N</span><span>57°25′N</span><span>57°22′N</span><span>57°18′N</span><span>57°15′N</span><span>57°12′N</span><span>57°08′N</span><span>57°05′N</span><span>57°02′N</span><span>56°59′N</span><span>56°55′N</span><span>56°52′N</span><span>56°49′N</span><span>56°46′N</span><span>56°42′N</span><span>56°39′N</span><span>56°36′N</span><span>56°33′N</span><span>56°29′N</span><span>56°26′N</span><span>56°23′N</span><span>56°20′N</span><span>56°16′N</span><span>56°13′N</span><span>56°10′N</span><span>56°06′N</span><span>56°03′N</span><span>56°00′N</span><span>55°57′N</span><span>55°53′N</span><span>55°50′N</span><span>55°47′N</span><span>55°44′N</span><span>55°40′N</span><span>55°37′N</span><span>55°34′N</span><span>55°31′N</span><span>55°27′N</span><span>55°24′N</span><span>55°21′N</span><span>55°18′N</span><span>55°14′N</span><span>55°11′N</span><span>55°08′N</span><span>55°05′N</span><span>55°01′N</span><span>54°58′N</span><span>54°55′N</span><span>54°51′N</span><span>54°48′N</span><span>54°45′N</span><span>54°42′N</span><span>54°38′N</span><span>54°35′N</span><span>54°32′N</span><span>54°29′N</span><span>54°25′N</span>
+</div><div class="lats lats-r"><span>60°18′N</span><span>60°14′N</span><span>60°11′N</span><span>60°08′N</span><span>60°05′N</span><span>60°01′N</span><span>59°58′N</span><span>59°55′N</span><span>59°52′N</span><span>59°48′N</span><span>59°45′N</span><span>59°42′N</span><span>59°38′N</span><span>59°35′N</span><span>59°32′N</span><span>59°29′N</span><span>59°25′N</span><span>59°22′N</span><span>59°19′N</span><span>59°16′N</span><span>59°12′N</span><span>59°09′N</span><span>59°06′N</span><span>59°03′N</span><span>58°59′N</span><span>58°56′N</span><span>58°53′N</span><span>58°50′N</span><span>58°46′N</span><span>58°43′N</span><span>58°40′N</span><span>58°37′N</span><span>58°33′N</span><span>58°30′N</span><span>58°27′N</span><span>58°23′N</span><span>58°20′N</span><span>58°17′N</span><span>58°14′N</span><span>58°10′N</span><span>58°07′N</span><span>58°04′N</span><span>58°01′N</span><span>57°57′N</span><span>57°54′N</span><span>57°51′N</span><span>57°48′N</span><span>57°44′N</span><span>57°41′N</span><span>57°38′N</span><span>57°35′N</span><span>57°31′N</span><span>57°28′N</span><span>57°25′N</span><span>57°22′N</span><span>57°18′N</span><span>57°15′N</span><span>57°12′N</span><span>57°08′N</span><span>57°05′N</span><span>57°02′N</span><span>56°59′N</span><span>56°55′N</span><span>56°52′N</span><span>56°49′N</span><span>56°46′N</span><span>56°42′N</span><span>56°39′N</span><span>56°36′N</span><span>56°33′N</span><span>56°29′N</span><span>56°26′N</span><span>56°23′N</span><span>56°20′N</span><span>56°16′N</span><span>56°13′N</span><span>56°10′N</span><span>56°06′N</span><span>56°03′N</span><span>56°00′N</span><span>55°57′N</span><span>55°53′N</span><span>55°50′N</span><span>55°47′N</span><span>55°44′N</span><span>55°40′N</span><span>55°37′N</span><span>55°34′N</span><span>55°31′N</span><span>55°27′N</span><span>55°24′N</span><span>55°21′N</span><span>55°18′N</span><span>55°14′N</span><span>55°11′N</span><span>55°08′N</span><span>55°05′N</span><span>55°01′N</span><span>54°58′N</span><span>54°55′N</span><span>54°51′N</span><span>54°48′N</span><span>54°45′N</span><span>54°42′N</span><span>54°38′N</span><span>54°35′N</span><span>54°32′N</span><span>54°29′N</span><span>54°25′N</span>
+</div>
+</div>
+
+<header class="top" id="top">
+<div class="top-in">
+<a class="logo" href="#main"><img src="img/emcc-logo.svg" width="77" height="32" alt="emcc"></a>
+<nav aria-label="Sections"><a href="#workspaces">Workspaces</a><a href="#standards">Standards</a><a href="#ideas">Ideas</a><a href="#parts">Parts</a><a href="#agents">AI agents</a><a href="#status">Status</a></nav>
+</div>
+</header>
+<div class="ruler" aria-hidden="true"><span>018°12′E</span><span>018°19′E</span><span>018°25′E</span><span>018°31′E</span><span>018°37′E</span><span>018°44′E</span><span>018°50′E</span><span>018°56′E</span><span>019°03′E</span><span>019°09′E</span><span>019°15′E</span><span>019°21′E</span><span>019°28′E</span><span>019°34′E</span><span>019°40′E</span></div>
+
+<main id="main" class="chart">
+
+<section class="hero" aria-labelledby="hero-h">
+<svg class="rose" viewBox="0 -20 240 260" overflow="visible" aria-hidden="true" focusable="false"><circle cx="120" cy="120" r="112" class="r-ring"/><circle cx="120" cy="120" r="100" class="r-ring"/><path d="M120 20L120 8M129.2 14.4L129.8 8.4M138.4 15.6L139.4 9.7M147.4 17.6L149 11.8M156.3 20.4L158.3 14.8M164.8 23.9L167.3 18.5M170 33.4L176 23M180.8 33.2L184.2 28.3M188.1 38.8L192 34.2M195 45L199.2 40.8M201.2 51.9L205.8 48M206.8 59.2L211.7 55.8M206.6 70L217 64M216.1 75.2L221.5 72.7M219.6 83.7L225.2 81.7M222.4 92.6L228.2 91M224.4 101.6L230.3 100.6M225.6 110.8L231.6 110.2M220 120L232 120M225.6 129.2L231.6 129.8M224.4 138.4L230.3 139.4M222.4 147.4L228.2 149M219.6 156.3L225.2 158.3M216.1 164.8L221.5 167.3M206.6 170L217 176M206.8 180.8L211.7 184.2M201.2 188.1L205.8 192M195 195L199.2 199.2M188.1 201.2L192 205.8M180.8 206.8L184.2 211.7M170 206.6L176 217M164.8 216.1L167.3 221.5M156.3 219.6L158.3 225.2M147.4 222.4L149 228.2M138.4 224.4L139.4 230.3M129.2 225.6L129.8 231.6M120 220L120 232M110.8 225.6L110.2 231.6M101.6 224.4L100.6 230.3M92.6 222.4L91 228.2M83.7 219.6L81.7 225.2M75.2 216.1L72.7 221.5M70 206.6L64 217M59.2 206.8L55.8 211.7M51.9 201.2L48 205.8M45 195L40.8 199.2M38.8 188.1L34.2 192M33.2 180.8L28.3 184.2M33.4 170L23 176M23.9 164.8L18.5 167.3M20.4 156.3L14.8 158.3M17.6 147.4L11.8 149M15.6 138.4L9.7 139.4M14.4 129.2L8.4 129.8M20 120L8 120M14.4 110.8L8.4 110.2M15.6 101.6L9.7 100.6M17.6 92.6L11.8 91M20.4 83.7L14.8 81.7M23.9 75.2L18.5 72.7M33.4 70L23 64M33.2 59.2L28.3 55.8M38.8 51.9L34.2 48M45 45L40.8 40.8M51.9 38.8L48 34.2M59.2 33.2L55.8 28.3M70 33.4L64 23M75.2 23.9L72.7 18.5M83.7 20.4L81.7 14.8M92.6 17.6L91 11.8M101.6 15.6L100.6 9.7M110.8 14.4L110.2 8.4" class="r-tick"/><path d="M169.5 70.5L132 120L169.5 169.5L120 132L70.5 169.5L108 120L70.5 70.5L120 108Z" class="r-star2"/><path d="M120 24L131.3 108.7L216 120L131.3 131.3L120 216L108.7 131.3L24 120L108.7 108.7Z" class="r-star"/><text x="120" y="-4" class="r-n">N</text></svg>
+<div class="cartouche">
+<p class="tag">Mock-up · demonstration system</p>
+<h1 id="hero-h"><span class="brand"><svg class="brand-svg" viewBox="22 39 177 33.5" role="img" aria-label="emcc" focusable="false"><path d="M29.631999999999998 72.0Q27.784 72.0 26.244 71.076Q24.704 70.152 23.78 68.612Q22.856 67.072 22.856 65.224V46.296Q22.856 44.448 23.78 42.908Q24.704 41.367999999999995 26.244 40.443999999999996Q27.784 39.519999999999996 29.631999999999998 39.519999999999996H49.120000000000005Q51.024 39.519999999999996 52.564 40.443999999999996Q54.104 41.367999999999995 55.028 42.908Q55.952 44.448 55.952 46.296V58.056H27.448V65.224Q27.448 66.12 28.092 66.76400000000001Q28.736 67.408 29.631999999999998 67.408H55.952V72.0H29.631999999999998ZM27.448 53.464H51.304V46.296Q51.304 45.4 50.660000000000004 44.756Q50.016000000000005 44.111999999999995 49.120000000000005 44.111999999999995H29.631999999999998Q28.736 44.111999999999995 28.092 44.756Q27.448 45.4 27.448 46.296Z M61.776 72.0V39.519999999999996H104.672Q106.576 39.519999999999996 108.116 40.443999999999996Q109.656 41.367999999999995 110.552 42.908Q111.44800000000001 44.448 111.44800000000001 46.296V72.0H106.912V46.296Q106.912 45.4 106.24000000000001 44.756Q105.56800000000001 44.111999999999995 104.672 44.111999999999995H91.176Q90.28 44.111999999999995 89.636 44.756Q88.992 45.4 88.992 46.296V72.0H84.34400000000001V46.296Q84.34400000000001 45.4 83.70000000000002 44.756Q83.05600000000001 44.111999999999995 82.16 44.111999999999995H68.608Q67.712 44.111999999999995 67.06800000000001 44.756Q66.424 45.4 66.424 46.296V72.0Z"/><path d="M133.152 72.0Q131.304 72.0 129.764 71.076Q128.224 70.152 127.29999999999998 68.612Q126.37599999999999 67.072 126.37599999999999 65.224V46.296Q126.37599999999999 44.448 127.29999999999998 42.908Q128.224 41.367999999999995 129.764 40.443999999999996Q131.304 39.519999999999996 133.152 39.519999999999996H159.36V44.111999999999995H133.152Q132.256 44.111999999999995 131.612 44.756Q130.968 45.4 130.968 46.296V65.224Q130.968 66.12 131.612 66.76400000000001Q132.256 67.408 133.152 67.408H159.47199999999998V72.0H133.152Z M172.072 72.0Q170.224 72.0 168.684 71.076Q167.144 70.152 166.22 68.612Q165.296 67.072 165.296 65.224V46.296Q165.296 44.448 166.22 42.908Q167.144 41.367999999999995 168.684 40.443999999999996Q170.224 39.519999999999996 172.072 39.519999999999996H198.28V44.111999999999995H172.072Q171.176 44.111999999999995 170.53199999999998 44.756Q169.888 45.4 169.888 46.296V65.224Q169.888 66.12 170.53199999999998 66.76400000000001Q171.176 67.408 172.072 67.408H198.392V72.0H172.072Z"/></svg></span><span class="h1-sub">Extensible Modular Command and Control &ndash; a lightweight C2 (and simulation) system.</span></h1>
+<p class="lede">A shared live map for units, tactical graphics and tracks, with links to other systems and a simulator; extend the functionality with plugins.</p>
+<p class="built">Built by Claude Code agents, with humans as architects making every decision.</p>
+</div>
+<figure class="hero-pic">
+<button class="zoom" type="button" popovertarget="pop-view-dark" aria-label="Open the picture at full size"><img src="img/view-dark.jpg" width="1600" height="900" alt="The emcc View workspace: a map of Gotland with friendly and hostile unit symbols, phase lines, axes of advance and an objective; panels of symbols and tactical graphics on the left and the list of objects below the map."><span class="zoom-hint" aria-hidden="true">Full size</span></button><div class="pop" id="pop-view-dark" popover><button class="pop-close" type="button" popovertarget="pop-view-dark" popovertargetaction="hide">Close</button><button class="pop-img" type="button" popovertarget="pop-view-dark" popovertargetaction="hide" aria-label="Close the picture"><img loading="lazy" src="img/view-dark.jpg" width="1600" height="900" alt="The emcc View workspace: a map of Gotland with friendly and hostile unit symbols, phase lines, axes of advance and an objective; panels of symbols and tactical graphics on the left and the list of objects below the map. (full size)"></button></div>
+<figcaption>The View workspace of the M8 release, with a made-up exercise on Natural Earth's map of Gotland. Every unit, name and position is fictional.</figcaption>
+<div class="readout" aria-hidden="true">
+<div><span class="readout-k"><svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M7 0V4M7 10V14M0 7H4M10 7H14" stroke="currentColor" stroke-width="1.5"/></svg>Position · WGS84</span>
+<span class="readout-v">57°36′N 018°33′E</span></div>
+<div class="scale"><svg viewBox="0 0 210 30"><rect class="sb-a" x="1" y="4" width="52" height="8"/><rect class="sb-b" x="53" y="4" width="52" height="8"/><rect class="sb-a" x="105" y="4" width="52" height="8"/><rect class="sb-b" x="157" y="4" width="52" height="8"/><text class="sb-t" x="1" y="27">0</text><text class="sb-t" x="98" y="27">5</text><text class="sb-t" x="178" y="27">10 km</text></svg></div>
+</div>
+</figure>
+</section>
+
+<div class="space" aria-hidden="true"></div>
+
+<section class="wp wp-l" id="workspaces" aria-labelledby="workspaces-h">
+<div class="lane start" aria-hidden="true"><span class="pt"></span></div>
+<div class="body"><section class="card highlights" aria-labelledby="hl-h" aria-roledescription="carousel"><p class="eyebrow" aria-hidden="true"><b>Highlights</b><span>Four of the things emcc does</span></p><h2 id="hl-h">Highlights</h2><div class="hl"><input class="hl-r" type="radio" name="highlight" id="hl-1" aria-label="Show highlight 1: ground moving target radar"><input class="hl-r" type="radio" name="highlight" id="hl-2" aria-label="Show highlight 2: security labels"><input class="hl-r" type="radio" name="highlight" id="hl-3" aria-label="Show highlight 3: full motion video"><input class="hl-r" type="radio" name="highlight" id="hl-4" aria-label="Show highlight 4: the UAV simulator"><ul class="hl-view"><li class="hl-slide hl-a" aria-roledescription="slide" aria-label="1 of 4"><figure class="shot"><button class="zoom" type="button" popovertarget="pop-gmti" aria-label="Open the picture at full size"><img src="img/gmti.jpg" width="1600" height="900" loading="lazy" alt="The Simulation workspace: a friendly radar aircraft west of Gotland, its coverage drawn as a dashed arc band to its right, the solid dwell areas the radar looked at, and orange detections strung along three columns of vehicles on the island."><span class="zoom-hint" aria-hidden="true">Full size</span></button><div class="pop" id="pop-gmti" popover><button class="pop-close" type="button" popovertarget="pop-gmti" popovertargetaction="hide">Close</button><button class="pop-img" type="button" popovertarget="pop-gmti" popovertargetaction="hide" aria-label="Close the picture"><img loading="lazy" src="img/gmti.jpg" width="1600" height="900" alt="The Simulation workspace: a friendly radar aircraft west of Gotland, its coverage drawn as a dashed arc band to its right, the solid dwell areas the radar looked at, and orange detections strung along three columns of vehicles on the island. (full size)"></button></div></figure><div class="hl-text"><h3>Ground moving target radar.</h3><p>A simulated ground radar on an aircraft looks to its right: its coverage is the arc between two bearings. Dwell by dwell it reports the vehicles it sees in STANAG 4607, and emcc’s GMTI link draws them back as dwell areas and detections. Every name and position is fictional.</p></div></li><li class="hl-slide hl-b" aria-roledescription="slide" aria-label="2 of 4"><figure class="shot"><button class="zoom" type="button" popovertarget="pop-labeling" aria-label="Open the picture at full size"><img src="img/labeling.jpg" width="1600" height="900" loading="lazy" alt="Settings, Labeling: the NATO policy with its classifications, the nations its labels may be released to, six premade labels in coloured bands, and a new label, NATO COSMIC TOP SECRET released to FIN, NOR and SWE, in its preview."><span class="zoom-hint" aria-hidden="true">Full size</span></button><div class="pop" id="pop-labeling" popover><button class="pop-close" type="button" popovertarget="pop-labeling" popovertargetaction="hide">Close</button><button class="pop-img" type="button" popovertarget="pop-labeling" popovertargetaction="hide" aria-label="Close the picture"><img loading="lazy" src="img/labeling.jpg" width="1600" height="900" alt="Settings, Labeling: the NATO policy with its classifications, the nations its labels may be released to, six premade labels in coloured bands, and a new label, NATO COSMIC TOP SECRET released to FIN, NOR and SWE, in its preview. (full size)"></button></div></figure><div class="hl-text"><h3>Security labels by design.</h3><p>Every object and layer carries a STANAG 4774 security label, by design since the first data model. The label designer in Settings prepares premade labels per policy; using them to control access comes later.</p></div></li><li class="hl-slide hl-c" aria-roledescription="slide" aria-label="3 of 4"><figure class="shot"><button class="zoom" type="button" popovertarget="pop-fmv" aria-label="Open the picture at full size"><img src="img/fmv.jpg" width="1600" height="900" loading="lazy" alt="The View workspace with a live STANAG 4609 stream: the video of a simulated camera over grey hills and the sea, in a window marked UNCLASSIFIED; on the map the camera's symbol and its field of view as a yellow arc, and the FMV panel listing the stream as live."><span class="zoom-hint" aria-hidden="true">Full size</span></button><div class="pop" id="pop-fmv" popover><button class="pop-close" type="button" popovertarget="pop-fmv" popovertargetaction="hide">Close</button><button class="pop-img" type="button" popovertarget="pop-fmv" popovertargetaction="hide" aria-label="Close the picture"><img loading="lazy" src="img/fmv.jpg" width="1600" height="900" alt="The View workspace with a live STANAG 4609 stream: the video of a simulated camera over grey hills and the sea, in a window marked UNCLASSIFIED; on the map the camera's symbol and its field of view as a yellow arc, and the FMV panel listing the stream as live. (full size)"></button></div></figure><div class="hl-text"><h3>Full motion video.</h3><p>STANAG 4609 video comes in over UDP: the camera and its field of view on the map, and the stream in a window with its classification. MPEG-2 video is converted to H.264 on the server. The video shown is our own test stream, a simulated camera over public-domain height data. From M9, emcc's own UAV simulator sends such video too.</p></div></li><li class="hl-slide hl-d" aria-roledescription="slide" aria-label="4 of 4"><figure class="shot"><button class="zoom" type="button" popovertarget="pop-uav" aria-label="Open the picture at full size"><img src="img/uav.jpg" width="1600" height="900" loading="lazy" alt="The View workspace with the video of emcc's own simulated camera: Sundsvall's harbour seen at an angle from 2 500 metres, drawn from black and white orthophotos, in a window marked UNCLASSIFIED; on the map the camera UAV 1 and its field of view as a yellow arc aimed at the harbour, and the FMV panel listing the stream as live."><span class="zoom-hint" aria-hidden="true">Full size</span></button><div class="pop" id="pop-uav" popover><button class="pop-close" type="button" popovertarget="pop-uav" popovertargetaction="hide">Close</button><button class="pop-img" type="button" popovertarget="pop-uav" popovertargetaction="hide" aria-label="Close the picture"><img loading="lazy" src="img/uav.jpg" width="1600" height="900" alt="The View workspace with the video of emcc's own simulated camera: Sundsvall's harbour seen at an angle from 2 500 metres, drawn from black and white orthophotos, in a window marked UNCLASSIFIED; on the map the camera UAV 1 and its field of view as a yellow arc aimed at the harbour, and the FMV panel listing the stream as live. (full size)"></button></div></figure><div class="hl-text"><h3>A UAV simulator.</h3><p>Put a camera on a track in the Simulation workspace, point it at a place, an object, a fixed angle or a sweep, and emcc makes live video from it: drawn from orthophotos and height data that you add, with the metadata a real camera sends, and sent out as STANAG 4609 to any receiver, emcc itself included. Here a simulated UAV circles Sundsvall's harbour; the orthophotos are Lantmäteriet's of 2001.</p></div></li></ul><p class="hl-dots" aria-hidden="true"><label for="hl-1" class="hl-d1">GMTI</label><label for="hl-2" class="hl-d2">Security labels</label><label for="hl-3" class="hl-d3">FMV</label><label for="hl-4" class="hl-d4">UAV simulator</label></p></div></section>
+<div class="card sec-head">
+<p class="eyebrow" aria-hidden="true"><b>Route</b><span>WP 1–4</span></p>
+<h2 id="workspaces-h">The four workspaces</h2>
+<p class="lead">The tabs across the top of emcc. View and Simulation are workspaces with a map and panels; Settings and Monitor are pages for administrators. Users only see the tabs they may use.</p>
+<p class="tabs"><a href="#view"><span>1</span>View</a><a href="#simulation"><span>2</span>Simulation</a><a href="#settings"><span>3</span>Settings</a><a href="#monitor"><span>4</span>Monitor</a></p>
+</div></div>
+</section>
+<div class="leg leg-s" aria-hidden="true"></div>
+
+<section class="wp wp-l" id="view" aria-labelledby="view-h">
+<div class="lane" aria-hidden="true"><span class="pt">1</span></div>
+<div class="body"><article class="card ws">
+<header class="ws-head"><p class="eyebrow" aria-hidden="true"><b>WP 1</b><span>59°47′N 018°10′E</span></p><h3 id="view-h">View<span class="colon">:</span> <span class="ws-sub">the shared picture</span></h3></header>
+<figure class="shot"><button class="zoom" type="button" popovertarget="pop-view-select" aria-label="Open the picture at full size"><img src="img/view-select.jpg" width="1600" height="900" loading="lazy" alt="The View workspace with the unit 1 MECH selected on the map and its symbol properties, identity, echelon, entity and position, in the panel on the right."><span class="zoom-hint" aria-hidden="true">Full size</span></button><div class="pop" id="pop-view-select" popover><button class="pop-close" type="button" popovertarget="pop-view-select" popovertargetaction="hide">Close</button><button class="pop-img" type="button" popovertarget="pop-view-select" popovertargetaction="hide" aria-label="Close the picture"><img loading="lazy" src="img/view-select.jpg" width="1600" height="900" alt="The View workspace with the unit 1 MECH selected on the map and its symbol properties, identity, echelon, entity and position, in the panel on the right. (full size)"></button></div><figcaption>A unit selected, its properties on the right.</figcaption></figure>
+<ul class="ticks"><li>The map in the middle, with panels in the panes around it: Symbols, Shapes, Graphics, Symbol properties, FMV, NVG, Terrain, Status, Objects and Layers.</li><li>Place APP-6 symbols, draw shapes and tactical graphics, and organise them in layers.</li><li>What one user changes, everyone sees at once.</li><li>Select, move, edit, copy or delete objects on the map or in the Objects list.</li></ul>
+</article></div>
+</section>
+<div class="leg leg-lr" aria-hidden="true"><svg class="legline" focusable="false"><line x1="0" y1="0" x2="100%" y2="100%"/><svg x="50%" y="50%" overflow="visible"><g transform="translate(-21 -17) scale(.7)"><rect class="fr fr-friend" x="4" y="8" width="52" height="32"/><g class="ic"><path d="M4 8 56 40M56 8 4 40"/></g></g></svg></svg></div>
+
+<section class="wp wp-r" id="simulation" aria-labelledby="simulation-h">
+<div class="lane" aria-hidden="true"><span class="pt">2</span></div>
+<div class="body"><article class="card ws">
+<header class="ws-head"><p class="eyebrow" aria-hidden="true"><b>WP 2</b><span>59°35′N 018°56′E</span></p><h3 id="simulation-h">Simulation<span class="colon">:</span> <span class="ws-sub">a second map that moves</span></h3></header>
+<figure class="shot"><button class="zoom" type="button" popovertarget="pop-simulation" aria-label="Open the picture at full size"><img src="img/simulation.jpg" width="1600" height="900" loading="lazy" alt="The Simulation workspace in the dark look: three dashed routes over the sea around Gotland, with hostile aircraft, friendly aircraft and a friendly ship on them, and the list of routes with their start, pause and reset buttons on the left."><span class="zoom-hint" aria-hidden="true">Full size</span></button><div class="pop" id="pop-simulation" popover><button class="pop-close" type="button" popovertarget="pop-simulation" popovertargetaction="hide">Close</button><button class="pop-img" type="button" popovertarget="pop-simulation" popovertargetaction="hide" aria-label="Close the picture"><img loading="lazy" src="img/simulation.jpg" width="1600" height="900" alt="The Simulation workspace in the dark look: three dashed routes over the sea around Gotland, with hostile aircraft, friendly aircraft and a friendly ship on them, and the list of routes with their start, pause and reset buttons on the left. (full size)"></button></div><figcaption>Three routes running: a hostile air raid, a friendly patrol and a ship convoy.</figcaption></figure>
+<ul class="ticks"><li>Draw routes and put units on them one by one, as a convoy or in a formation.</li><li>Give each point a speed or a time, an altitude, and events that change a unit's fields or hide it.</li><li>Add ground radar sensors that report what they detect.</li><li>Put a simulated camera on a track, as on a UAV: emcc draws its live video from orthophotos and height data that you add, and sends it out as STANAG 4609 full motion video.</li><li>Start, pause and reset each route or all of them, and send the tracks to other systems as if they were real.</li><li>Kept apart from View, with its own layers and its own permissions: to see, to edit and to run.</li></ul>
+</article></div>
+</section>
+<div class="leg leg-rl" aria-hidden="true"><svg class="legline" focusable="false"><line x1="100%" y1="0" x2="0" y2="100%"/><svg x="50%" y="50%" overflow="visible"><g transform="translate(-21 -17) scale(.7)"><path class="fr fr-hostile" d="M30 2 52 24 30 46 8 24Z"/><g class="ic"><ellipse cx="30" cy="24" rx="11" ry="6"/></g></g></svg></svg></div>
+
+<section class="wp wp-l" id="settings" aria-labelledby="settings-h">
+<div class="lane" aria-hidden="true"><span class="pt">3</span></div>
+<div class="body"><article class="card ws">
+<header class="ws-head"><p class="eyebrow" aria-hidden="true"><b>WP 3</b><span>59°22′N 018°10′E</span></p><h3 id="settings-h">Settings<span class="colon">:</span> <span class="ws-sub">everything in one list</span></h3></header>
+<figure class="shot"><button class="zoom" type="button" popovertarget="pop-settings" aria-label="Open the picture at full size"><img src="img/settings.jpg" width="1600" height="900" loading="lazy" alt="The Settings page: a list of entries on the left, from General to WMS background maps, and the Cursor on Target entry open on the right with its links, timeouts and the fields it declares."><span class="zoom-hint" aria-hidden="true">Full size</span></button><div class="pop" id="pop-settings" popover><button class="pop-close" type="button" popovertarget="pop-settings" popovertargetaction="hide">Close</button><button class="pop-img" type="button" popovertarget="pop-settings" popovertargetaction="hide" aria-label="Close the picture"><img loading="lazy" src="img/settings.jpg" width="1600" height="900" alt="The Settings page: a list of entries on the left, from General to WMS background maps, and the Cursor on Target entry open on the right with its links, timeouts and the fields it declares. (full size)"></button></div><figcaption>The Cursor on Target entry.</figcaption></figure>
+<ul class="ticks"><li>General settings, display, data types, layers and labeling, and one entry for each plugin with settings, grouped by kind: data links, maps and symbols, drawing, simulation.</li><li>Changes apply at once, without a reload. The server checks every value.</li></ul>
+</article></div>
+</section>
+<div class="leg leg-lr" aria-hidden="true"><svg class="legline" focusable="false"><line x1="0" y1="0" x2="100%" y2="100%"/><svg x="50%" y="50%" overflow="visible"><g transform="translate(-21 -17) scale(.7)"><path class="fr fr-unknown" d="M19 13A12.5 12.5 0 1 1 41 13A12.5 12.5 0 1 1 41 35A12.5 12.5 0 1 1 19 35A12.5 12.5 0 1 1 19 13Z"/><g class="ic"></g></g></svg></svg></div>
+
+<section class="wp wp-r" id="monitor" aria-labelledby="monitor-h">
+<div class="lane" aria-hidden="true"><span class="pt">4</span></div>
+<div class="body"><article class="card ws">
+<header class="ws-head"><p class="eyebrow" aria-hidden="true"><b>WP 4</b><span>59°09′N 018°56′E</span></p><h3 id="monitor-h">Monitor<span class="colon">:</span> <span class="ws-sub">how it is doing</span></h3></header>
+<figure class="shot"><button class="zoom" type="button" popovertarget="pop-monitor" aria-label="Open the picture at full size"><img src="img/monitor.jpg" width="1600" height="900" loading="lazy" alt="The Monitor page in the dark look: the state of the core, then a table of every plugin with its server and web state, workers, messages per second, queues, connections and internet use."><span class="zoom-hint" aria-hidden="true">Full size</span></button><div class="pop" id="pop-monitor" popover><button class="pop-close" type="button" popovertarget="pop-monitor" popovertargetaction="hide">Close</button><button class="pop-img" type="button" popovertarget="pop-monitor" popovertargetaction="hide" aria-label="Close the picture"><img loading="lazy" src="img/monitor.jpg" width="1600" height="900" alt="The Monitor page in the dark look: the state of the core, then a table of every plugin with its server and web state, workers, messages per second, queues, connections and internet use. (full size)"></button></div></figure>
+<ul class="ticks"><li>The core and every plugin, updated every 2 seconds: state, workers, messages per second, queues, connections.</li><li>A worker that fails or hangs is restarted by the server and counted.</li><li>Plain about limits: it says when the map is drawn without a GPU.</li></ul>
+</article></div>
+</section>
+<div class="leg leg-rl" aria-hidden="true"><svg class="legline" focusable="false"><line x1="100%" y1="0" x2="0" y2="100%"/></svg></div>
+
+<section class="wp wp-l" id="standards" aria-labelledby="standards-h">
+<div class="lane" aria-hidden="true"><span class="pt">5</span></div>
+<div class="body"><div class="card standards">
+<p class="eyebrow" aria-hidden="true"><b>WP 5</b><span>58°57′N 018°10′E</span></p><h2 id="standards-h">Standards</h2>
+<p class="std-intro">What emcc reads, writes and follows. Standards are named only to say that; emcc is not certified against any of them.</p>
+<div class="std-groups"><div class="std-group"><h3>Data links</h3><dl><div class="std"><dt>Cursor on Target (CoT)<span class="std-tag">In · Out</span></dt><dd>In and out, over TCP or TLS, UDP and multicast; the simulator sends its tracks through it too.</dd></div><div class="std"><dt>AIS (NMEA 0183)<span class="std-tag">In</span></dt><dd>Ships from AIVDM sentences over UDP or TCP.</dd></div><div class="std"><dt>ADS-B (SBS-1)<span class="std-tag">In</span></dt><dd>Aircraft from a decoder's BaseStation text stream on TCP port 30003.</dd></div><div class="std"><dt>STANAG 4607 (GMTI)<span class="std-tag">In · Out</span></dt><dd>Ground moving target radar data, AEDP-4607 Edition A; the simulator's sensors send it too.</dd></div><div class="std"><dt>STANAG 4609 (FMV)<span class="std-tag">In · Out</span></dt><dd>Full motion video over UDP: H.264, H.265 or MPEG-2 video with MISB ST 0601 metadata in a transport stream; MPEG-2 converted to H.264 on the server. Out: the H.264 video of the UAV simulator's cameras.</dd></div><div class="std"><dt>NVG 2.0<span class="std-tag">In · Out</span></dt><dd>NATO Vector Graphics, in and out: files, and NVG web services.</dd></div></dl></div><div class="std-group"><h3>Maps and positions</h3><dl><div class="std"><dt>WMS 1.3.0 and 1.1.1<span class="std-tag">In</span></dt><dd>Background maps from map servers, polar projections included.</dd></div><div class="std"><dt>WGS84<span class="std-tag">Core</span></dt><dd>Every position, everywhere, longitude before latitude.</dd></div><div class="std"><dt>MGRS, UTM/UPS, DMS<span class="std-tag">Core</span></dt><dd>Positions shown and typed, polar regions included.</dd></div><div class="std"><dt>EPSG:3857, 3413, 3031<span class="std-tag">Core</span></dt><dd>Web Mercator, and polar maps of the Arctic and the Antarctic.</dd></div><div class="std"><dt>DTED<span class="std-tag">In</span></dt><dd>Height data for range, bearing and viewsheds.</dd></div></dl></div><div class="std-group"><h3>Symbols</h3><dl><div class="std"><dt>APP-6 (D) and (E)<span class="std-tag">Core</span></dt><dd>Unit symbols, drawn through <a class="si" href="#thanks">Spatial Illusions</a>’ milsymbol; tactical graphics in APP-6 D and E too.</dd></div></dl></div><div class="std-group"><h3>Security</h3><dl><div class="std"><dt>STANAG 4774 (ADatP-4774)<span class="std-tag">Core</span></dt><dd>Labeling: a confidentiality label on every layer and object, and premade labels in Settings.</dd></div><div class="std"><dt>STANAG 4778<span class="std-tag mock">Mock</span></dt><dd>Binding the labels to the data: prepared in the model, a mock for now; the real binding comes later.</dd></div><div class="std"><dt>OpenID Connect<span class="std-tag">Core</span></dt><dd>Login, with groups that decide what each user may see and do; the Keycloak integration.</dd></div></dl></div></div>
+</div></div>
+</section>
+<div class="leg leg-lr" aria-hidden="true"><svg class="legline" focusable="false"><line x1="0" y1="0" x2="100%" y2="100%"/></svg></div>
+<section class="wp wp-r" id="ideas" aria-labelledby="ideas-h">
+<div class="lane" aria-hidden="true"><span class="pt">6</span></div>
+<div class="body">
+<div class="card sec-head"><p class="eyebrow" aria-hidden="true"><b>WP 6</b><span>58°33′N 018°56′E</span></p><h2 id="ideas-h">The ideas behind it</h2></div>
+<ul class="ideas">
+<li class="idea"><svg class="sym" viewBox="0 0 60 48" width="60" height="48" aria-hidden="true" focusable="false"><rect class="fr fr-friend" x="4" y="8" width="52" height="32"/><g class="ic"><path d="M4 8 56 40M56 8 4 40"/></g></svg><div class="card idea-card"><h3>A live picture, shared.</h3><p>The server holds the master copy of every layer and object. Every browser shows the part its user looks at, and every change reaches everyone who needs it.</p></div></li>
+<li class="idea"><svg class="sym" viewBox="0 0 60 48" width="60" height="48" aria-hidden="true" focusable="false"><rect class="fr fr-friend" x="4" y="8" width="52" height="32"/><g class="ic"><path d="M4 8 24 32 36 16 56 40"/></g></svg><div class="card idea-card"><h3>Change requests.</h3><p>Objects change only through change requests to the server, which checks each one against the user's permissions. The browser only hides what a user may not do.</p></div></li>
+<li class="idea"><svg class="sym" viewBox="0 0 60 48" width="60" height="48" aria-hidden="true" focusable="false"><rect class="fr fr-neutral" x="10" y="4" width="40" height="40"/><g class="ic"><ellipse cx="30" cy="24" rx="13" ry="7"/></g></svg><div class="card idea-card"><h3>Layers and security labels.</h3><p>Every object is in a layer. Layers are drawn in order, and can be shown, hidden and locked. Every layer and object carries a security label after STANAG 4774.</p></div></li>
+<li class="idea"><svg class="sym" viewBox="0 0 60 48" width="60" height="48" aria-hidden="true" focusable="false"><path class="fr fr-unknown" d="M19 13A12.5 12.5 0 1 1 41 13A12.5 12.5 0 1 1 41 35A12.5 12.5 0 1 1 19 35A12.5 12.5 0 1 1 19 13Z"/><g class="ic"><text x="30" y="31" class="q">?</text></g></svg><div class="card idea-card"><h3>Data types and data sources.</h3><p>An object's data type (General, CoT, AIS vessel, ADS-B aircraft, Route) decides how long it stays current. Its data source says where it came from: placed by hand, or the name of a link.</p></div></li>
+<li class="idea"><svg class="sym" viewBox="0 0 60 48" width="60" height="48" aria-hidden="true" focusable="false"><rect class="fr fr-friend" x="4" y="8" width="52" height="32"/><g class="ic"><path d="M20 30V19H40V30M30 19V30"/></g></svg><div class="card idea-card"><h3>Field sets.</h3><p>Plugins add their own fields to objects, such as a CoT unit's team or an AIS ship's details, and pass on every field they do not understand.</p></div></li>
+<li class="idea"><svg class="sym" viewBox="0 0 60 48" width="60" height="48" aria-hidden="true" focusable="false"><path class="fr fr-hostile" d="M30 2 52 24 30 46 8 24Z"/><g class="ic"><ellipse cx="30" cy="24" rx="11" ry="6"/></g></svg><div class="card idea-card"><h3>Symbols, shapes and tactical graphics.</h3><p>APP-6 unit symbols and vessels; circles, ellipses, rectangles, polygons, arrows and routes with hatched fills and arrowheads; boundaries, phase lines, axes of advance, objectives, minefields and more.</p></div></li>
+<li class="idea wide"><svg class="sym" viewBox="0 0 60 48" width="60" height="48" aria-hidden="true" focusable="false"><rect class="fr fr-neutral" x="10" y="4" width="40" height="40"/><g class="ic"><path d="M10 44 50 4"/></g></svg><div class="card idea-card"><div class="idea-text"><h3>Terrain.</h3><p>Range and bearing between two points, the ground an observer can see, and a height map: the ground inside a circle in 16 colour bands, with its highest point marked. From DTED height data that you add.</p></div><figure class="shot"><button class="zoom" type="button" popovertarget="pop-terrain" aria-label="Open the picture at full size"><img src="img/terrain.jpg" width="1600" height="900" loading="lazy" alt="A height map in emcc's Terrain panel: a circle of hills west of Sundsvall coloured in 16 bands from red, the lowest ground, through yellow to green, the highest, with a white cross and the label 502 m at the highest point; the panel lists the highest and lowest heights and the legend."><span class="zoom-hint" aria-hidden="true">Full size</span></button><div class="pop" id="pop-terrain" popover><button class="pop-close" type="button" popovertarget="pop-terrain" popovertargetaction="hide">Close</button><button class="pop-img" type="button" popovertarget="pop-terrain" popovertargetaction="hide" aria-label="Close the picture"><img loading="lazy" src="img/terrain.jpg" width="1600" height="900" alt="A height map in emcc's Terrain panel: a circle of hills west of Sundsvall coloured in 16 bands from red, the lowest ground, through yellow to green, the highest, with a white cross and the label 502 m at the highest point; the panel lists the highest and lowest heights and the legend. (full size)"></button></div></figure></div></li>
+<li class="idea"><svg class="sym" viewBox="0 0 60 48" width="60" height="48" aria-hidden="true" focusable="false"><rect class="fr fr-friend" x="4" y="8" width="52" height="32"/><g class="ic"><path d="M20 31A13 13 0 0 1 40 17M30 31 37 22"/></g></svg><div class="card idea-card"><h3>Links to other systems.</h3><p>Cursor on Target (CoT) in and out; ships from AIS; aircraft from ADS-B; ground moving target radar data in STANAG 4607 format, in and out; NATO Vector Graphics (NVG), in and out; full motion video in STANAG 4609, in and out. Background maps from Natural Earth, OpenStreetMap or WMS servers.</p></div></li>
+<li class="idea"><svg class="sym" viewBox="0 0 60 48" width="60" height="48" aria-hidden="true" focusable="false"><rect class="fr fr-friend" x="4" y="8" width="52" height="32"/><g class="ic"><circle class="fill" cx="30" cy="24" r="4.5"/></g></svg><div class="card idea-card"><h3>Positions.</h3><p>Always WGS84. Shown and typed as degrees, minutes and seconds, decimal degrees, UTM/UPS or MGRS, polar regions included.</p></div></li>
+<li class="idea"><svg class="sym" viewBox="0 0 60 48" width="60" height="48" aria-hidden="true" focusable="false"><rect class="fr fr-friend" x="4" y="8" width="52" height="32"/><g class="ic"><path d="M4 40 56 8"/></g></svg><div class="card idea-card"><h3>Maps in any projection.</h3><p>Web Mercator, and polar maps of the Arctic (EPSG:3413) and the Antarctic (EPSG:3031).</p></div></li>
+<li class="idea"><svg class="sym" viewBox="0 0 60 48" width="60" height="48" aria-hidden="true" focusable="false"><rect class="fr fr-friend" x="4" y="8" width="52" height="32"/><g class="ic"><ellipse cx="30" cy="24" rx="15" ry="7.5"/></g></svg><div class="card idea-card"><h3>Your own workspace.</h3><p>Movable panels, saved setups, bookmarks, three looks (Night Watch, Chart Room, Signal) in light or dark, and display settings for symbol size, labels and speed vectors. They follow the user to another computer.</p></div></li>
+<li class="idea"><svg class="sym" viewBox="0 0 60 48" width="60" height="48" aria-hidden="true" focusable="false"><path class="fr fr-hostile" d="M30 2 52 24 30 46 8 24Z"/><g class="ic"><path d="M19 13 41 35M41 13 19 35"/></g></svg><div class="card idea-card"><h3>Login and permissions.</h3><p>Login through OpenID Connect, with groups that decide what each user may see and do; or a no-login mode for demonstrations.</p></div></li>
+<li class="idea"><svg class="sym" viewBox="0 0 60 48" width="60" height="48" aria-hidden="true" focusable="false"><path class="fr fr-unknown" d="M19 13A12.5 12.5 0 1 1 41 13A12.5 12.5 0 1 1 41 35A12.5 12.5 0 1 1 19 35A12.5 12.5 0 1 1 19 13Z"/><g class="ic"><circle class="fill" cx="30" cy="24" r="4"/></g></svg><div class="card idea-card"><h3>Works without internet.</h3><p>The browser talks only to the emcc server, and Natural Earth maps ship with it. Online maps are optional.</p></div></li>
+</ul>
+</div>
+</section>
+<div class="leg leg-rl" aria-hidden="true"><svg class="legline" focusable="false"><line x1="100%" y1="0" x2="0" y2="100%"/><svg x="50%" y="50%" overflow="visible"><g transform="translate(-21 -17) scale(.7)"><rect class="fr fr-neutral" x="10" y="4" width="40" height="40"/><g class="ic"><path d="M20 32A13 13 0 0 1 40 16M30 32 37 22"/></g></g></svg></svg></div>
+
+<section class="wp wp-l" id="parts" aria-labelledby="parts-h">
+<div class="lane" aria-hidden="true"><span class="pt">7</span></div>
+<div class="body">
+<div class="card sec-head"><p class="eyebrow" aria-hidden="true"><b>WP 7</b><span>58°01′N 018°10′E</span></p><h2 id="parts-h">The parts</h2><p class="lead">How emcc is put together.</p></div>
+<div class="zones">
+<div class="card zone"><h3>In the browser</h3><p>The web shell (top bar, workspaces, panes and panels, looks, login) and the web parts of the plugins. TypeScript; the map is drawn with OpenLayers and WebGL.</p></div>
+<div class="card zone"><h3>On the server</h3><p>One Java 25 process.</p>
+<ul class="ticks"><li>A thin Spring Boot edge: HTTP, the WebSocket of the live picture, login.</li>
+<li><div class="ecore"><strong>ECore</strong>, the core:<ul class="chips"><li>the plugin host</li><li>the worker runtime with its watchdog</li><li>the message bus</li><li>the object store</li><li>the live picture gateway</li><li>the persistence manager</li><li>the video streams and their conversion</li><li>security</li><li>settings</li><li>logging and metrics</li></ul></div></li>
+<li>The server parts of the plugins.</li></ul></div>
+<div class="card zone"><h3>Outside</h3><p>The systems emcc talks to: TAK systems over CoT, NVG systems, video from UAVs, AIS and ADS-B receivers, ground radars, WMS map servers, and the Keycloak integration for login.</p></div>
+</div>
+<div class="card plugins">
+<div class="plugins-top"><span class="count" aria-hidden="true">21</span><div><h3>Plugins</h3><p>Everything beyond the core is one of 21 plugins, each with a server part, a web part or both, built on a Java and a TypeScript SDK. Plugins never create threads: ECore runs their workers, connection tasks and timers, and reports any that hang.</p></div></div>
+<div class="pgroups"><div class="pgroup"><h4>Maps</h4><ul><li><button class="plug" type="button" popovertarget="pl-map-view-2d">2D map view</button><div class="plug-pop" id="pl-map-view-2d" popover><p class="plug-kind">Plugin · map-view-2d</p><h4>2D map view</h4><p>The map in the middle of every workspace, drawn with OpenLayers and WebGL. It pans and zooms, draws symbols, shapes and graphics, selects and drags them, and shows clusters when zoomed out over many objects. It switches between Web Mercator and the polar projections.</p><p class="plug-agent">Built and kept by its own agent, PCA-map-view-2d.</p><button class="plug-close" type="button" popovertarget="pl-map-view-2d" popovertargetaction="hide">Close</button></div></li><li><button class="plug" type="button" popovertarget="pl-basemap-naturalearth">Natural Earth background</button><div class="plug-pop" id="pl-basemap-naturalearth" popover><p class="plug-kind">Plugin · basemap-naturalearth</p><h4>Natural Earth background</h4><p>An offline background map in every projection, polar ones included. Land, lakes, coastlines, ice shelves and borders from Natural Earth 1:50m, muted so that the symbols stand out. It ships with emcc and needs no internet.</p><p class="plug-agent">Built and kept by its own agent, PCA-basemap-naturalearth.</p><button class="plug-close" type="button" popovertarget="pl-basemap-naturalearth" popovertargetaction="hide">Close</button></div></li><li><button class="plug" type="button" popovertarget="pl-basemap-osm">OpenStreetMap background</button><div class="plug-pop" id="pl-basemap-osm" popover><p class="plug-kind">Plugin · basemap-osm</p><h4>OpenStreetMap background</h4><p>OpenStreetMap tiles in Web Mercator, for development and demonstrations. The emcc server fetches the tiles, so the browser talks to no other host. Disconnected installations use WMS servers instead.</p><p class="plug-agent">Built and kept by its own agent, PCA-basemap-osm.</p><button class="plug-close" type="button" popovertarget="pl-basemap-osm" popovertargetaction="hide">Close</button></div></li><li><button class="plug" type="button" popovertarget="pl-basemap-wms">WMS background maps</button><div class="plug-pop" id="pl-basemap-wms" popover><p class="plug-kind">Plugin · basemap-wms</p><h4>WMS background maps</h4><p>Background maps from WMS servers, polar projections included. The server part reads each server&#x27;s capabilities and passes checked map requests on. A background is offered only in the projections that its server offers.</p><p class="plug-agent">Built and kept by its own agent, PCA-basemap-wms.</p><button class="plug-close" type="button" popovertarget="pl-basemap-wms" popovertargetaction="hide">Close</button></div></li></ul></div><div class="pgroup"><h4>Drawing</h4><ul><li><button class="plug" type="button" popovertarget="pl-draw-symbols">Draw symbols</button><div class="plug-pop" id="pl-draw-symbols" popover><p class="plug-kind">Plugin · draw-symbols</p><h4>Draw symbols</h4><p>Place, edit and move APP-6 unit symbols and vessels. The Symbols panel chooses and places them; Symbol properties edits the selected symbol, including the field sets that other plugins add.</p><p class="plug-agent">Built and kept by its own agent, PCA-draw-symbols.</p><button class="plug-close" type="button" popovertarget="pl-draw-symbols" popovertargetaction="hide">Close</button></div></li><li><button class="plug" type="button" popovertarget="pl-draw-shapes">Draw shapes</button><div class="plug-pop" id="pl-draw-shapes" popover><p class="plug-kind">Plugin · draw-shapes</p><h4>Draw shapes</h4><p>Draw circles, ellipses, squares, rectangles, areas, arrows and routes, and edit them later. Each shape has a style, a name and a data type, with hatched fills and arrowheads where they fit.</p><p class="plug-agent">Built and kept by its own agent, PCA-draw-shapes.</p><button class="plug-close" type="button" popovertarget="pl-draw-shapes" popovertargetaction="hide">Close</button></div></li><li><button class="plug" type="button" popovertarget="pl-draw-tactical">Draw tactical graphics</button><div class="plug-pop" id="pl-draw-tactical" popover><p class="plug-kind">Plugin · draw-tactical</p><h4>Draw tactical graphics</h4><p>Place APP-6 tactical graphics: boundaries, phase lines, axes of advance, areas, fire support areas, range fans and more. Choose the identity, the status and the echelon, from a short list of common graphics or the whole catalogue.</p><p class="plug-agent">Built and kept by its own agent, PCA-draw-tactical.</p><button class="plug-close" type="button" popovertarget="pl-draw-tactical" popovertargetaction="hide">Close</button></div></li><li><button class="plug" type="button" popovertarget="pl-symbology">Symbology</button><div class="plug-pop" id="pl-symbology" popover><p class="plug-kind">Plugin · symbology</p><h4>Symbology</h4><p>The one place where APP-6 symbols are understood and drawn, for every other plugin. Unit symbols are drawn with milsymbol, and tactical graphics with mil-sym-ts in a Web Worker.</p><p class="plug-agent">Built and kept by its own agent, PCA-symbology.</p><button class="plug-close" type="button" popovertarget="pl-symbology" popovertargetaction="hide">Close</button></div></li></ul></div><div class="pgroup"><h4>Organising</h4><ul><li><button class="plug" type="button" popovertarget="pl-layer-panel">Layers</button><div class="plug-pop" id="pl-layer-panel" popover><p class="plug-kind">Plugin · layer-panel</p><h4>Layers</h4><p>The layer list: show, hide, lock and reorder layers, and give each its classification. It lists the layers of the workspace shown.</p><p class="plug-agent">Built and kept by its own agent, PCA-layer-panel.</p><button class="plug-close" type="button" popovertarget="pl-layer-panel" popovertargetaction="hide">Close</button></div></li><li><button class="plug" type="button" popovertarget="pl-object-list">Objects</button><div class="plug-pop" id="pl-object-list" popover><p class="plug-kind">Plugin · object-list</p><h4>Objects</h4><p>The objects of one layer as a list, page by page, also for a layer that is hidden on the map. Its rows share the map&#x27;s selection and its actions.</p><p class="plug-agent">Built and kept by its own agent, PCA-object-list.</p><button class="plug-close" type="button" popovertarget="pl-object-list" popovertargetaction="hide">Close</button></div></li><li><button class="plug" type="button" popovertarget="pl-bookmarks">Bookmarks</button><div class="plug-pop" id="pl-bookmarks" popover><p class="plug-kind">Plugin · bookmarks</p><h4>Bookmarks</h4><p>Saved map views in a folder tree: the projection, the background, the centre and the zoom, back in one click. They are each user&#x27;s own and follow the user to any browser.</p><p class="plug-agent">Built and kept by its own agent, PCA-bookmarks.</p><button class="plug-close" type="button" popovertarget="pl-bookmarks" popovertargetaction="hide">Close</button></div></li><li><button class="plug" type="button" popovertarget="pl-coordinates">Coordinates</button><div class="plug-pop" id="pl-coordinates" popover><p class="plug-kind">Plugin · coordinates</p><h4>Coordinates</h4><p>Positions shown and typed as decimal degrees, degrees, minutes and seconds, UTM/UPS and MGRS. Everything inside emcc stays WGS84 longitude and latitude; only what the user sees and types changes. Other plugins use its service.</p><p class="plug-agent">Built and kept by its own agent, PCA-coordinates.</p><button class="plug-close" type="button" popovertarget="pl-coordinates" popovertargetaction="hide">Close</button></div></li></ul></div><div class="pgroup"><h4>Links</h4><ul><li><button class="plug" type="button" popovertarget="pl-cot">Cursor on Target</button><div class="plug-pop" id="pl-cot" popover><p class="plug-kind">Plugin · cot</p><h4>Cursor on Target</h4><p>Receives CoT from TAK systems and shows it on the shared map, and sends the objects of chosen layers to them. Its links run over TCP or TLS, UDP and multicast, and the simulator sends its tracks through them too.</p><p class="plug-agent">Built and kept by its own agent, PCA-cot.</p><button class="plug-close" type="button" popovertarget="pl-cot" popovertargetaction="hide">Close</button></div></li><li><button class="plug" type="button" popovertarget="pl-ais">AIS</button><div class="plug-pop" id="pl-ais" popover><p class="plug-kind">Plugin · ais</p><h4>AIS</h4><p>Ships from AIS receivers, as NMEA 0183 sentences over UDP or TCP. It keeps one symbol per ship at its last position, with its name, course and speed. Input only.</p><p class="plug-agent">Built and kept by its own agent, PCA-ais.</p><button class="plug-close" type="button" popovertarget="pl-ais" popovertargetaction="hide">Close</button></div></li><li><button class="plug" type="button" popovertarget="pl-adsb">ADS-B aircraft</button><div class="plug-pop" id="pl-adsb" popover><p class="plug-kind">Plugin · adsb</p><h4>ADS-B aircraft</h4><p>Aircraft from an ADS-B decoder&#x27;s SBS-1 stream on TCP port 30003. It keeps one symbol per aircraft at its last position, with its callsign, track and ground speed. Input only.</p><p class="plug-agent">Built and kept by its own agent, PCA-adsb.</p><button class="plug-close" type="button" popovertarget="pl-adsb" popovertargetaction="hide">Close</button></div></li><li><button class="plug" type="button" popovertarget="pl-gmti">GMTI</button><div class="plug-pop" id="pl-gmti" popover><p class="plug-kind">Plugin · gmti</p><h4>GMTI</h4><p>Ground moving target radar data in STANAG 4607, in and out. Incoming data shows the radar platform, its coverage and its detections on the map; the simulator&#x27;s sensors send their reports in the same format.</p><p class="plug-agent">Built and kept by its own agent, PCA-gmti.</p><button class="plug-close" type="button" popovertarget="pl-gmti" popovertargetaction="hide">Close</button></div></li><li><button class="plug" type="button" popovertarget="pl-nvg">NVG</button><div class="plug-pop" id="pl-nvg" popover><p class="plug-kind">Plugin · nvg</p><h4>NVG</h4><p>NATO Vector Graphics 2.0, in and out. It imports NVG files and polls NVG web services, and places their symbols, tactical graphics, shapes and texts on a layer. It exports a layer as an NVG file, or serves it as an NVG web service for other systems.</p><p class="plug-agent">Built and kept by its own agent, PCA-nvg.</p><button class="plug-close" type="button" popovertarget="pl-nvg" popovertargetaction="hide">Close</button></div></li><li><button class="plug" type="button" popovertarget="pl-fmv">FMV</button><div class="plug-pop" id="pl-fmv" popover><p class="plug-kind">Plugin · fmv</p><h4>FMV</h4><p>Full motion video in STANAG 4609, over UDP. It shows each camera as a symbol and its field of view as an arc on the map, lists the streams in the FMV panel and plays them in a window with their classification. MPEG-2 video is converted to H.264 by the server; H.264 and H.265 pass unchanged. Its output links draw the video of the UAV simulator's cameras and send it.</p><p class="plug-agent">Built and kept by its own agent, PCA-fmv.</p><button class="plug-close" type="button" popovertarget="pl-fmv" popovertargetaction="hide">Close</button></div></li></ul></div><div class="pgroup"><h4>Analysis and training</h4><ul><li><button class="plug" type="button" popovertarget="pl-terrain">Terrain</button><div class="plug-pop" id="pl-terrain" popover><p class="plug-kind">Plugin · terrain</p><h4>Terrain</h4><p>Range and bearing between two points, and a viewshed: the ground that an observer can see, from DTED height data that you add. Range and bearing need no height data.</p><p class="plug-agent">Built and kept by its own agent, PCA-terrain.</p><button class="plug-close" type="button" popovertarget="pl-terrain" popovertargetaction="hide">Close</button></div></li><li><button class="plug" type="button" popovertarget="pl-simulator">Simulator</button><div class="plug-pop" id="pl-simulator" popover><p class="plug-kind">Plugin · simulator</p><h4>Simulator</h4><p>The Simulation workspace: routes with speeds, altitudes and events, convoys and formations, and ground radar sensors. The server moves the tracks once a second, even with no browser open, and sends them out through the links.</p><p class="plug-agent">Built and kept by its own agent, PCA-simulator.</p><button class="plug-close" type="button" popovertarget="pl-simulator" popovertargetaction="hide">Close</button></div></li><li><button class="plug" type="button" popovertarget="pl-uav-simulation">UAV simulation</button><div class="plug-pop" id="pl-uav-simulation" popover><p class="plug-kind">Plugin · uav-simulation</p><h4>UAV simulation</h4><p>Simulated cameras on the tracks of the Simulation workspace, as on a UAV, in the Cameras panel: each tracks a point or an object, holds fixed angles or sweeps a sector. For every frame it works out where the camera is and where it looks, and an FMV output link turns that into video.</p><p class="plug-agent">Built and kept by its own agent, PCA-uav-simulation.</p><button class="plug-close" type="button" popovertarget="pl-uav-simulation" popovertargetaction="hide">Close</button></div></li></ul></div></div>
+</div>
+</div>
+</section>
+<div class="leg leg-lr" aria-hidden="true"><svg class="legline" focusable="false"><line x1="0" y1="0" x2="100%" y2="100%"/><svg x="50%" y="50%" overflow="visible"><g transform="translate(-21 -17) scale(.7)"><rect class="fr fr-friend" x="4" y="8" width="52" height="32"/><g class="ic"><path d="M4 8 24 32 36 16 56 40"/></g></g></svg></svg></div>
+
+<section class="wp wp-r" id="agents" aria-labelledby="agents-h">
+<div class="lane" aria-hidden="true"><span class="pt">8</span></div>
+<div class="body"><div class="card agents">
+<div class="agents-text"><p class="eyebrow" aria-hidden="true"><b>WP 8</b><span>57°39′N 018°56′E</span></p><h2 id="agents-h">Built by AI agents</h2>
+<p class="first">emcc is an experiment in running a software project with AI agents as the team.</p>
+<p>Claude Code agents in 12 roles (an architect, a core developer, a plugin designer, one coder per plugin, an integration tester, a manager, reviewers, a service agent, a user-experience designer and writers) wrote almost all of the code, the tests and the documents. Humans as architects wrote the requirements and made every decision. The agents work only through files in git, each in its own part of the repository.</p></div>
+</div></div>
+</section>
+<div class="leg leg-rl" aria-hidden="true"><svg class="legline" focusable="false"><line x1="100%" y1="0" x2="0" y2="100%"/></svg></div>
+
+<section class="wp wp-l" id="status" aria-labelledby="status-h">
+<div class="lane" aria-hidden="true"><span class="pt">9</span></div>
+<div class="body"><div class="card status">
+<p class="eyebrow" aria-hidden="true"><b>WP 9</b><span>57°32′N 018°10′E</span></p><h2 id="status-h">Status</h2>
+<div class="ms"><input class="ms-r" type="radio" name="milestone" id="ms-m0" aria-label="M0, Internal demo"><input class="ms-r" type="radio" name="milestone" id="ms-m1" aria-label="M1, First demo"><input class="ms-r" type="radio" name="milestone" id="ms-m2" aria-label="M2, Beautify"><input class="ms-r" type="radio" name="milestone" id="ms-m3" aria-label="M3, Simulator"><input class="ms-r" type="radio" name="milestone" id="ms-m4" aria-label="M4, Maps, links and locks"><input class="ms-r" type="radio" name="milestone" id="ms-m5" aria-label="M5, Graphics, radar and terrain"><input class="ms-r" type="radio" name="milestone" id="ms-m6" aria-label="M6, Refinements"><input class="ms-r" type="radio" name="milestone" id="ms-m7" aria-label="M7, The first release for outside users"><input class="ms-r" type="radio" name="milestone" id="ms-m8" aria-label="M8, Full motion video and a new look"><input class="ms-r" type="radio" name="milestone" id="ms-m9" checked aria-label="M9, Ready for others to try and extend">
+<p class="ms-hint" id="ms-hint">Choose a milestone to see what it brought.</p>
+<ol class="track" aria-hidden="true"><li><label for="ms-m0">M0</label></li><li><label for="ms-m1">M1</label></li><li><label for="ms-m2">M2</label></li><li><label for="ms-m3">M3</label></li><li><label for="ms-m4">M4</label></li><li><label for="ms-m5">M5</label></li><li><label for="ms-m6">M6</label></li><li><label for="ms-m7">M7</label></li><li><label for="ms-m8">M8</label></li><li class="now"><label for="ms-m9">M9<small>Released</small></label></li></ol>
+<div class="ms-panels" aria-live="polite"><div class="ms-p ms-p-m0"><p class="ms-when">Released 10 October 2026</p><h3>M0 · Internal demo</h3><ul class="ms-list"><li>A shared live map in the browser, without login</li><li>OpenStreetMap as the background map</li><li>APP-6 symbols placed on the map</li><li>Layers with a draw order</li><li>Positions in MGRS, UTM and degrees, minutes and seconds</li><li>The core: plugin host, workers, message bus and object store</li></ul></div><div class="ms-p ms-p-m1"><p class="ms-when">Released 14 October 2026</p><h3>M1 · First demo</h3><ul class="ms-list"><li>Login with Keycloak, and a no-login mode for demonstrations</li><li>Permissions checked by the server</li><li>Natural Earth maps offline, in every projection, the Arctic included</li><li>Two browsers on one live picture</li><li>CoT from TAK systems shown on the map</li><li>Clusters when zoomed out over many objects</li><li>The Settings and Monitor tabs</li></ul></div><div class="ms-p ms-p-m2"><p class="ms-when">Released 22 October 2026</p><h3>M2 · Beautify</h3><ul class="ms-list"><li>Docked panes with movable panels, and saved setups</li><li>Three looks in light and dark, with two densities</li><li>Selection, object and map actions, and a shared Delete</li><li>Plain shapes with hatched fills and arrowheads</li><li>Bookmarks in a folder tree</li><li>The Objects list: a layer&#x27;s objects, page by page</li><li>Settings as one list</li></ul></div><div class="ms-p ms-p-m3"><p class="ms-when">Released 30 October 2026</p><h3>M3 · Simulator</h3><ul class="ms-list"><li>The Simulation workspace, with its own layers and permissions</li><li>Routes with speeds, altitudes and events</li><li>Convoys and formations</li><li>CoT out as well as in: simulated tracks sent to TAK systems</li><li>Plugins&#x27; own connections, run as connection tasks</li><li>Plugins&#x27; own fields on objects</li></ul></div><div class="ms-p ms-p-m4"><p class="ms-when">Released 3 November 2026</p><h3>M4 · Maps, links and locks</h3><ul class="ms-list"><li>WMS background maps, polar ones included</li><li>Ships from AIS and aircraft from ADS-B</li><li>Layer locks, enforced by the server</li><li>Plugins&#x27; own settings panels</li><li>Right-click menus on the map, and dragging a selected shape</li><li>More symbols in every category</li></ul></div><div class="ms-p ms-p-m5"><p class="ms-when">Released 10 November 2026</p><h3>M5 · Graphics, radar and terrain</h3><ul class="ms-list"><li>APP-6 tactical graphics: boundaries, phase lines, axes, areas</li><li>GMTI radar data in STANAG 4607, in and out, and a GMTI sensor in the simulator</li><li>Terrain: range and bearing, and viewsheds from DTED</li><li>Scenarios in the simulator, exported and imported</li><li>Field sets and vessel symbols</li><li>Display settings per user: symbol size, labels, speed vectors</li><li>The name emcc, and the user manual in the release</li></ul></div><div class="ms-p ms-p-m6"><p class="ms-when">Released 11 November 2026</p><h3>M6 · Refinements</h3><ul class="ms-list"><li>Pictures inside tactical graphics, such as minefields</li><li>A Labeling entry in Settings</li><li>Move to layer and Copy to layer</li><li>A new-layer box with the layer&#x27;s classification</li><li>A ground radar sensor with presets, dwells and a job area</li><li>A mark for sensor reports, and data types that bring their field sets</li></ul></div><div class="ms-p ms-p-m7"><p class="ms-when">Released 13 November 2026</p><h3>M7 · The first release for outside users</h3><ul class="ms-list"><li>NVG in and out</li><li>A Scenario button in the top bar</li><li>Symbol palettes, one of them for CoT</li><li>Categories in the Settings list</li><li>Listing and emptying a layer</li><li>Adding points to the end of a line</li><li>A height map in Terrain, and better sensors</li></ul></div><div class="ms-p ms-p-m8"><p class="ms-when">Released 16 November 2026</p><h3>M8 · Full motion video and a new look</h3><ul class="ms-list"><li>Full motion video in STANAG 4609, with the camera and its field of view on the map</li><li>MPEG-2 video converted to H.264 on the server</li><li>A new look for every workspace, and Settings as tables with one Save</li><li>Symbol labels set by place round a symbol</li><li>A Systematic scan for ground radars, and dwells at the rate their settings ask</li><li>New default colours for dwells, sensor ranges and job areas</li><li>Bug fixes, among them vessel symbols that no longer flicker</li></ul></div><div class="ms-p ms-p-m9"><p class="ms-when">Released 19 November 2026</p><h3>M9 · Ready for others to try and extend</h3><ul class="ms-list"><li>HTTPS on the server, and TLS certificates kept apart from the links</li><li>Settings and credentials in files of their own</li><li>emcc as a Windows service</li><li>An admin guide for existing infrastructure</li><li>A plugin template, a developer cookbook and instructions for AI agents</li><li>A help menu, &ldquo;?&rdquo;, with the manual and the version</li><li>A start without login by a double-click: start_standalone.bat</li><li>A UAV simulator whose cameras send STANAG 4609 full motion video, drawn from orthophotos and height data that you add</li></ul></div></div></div>
+<dl>
+<dt>Released</dt><dd>M9, 19 November 2026 (ten releases since 10 October: M0 to M9).</dd>
+<dt>Manual</dt><dd>A user manual of 74 chapters comes with the release.</dd>
+<dt>Source</dt><dd>The source code is published on GitHub.</dd>
+</dl>
+</div></div>
+</section>
+<div class="leg leg-end" aria-hidden="true"></div>
+<div class="space" aria-hidden="true"></div>
+</main>
+
+<section class="thanks" id="thanks" aria-labelledby="thanks-h">
+<div class="thanks-in">
+<svg class="thanks-sym" viewBox="0 0 60 48" width="72" height="58" aria-hidden="true" focusable="false"><rect x="4" y="8" width="52" height="32" fill="#80e0ff" stroke="#000" stroke-width="2.2"/><path d="M4 8 56 40M56 8 4 40" stroke="#000" stroke-width="2" fill="none"/></svg>
+<div>
+<p class="thanks-k">A special thank you</p>
+<h2 id="thanks-h">Spatial Illusions</h2>
+<p>Every APP-6 unit symbol in emcc, and in the screenshots on this page, is drawn by milsymbol, the open-source (MIT) symbol library from Spatial Illusions. It made APP-6 D and E symbols possible from emcc's first demo on.</p>
+<p><a class="thanks-link" href="https://spatialillusions.com/" rel="noopener noreferrer">spatialillusions.com</a></p>
+</div>
+</div>
+</section>
+<footer class="foot">
+<div class="foot-in">
+<img src="img/emcc-logo.svg" width="96" height="40" alt="emcc" loading="lazy">
+<div class="foot-text">
+<p class="disc"><strong>emcc is a demonstration.</strong> It is not an operational system, it does not protect classified information, and it is not certified for any use. It is not affiliated with or endorsed by NATO, any armed force or any company. Standards are named only to say what emcc reads and writes.</p>
+<p>The pictures show the real user interface of the M8 and M9 releases, with a fictional scenario; the video in the FMV picture is our own test stream, rendered from public-domain height data, and the UAV picture's video is drawn by emcc from Lantmäteriet's historical orthophotos of 2001 (CC0). Map data: Made with Natural Earth (public domain). The chart behind this page is stylised after the Stockholm archipelago and Gotland, from the same data; not for navigation. emcc is licensed under the Apache License 2.0.</p>
+<p>This site sets no cookies, runs no scripts and loads nothing from other servers.</p>
+<p class="disc"><strong>The sources.</strong> No classified STANAGs or specifications were used to make emcc, and no document marked NATO UNCLASSIFIED: only unmarked or public documents. Most of them were downloaded from NATO&rsquo;s NSDD, the NATO Standardization Document Database, or from other publicly available sources.</p>
+</div>
+</div>
+</footer>
+</body>
+</html>

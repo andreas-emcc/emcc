@@ -1,0 +1,23 @@
+{
+  "id": "fmv",
+  "name": "Full motion video",
+  "version": "0.3.0",
+  "sdkVersion": "^1.9.0",
+  "kind": "general",
+  "channelKinds": [
+    {
+      "name": "camera-pose",
+      "title": "Camera pose",
+      "description": "One simulated camera's pose for one frame.",
+      "payload": {
+        "type": "object",
+        "properties": {
+          "platform": { "$ref": "https://example.org/schemas/platform.json" }
+        }
+      }
+    }
+  ],
+  "server": {
+    "entryClass": "dev.emcc.plugins.fmv.FmvPlugin"
+  }
+}

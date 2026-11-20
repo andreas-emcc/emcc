@@ -1,0 +1,212 @@
+/* The simulator's panels (ADR-0034): tokens only; this file only arranges the content. */
+
+/* SDK 1.8.0 part C (T-204): the panel's frame without an inner heading; its buttons at the top of the body. */
+.simulator-frame {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.simulator-frame-top {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--emc2-space-gap);
+  padding: var(--emc2-space-padding) var(--emc2-space-padding) 0;
+}
+
+.simulator-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  padding: var(--emc2-space-padding);
+  min-width: 0;
+}
+
+.simulator-units {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--emc2-space-gap);
+}
+
+.simulator-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.simulator-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  padding: var(--emc2-space-padding);
+  border: 1px solid var(--emc2-color-border);
+  border-radius: var(--emc2-radius);
+  min-width: 0;
+}
+
+.simulator-item-head,
+.simulator-item-controls,
+.simulator-actions,
+.simulator-notice-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--emc2-space-gap);
+}
+
+.simulator-item-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.simulator-state {
+  font-size: var(--emc2-size-text-small);
+  color: var(--emc2-color-muted);
+}
+
+.simulator-state-running {
+  color: var(--emc2-color-ok);
+}
+
+.simulator-state-ended {
+  color: var(--emc2-color-accent);
+}
+
+.simulator-state-missing {
+  color: var(--emc2-color-warning);
+}
+
+.simulator-muted {
+  margin: 0;
+  font-size: var(--emc2-size-text-small);
+  color: var(--emc2-color-muted);
+}
+
+.simulator-text {
+  margin: 0;
+}
+
+.simulator-data {
+  font-family: var(--emc2-font-data);
+}
+
+.simulator-problems {
+  margin: 0;
+  padding-inline-start: var(--emc2-space-padding);
+}
+
+.simulator-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--emc2-space-gap);
+}
+
+/* A select is as wide as its longest option ("Ramp over the leg into this point"); in the
+   comfortable density that is wider than a narrow pane. In this one-column grid, which may
+   shrink, the field and its select take the pane's width instead (part D). */
+.simulator-select {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* "Reshape" and, from M7, "Append" at the right end of the row of "At the end" (M4, A65). */
+.simulator-push-end {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--emc2-space-gap);
+  margin-inline-start: auto;
+}
+
+/* "Put on route" over the map's right edge (M4, A68): a Map Pane overlay, with a small gap. */
+.simulator-dialog {
+  width: min(20rem, calc(100vw - 2rem));
+  margin-inline-end: var(--emc2-space-gap);
+  background: var(--emc2-color-panel);
+  color: var(--emc2-color-text);
+  border: 1px solid var(--emc2-color-border);
+  border-radius: var(--emc2-radius);
+  box-shadow: var(--emc2-shadow-menu);
+  pointer-events: auto;
+}
+
+/* Between "All points" and the one point shown (T-088). */
+.simulator-separator {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--emc2-color-border);
+}
+
+.simulator-value {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.simulator-section,
+.simulator-events {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+}
+
+.simulator-fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  margin: 0;
+  padding: var(--emc2-space-padding);
+  border: 1px solid var(--emc2-color-border);
+  border-radius: var(--emc2-radius);
+  min-width: 0;
+}
+
+.simulator-heading {
+  margin: 0;
+  padding: 0;
+  font-family: var(--emc2-font-heading);
+  font-size: var(--emc2-size-text);
+  font-weight: var(--emc2-heading-weight);
+  text-transform: var(--emc2-heading-case);
+  letter-spacing: var(--emc2-heading-letter-spacing);
+}
+
+.simulator-objects {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  margin: 0;
+  padding-inline-start: var(--emc2-space-padding);
+}
+
+/* The sensors' warning at the bottom of the Simulation map (function 29, CR-0035): framed as an icon over the map. */
+.simulator-warning {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  padding: var(--emc2-space-padding);
+  border: 1px solid var(--emc2-color-warning);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-pane);
+  box-shadow: var(--emc2-shadow-card);
+  color: var(--emc2-color-text);
+  font-size: var(--emc2-size-text-small);
+}
+
+/* The Scenario button's menu in the top bar (function 48). */
+.simulator-scenario-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--emc2-space-gap);
+  max-width: 22rem;
+  color: var(--emc2-color-text);
+}

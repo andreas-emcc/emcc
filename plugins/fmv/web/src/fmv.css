@@ -1,0 +1,75 @@
+/* Plugin styles: every class starts with the plugin id, and every colour, font, size and space
+   comes from the shell's design tokens (ADR-0029, ADR-0034). No element selectors at top level, no
+   :root, nothing global. The shared components bring their own CSS; this file only arranges content. */
+.fmv-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  color: var(--emc2-color-text);
+}
+
+.fmv-empty {
+  margin: 0;
+  color: var(--emc2-color-muted);
+}
+
+.fmv-row {
+  display: flex;
+  align-items: center;
+  gap: var(--emc2-space-gap);
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.fmv-row-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 10rem;
+}
+
+.fmv-row-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.fmv-row-link,
+.fmv-row-facts,
+.fmv-row-message {
+  color: var(--emc2-color-muted);
+  overflow-wrap: anywhere;
+}
+
+.fmv-window {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  height: 100%;
+  min-height: 0;
+  color: var(--emc2-color-text);
+}
+
+.fmv-window-label {
+  display: flex;
+  align-items: center;
+}
+
+.fmv-window-note {
+  margin: 0;
+  color: var(--emc2-color-muted);
+}
+
+.fmv-window-video {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  object-fit: contain;
+  background: var(--emc2-color-ground);
+}
+
+.fmv-window-foot {
+  display: flex;
+  gap: var(--emc2-space-gap);
+  flex-wrap: wrap;
+  color: var(--emc2-color-muted);
+}

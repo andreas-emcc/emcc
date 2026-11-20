@@ -1,0 +1,435 @@
+{
+  "id": "cot",
+  "name": "Cursor on Target",
+  "version": "0.5.0",
+  "sdkVersion": "^1.9.0",
+  "kind": "general",
+  "category": "data-links",
+  "icon": "Radio",
+  "properties": ["ingoing", "outgoing"],
+  "connections": [
+    {
+      "kinds": ["tcp-client", "udp", "multicast"],
+      "direction": "both",
+      "settings": "/links",
+      "reason": "CoT to and from TAK Servers (a TCP or TLS client) and the local network (UDP and multicast), as each link in the settings names it. The hosts, ports and groups come only from the links."
+    }
+  ],
+  "dataTypes": [
+    {
+      "id": "cot.cot",
+      "name": "CoT",
+      "description": "Objects received as Cursor on Target events from TAK systems.",
+      "defaults": { "fadeWhenExpired": true, "removeAfterExpirySeconds": 600 },
+      "fieldSets": ["unit"]
+    }
+  ],
+  "fields": [
+    {
+      "name": "team",
+      "type": "choice",
+      "label": "Team",
+      "description": "The team colour of a TAK unit (CoT __group name).",
+      "choices": [
+        { "value": "White", "label": "White" },
+        { "value": "Yellow", "label": "Yellow" },
+        { "value": "Orange", "label": "Orange" },
+        { "value": "Magenta", "label": "Magenta" },
+        { "value": "Red", "label": "Red" },
+        { "value": "Maroon", "label": "Maroon" },
+        { "value": "Purple", "label": "Purple" },
+        { "value": "Dark Blue", "label": "Dark Blue" },
+        { "value": "Blue", "label": "Blue" },
+        { "value": "Cyan", "label": "Cyan" },
+        { "value": "Teal", "label": "Teal" },
+        { "value": "Green", "label": "Green" },
+        { "value": "Dark Green", "label": "Dark Green" },
+        { "value": "Brown", "label": "Brown" }
+      ],
+      "editableByOthers": true
+    },
+    {
+      "name": "role",
+      "type": "choice",
+      "label": "Role",
+      "description": "The role of a TAK unit in its team (CoT __group role).",
+      "choices": [
+        { "value": "Team Member", "label": "Team Member" },
+        { "value": "Team Lead", "label": "Team Lead" },
+        { "value": "HQ", "label": "HQ" },
+        { "value": "Sniper", "label": "Sniper" },
+        { "value": "Medic", "label": "Medic" },
+        { "value": "Forward Observer", "label": "Forward Observer" },
+        { "value": "RTO", "label": "RTO" },
+        { "value": "K9", "label": "K9" }
+      ],
+      "editableByOthers": true
+    },
+    {
+      "name": "staleSeconds",
+      "type": "integer",
+      "label": "Stale time",
+      "description": "How long this object stays valid in TAK when it is sent, if it has no expiry in the future (CoT stale time).",
+      "unit": "s",
+      "minimum": 1,
+      "maximum": 86400,
+      "editableByOthers": true
+    },
+    {
+      "name": "callsign",
+      "type": "text",
+      "label": "Callsign",
+      "description": "The callsign TAK shows for this object (CoT contact callsign), separate from its Name. Sent as the callsign when set; otherwise the Name is.",
+      "maxLength": 64,
+      "editableByOthers": true
+    },
+    {
+      "name": "how",
+      "type": "text",
+      "label": "How",
+      "description": "How the position was found (CoT how), e.g. h-e (human, estimated) or m-g (machine, GPS). Sent as it is; h-e when empty.",
+      "maxLength": 16,
+      "editableByOthers": true
+    },
+    {
+      "name": "ce",
+      "type": "number",
+      "label": "Circular error",
+      "description": "The circular error of the position (CoT ce). 9999999 means unknown, which is also what is sent when empty.",
+      "unit": "m",
+      "minimum": 0,
+      "maximum": 9999999,
+      "editableByOthers": true
+    },
+    {
+      "name": "le",
+      "type": "number",
+      "label": "Linear error",
+      "description": "The linear error of the altitude (CoT le). 9999999 means unknown, which is also what is sent when empty.",
+      "unit": "m",
+      "minimum": 0,
+      "maximum": 9999999,
+      "editableByOthers": true
+    }
+  ],
+  "symbolPalettes": [
+    {
+      "id": "cot",
+      "name": "CoT",
+      "symbols": [
+        { "standard": "APP-6D", "code": "10030100001100000000", "label": "A-M – Military" },
+        { "standard": "APP-6D", "code": "10030100001101010000", "label": "A-M-F-O – Medical Evacuation (MEDEVAC)" },
+        { "standard": "APP-6D", "code": "10030100001101020000", "label": "A-M-F-A – Attack/Strike" },
+        { "standard": "APP-6D", "code": "10030100001101030000", "label": "A-M-F-B – Bomber" },
+        { "standard": "APP-6D", "code": "10030100001101040000", "label": "A-M-F-F – Fighter" },
+        { "standard": "APP-6D", "code": "10030100001101070000", "label": "A-M-F-C – Cargo" },
+        { "standard": "APP-6D", "code": "10030100001101080000", "label": "A-M-F-J – Electronic Combat (EC)/Jammer" },
+        { "standard": "APP-6D", "code": "10030100001101090000", "label": "A-M-F-K – Tanker" },
+        { "standard": "APP-6D", "code": "10030100001101100000", "label": "A-M-F-P – Patrol" },
+        { "standard": "APP-6D", "code": "10030100001101110000", "label": "A-M-F-R – Reconnaissance" },
+        { "standard": "APP-6D", "code": "10030100001101120000", "label": "A-M-F-T – Trainer" },
+        { "standard": "APP-6D", "code": "10030100001101130000", "label": "A-M-F-U – Utility" },
+        { "standard": "APP-6D", "code": "10030100001101140000", "label": "A-M-F-L – Vertical or Short Take-off and Landing (VSTOL)" },
+        { "standard": "APP-6D", "code": "10030100001101150000", "label": "A-M-F-D – Airborne Command Post (ACP)" },
+        { "standard": "APP-6D", "code": "10030100001101180000", "label": "A-M-F-S – Antisubmarine Warfare" },
+        { "standard": "APP-6D", "code": "10030100001101190000", "label": "A-M-F-Y – Communications" },
+        { "standard": "APP-6D", "code": "10030100001101260000", "label": "A-M-F-M – Special Operations Forces" },
+        { "standard": "APP-6D", "code": "10030100001101290000", "label": "A-M-V – Very Important Person (VIP)" },
+        { "standard": "APP-6D", "code": "10030100001101320000", "label": "A-M-E – Escort" },
+        { "standard": "APP-6D", "code": "10030100001102000000", "label": "A-M-H – Rotary Wing" },
+        { "standard": "APP-6D", "code": "10030100001103000000", "label": "A-M-F-Q – Unmanned Aircraft (UA) / Unmanned Aerial Vehicle (UAV) / Unmanned Aircraft System (UAS)" },
+        { "standard": "APP-6D", "code": "10030100001200000000", "label": "A-C – Civilian" },
+        { "standard": "APP-6D", "code": "10030200001100000000", "label": "A-W – Missile" },
+        { "standard": "APP-6D", "code": "10030500001119000000", "label": "P-L – Space Launched Vehicle (SLV)" },
+        { "standard": "APP-6D", "code": "10031000001104000000", "label": "G-U-U-I – Information Operations" },
+        { "standard": "APP-6D", "code": "10031000001110000000", "label": "G-U-U-S – Signal" },
+        { "standard": "APP-6D", "code": "10031000001205000000", "label": "G-U-C-A – Armor/Armored/Mechanized/Self-Propelled/ Tracked" },
+        { "standard": "APP-6D", "code": "10031000001206000000", "label": "G-U-C-V – Army Aviation/Aviation Rotary Wing" },
+        { "standard": "APP-6D", "code": "10031000001209000000", "label": "G-U-C – Combat" },
+        { "standard": "APP-6D", "code": "10031000001211000000", "label": "G-U-C-I – Infantry" },
+        { "standard": "APP-6D", "code": "10031000001213000000", "label": "G-U-C-R – Reconnaissance/Cavalry/Scout" },
+        { "standard": "APP-6D", "code": "10031000001301000000", "label": "G-U-C-D – Air Defense" },
+        { "standard": "APP-6D", "code": "10031000001303000000", "label": "G-U-C-F – Field Artillery" },
+        { "standard": "APP-6D", "code": "10031000001307000000", "label": "G-U-C-M – Missile" },
+        { "standard": "APP-6D", "code": "10031000001401000000", "label": "G-U-U-A – Chemical Biological Radiological Nuclear Defense" },
+        { "standard": "APP-6D", "code": "10031000001406000000", "label": "G-U-U-D – Drilling" },
+        { "standard": "APP-6D", "code": "10031000001407000000", "label": "G-U-C-E – Engineer" },
+        { "standard": "APP-6D", "code": "10031000001408000000", "label": "G-U-U-E – Explosive Ordnance Disposal (EOD)" },
+        { "standard": "APP-6D", "code": "10031000001417000000", "label": "G-U-C-S – Security" },
+        { "standard": "APP-6D", "code": "10031000001421000000", "label": "G-U-U-T – Topographic/Geospatial" },
+        { "standard": "APP-6D", "code": "10031000001510000000", "label": "G-U-U-M – Military Intelligence" },
+        { "standard": "APP-6D", "code": "10031000001601000000", "label": "G-U-S-A – Administrative" },
+        { "standard": "APP-6D", "code": "10031000001606000000", "label": "G-U-S – Combat Service Support" },
+        { "standard": "APP-6D", "code": "10031000001611000000", "label": "G-U-S-X – Maintenance" },
+        { "standard": "APP-6D", "code": "10031000001613000000", "label": "G-U-S-M – Medical" },
+        { "standard": "APP-6D", "code": "10031000001634000000", "label": "G-U-S-S" },
+        { "standard": "APP-6D", "code": "10031000001636000000", "label": "G-U-S-T – Transportation" },
+        { "standard": "APP-6D", "code": "10031500001101000000", "label": "G-E-W-R – Rifle" },
+        { "standard": "APP-6D", "code": "10031500001103000000", "label": "G-E-W-Z – Grenade Launcher" },
+        { "standard": "APP-6D", "code": "10031500001104000000", "label": "G-E-X-F – Flame Thrower" },
+        { "standard": "APP-6D", "code": "10031500001105000000", "label": "G-E-W-A – Air Defense Gun" },
+        { "standard": "APP-6D", "code": "10031500001106000000", "label": "G-E-W-G – Antitank Gun" },
+        { "standard": "APP-6D", "code": "10031500001107000000", "label": "G-E-W-D – Direct Fire Gun" },
+        { "standard": "APP-6D", "code": "10031500001109000000", "label": "G-E-W-H – Howitzer" },
+        { "standard": "APP-6D", "code": "10031500001110000000", "label": "G-E-W-M – Missile Launcher" },
+        { "standard": "APP-6D", "code": "10031500001114000000", "label": "G-E-W-O – Mortar" },
+        { "standard": "APP-6D", "code": "10031500001115000000", "label": "G-E-W-S – Single Rocket Launcher" },
+        { "standard": "APP-6D", "code": "10031500001116000000", "label": "G-E-W-X – Multiple Rocket Launcher" },
+        { "standard": "APP-6D", "code": "10031500001117000000", "label": "G-E-W-T – Antitank Rocket Launcher" },
+        { "standard": "APP-6D", "code": "10031500001200000000", "label": "G-E-V – Vehicle" },
+        { "standard": "APP-6D", "code": "10031500001201000000", "label": "G-E-V-A – Armored" },
+        { "standard": "APP-6D", "code": "10031500001300000000", "label": "G-E-V-E – Engineer Vehicle and Equipment" },
+        { "standard": "APP-6D", "code": "10031500001401000000", "label": "G-E-V-U – Vehicle (Generic)" },
+        { "standard": "APP-6D", "code": "10031500001501000000", "label": "G-E-V-T – Locomotive" },
+        { "standard": "APP-6D", "code": "10031500001800000000", "label": "G-E-V-M – Pack Animals" },
+        { "standard": "APP-6D", "code": "10031500001900000000", "label": "G-E-V-S – Missile Support" },
+        { "standard": "APP-6D", "code": "10031500002004000000", "label": "G-E-X-N – CBRN Equipment" },
+        { "standard": "APP-6D", "code": "10031500002010000000", "label": "G-E-X-L – Laser" },
+        { "standard": "APP-6D", "code": "10031500002104000000", "label": "G-E-X-I – Improvised Explosives Device (IED)" },
+        { "standard": "APP-6D", "code": "10031500002201000000", "label": "G-E-S – Sensor" },
+        { "standard": "APP-6D", "code": "10031500002202000000", "label": "G-E-S-E – Sensor Emplaced" },
+        { "standard": "APP-6D", "code": "10032000001101000000", "label": "G-I-M-A – Aircraft Production/Assembly" },
+        { "standard": "APP-6D", "code": "10032000001104000000", "label": "G-I-M-G – Armament Production" },
+        { "standard": "APP-6D", "code": "10032000001106000000", "label": "G-I-R-N – Chemical, Biological, Radiological and Nuclear (CBRN)" },
+        { "standard": "APP-6D", "code": "10032000001107000000", "label": "G-I-M-N – Engineering Equipment Production" },
+        { "standard": "APP-6D", "code": "10032000001108000000", "label": "G-I-E – Equipment Manufacture" },
+        { "standard": "APP-6D", "code": "10032000001109000000", "label": "G-I-G – Government Leadership" },
+        { "standard": "APP-6D", "code": "10032000001113000000", "label": "G-I-R-M – Mine" },
+        { "standard": "APP-6D", "code": "10032000001205000000", "label": "G-I-U-E – Energy Facility Infrastructure" },
+        { "standard": "APP-6D", "code": "10032000001205050000", "label": "G-I-R-P – Petroleum/Gas/Oil" },
+        { "standard": "APP-6D", "code": "10032000001207010000", "label": "G-I-X – Medical" },
+        { "standard": "APP-6D", "code": "10032000001208020000", "label": "G-I-B – Military Base" },
+        { "standard": "APP-6D", "code": "10032000001213010000", "label": "G-I-B-A – Airport/Air Base" },
+        { "standard": "APP-6D", "code": "10032000001213060000", "label": "G-I-M-V – Maintenance Facility" },
+        { "standard": "APP-6D", "code": "10032000001214000000", "label": "G-I-U-P – Water Supply Infrastructure" },
+        { "standard": "APP-6D", "code": "10032000001214100000", "label": "G-I-U-P – Water" },
+        { "standard": "APP-6D", "code": "10033000001200000000", "label": "S-C – Military Combatant" },
+        { "standard": "APP-6D", "code": "10033000001202000000", "label": "S-C-L – Surface Combatant, Line" },
+        { "standard": "APP-6D", "code": "10033000001203000000", "label": "S-C-A – Amphibious Warfare Ship" },
+        { "standard": "APP-6D", "code": "10033000001204000000", "label": "S-C-M – Mine Warfare Ship" },
+        { "standard": "APP-6D", "code": "10033000001205000000", "label": "S-C-P – Patrol Boat" },
+        { "standard": "APP-6D", "code": "10033000001206000000", "label": "S-C-D – Decoy" },
+        { "standard": "APP-6D", "code": "10033000001207000000", "label": "S-C-U – Unmanned Surface Water Vehicle (USV)" },
+        { "standard": "APP-6D", "code": "10033000001210000000", "label": "S-G – Navy Task Organization" },
+        { "standard": "APP-6D", "code": "10033000001210010000", "label": "S-G-E – Navy Task Element" },
+        { "standard": "APP-6D", "code": "10033000001210020000", "label": "S-G-F – Navy Task Force" },
+        { "standard": "APP-6D", "code": "10033000001210030000", "label": "S-G-G – Navy Task Group" },
+        { "standard": "APP-6D", "code": "10033000001210040000", "label": "S-G-U – Navy Task Unit" },
+        { "standard": "APP-6D", "code": "10033000001210050000", "label": "S-G-C – Convoy" },
+        { "standard": "APP-6D", "code": "10033000001300000000", "label": "S-N – Military Non Combatant" },
+        { "standard": "APP-6D", "code": "10033000001301010000", "label": "S-N-R-A – Ammunition Ship" },
+        { "standard": "APP-6D", "code": "10033000001301040000", "label": "S-N-I – Intelligence Collector" },
+        { "standard": "APP-6D", "code": "10033000001301070000", "label": "S-N-M – Hospital Ship" },
+        { "standard": "APP-6D", "code": "10033000001301100000", "label": "S-N-R-O – Oiler, Replenishment" },
+        { "standard": "APP-6D", "code": "10033000001301110000", "label": "S-N-R – Repair Ship" },
+        { "standard": "APP-6D", "code": "10033000001301120000", "label": "S-N-T-S – Submarine Tender" },
+        { "standard": "APP-6D", "code": "10033000001301130000", "label": "S-N-F – Tug, Ocean Going" },
+        { "standard": "APP-6D", "code": "10033000001302000000", "label": "S-N-S – Service Craft/Yard" },
+        { "standard": "APP-6D", "code": "10033000001401000000", "label": "S-X-M – Merchant Ship" },
+        { "standard": "APP-6D", "code": "10033000001401010000", "label": "S-X-M-C – Cargo, General" },
+        { "standard": "APP-6D", "code": "10033000001401030000", "label": "S-X-M-D – Dredge" },
+        { "standard": "APP-6D", "code": "10033000001401040000", "label": "S-X-M-E – Roll On/Roll Off" },
+        { "standard": "APP-6D", "code": "10033000001401050000", "label": "S-X-M-F – Ferry" },
+        { "standard": "APP-6D", "code": "10033000001401090000", "label": "S-X-M-O – Oiler/Tanker" },
+        { "standard": "APP-6D", "code": "10033000001401100000", "label": "S-X-M-P – Passenger" },
+        { "standard": "APP-6D", "code": "10033000001401110000", "label": "S-X-M-T – Tug, Ocean Going" },
+        { "standard": "APP-6D", "code": "10033000001401130000", "label": "S-X-M-H – Transport Ship, Hazardous Material" },
+        { "standard": "APP-6D", "code": "10033000001402000000", "label": "S-X-F – Fishing Vessel" },
+        { "standard": "APP-6D", "code": "10033000001403000000", "label": "S-X-L – Law Enforcement Vessel" },
+        { "standard": "APP-6D", "code": "10033000001404000000", "label": "S-X-R – Leisure Craft, Sailing" },
+        { "standard": "APP-6D", "code": "10033000001405000000", "label": "S-X-A – Leisure Craft, Motorized" },
+        { "standard": "APP-6D", "code": "10033000001405010000", "label": "S-X-A-R – Rigid-Hull Inflatable Boat (RHIB)" },
+        { "standard": "APP-6D", "code": "10033000001405020000", "label": "S-X-A-S – Speedboat" },
+        { "standard": "APP-6D", "code": "10033000001406000000", "label": "S-X-P – Jet Ski" },
+        { "standard": "APP-6D", "code": "10033000001500000000", "label": "S-O – Own Ship" },
+        { "standard": "APP-6D", "code": "10033500001101000000", "label": "U-S – Submarine" },
+        { "standard": "APP-6D", "code": "10033500001101010000", "label": "U-S-F – Submarine, Surfaced" },
+        { "standard": "APP-6D", "code": "10033500001101020000", "label": "U-S-K – Submarine, Snorkeling" },
+        { "standard": "APP-6D", "code": "10033500001101030000", "label": "U-S-B – Submarine, Bottomed" },
+        { "standard": "APP-6D", "code": "10033500001102000000", "label": "U-S-O – Other Submersible" },
+        { "standard": "APP-6D", "code": "10033500001103000000", "label": "U-N – Nonsubmarine" },
+        { "standard": "APP-6D", "code": "10033500001104000000", "label": "U-S-U – Autonomous Underwater Vehicle (AUV)/Unmanned Underwater Vehicle (UUV)" },
+        { "standard": "APP-6D", "code": "10033500001203000000", "label": "U-N-D – Diver" },
+        { "standard": "APP-6D", "code": "10033500001300000000", "label": "U-W – Weapon" },
+        { "standard": "APP-6D", "code": "10033500001301000000", "label": "U-W-T – Torpedo" },
+        { "standard": "APP-6D", "code": "10033600001100000000", "label": "U-W-M – Sea Mine, General" },
+        { "standard": "APP-6D", "code": "10033600001101000000", "label": "U-W-M-G – Sea Mine, Bottom" },
+        { "standard": "APP-6D", "code": "10033600001102000000", "label": "U-W-M-M – Sea Mine, Moored" },
+        { "standard": "APP-6D", "code": "10033600001103000000", "label": "U-W-M-F – Sea Mine, Floating" },
+        { "standard": "APP-6D", "code": "10033600001104000000", "label": "U-W-M-S – Sea Mine, Rising" },
+        { "standard": "APP-6D", "code": "10033600001105000000", "label": "U-W-M-O – Sea Mine, Other Position" },
+        { "standard": "APP-6D", "code": "10033600001108000000", "label": "U-W-M-X – Exercise Mine, General" },
+        { "standard": "APP-6D", "code": "10033600001109000000", "label": "U-W-M-D – Neutralized Mine, General" },
+        { "standard": "APP-6D", "code": "10033600001200000000", "label": "U-X – Unexploded Ordnance" },
+        { "standard": "APP-6D", "code": "10033600001300000000", "label": "U-W-D-M – Sea Mine Decoy" },
+        { "standard": "APP-6D", "code": "10033600002000000000", "label": "U-E – Environmental Report Location" },
+        { "standard": "APP-6D", "code": "10033600002100000000", "label": "U-V – Dive Report Location" }
+      ]
+    }
+  ],
+  "fieldSets": [
+    {
+      "id": "unit",
+      "label": "CoT unit",
+      "fields": ["callsign", "team", "role", "staleSeconds", "how", "ce", "le"]
+    }
+  ],
+  "server": { "entryClass": "dev.emcc.plugins.cot.CotPlugin" },
+  "settings": {
+    "type": "object",
+    "x-emc2": {
+      "groups": [
+        { "id": "connections", "label": "Connections", "description": "How every TCP or TLS link treats a quiet or stalled connection, and the presence event it may send.", "properties": ["idleTimeoutSeconds", "writeStallSeconds", "sendPresence", "presenceCallsign"] },
+        { "id": "advanced", "label": "Advanced", "description": "The size limit on one received CoT event.", "properties": ["maxEventBytes"], "advanced": true }
+      ]
+    },
+    "properties": {
+      "links": {
+        "title": "Links",
+        "description": "The connections to TAK systems, one entry per link. Without an entry the plugin does nothing. A link's name is the data source of what it receives and the key of its TLS credentials, which are local server configuration and never part of the settings. Stored 'streams' of earlier versions are no longer read: enter them again as links.",
+        "type": "array",
+        "default": [],
+        "x-emc2": {
+          "hint": "Each link talks CoT to a TAK Server or a network, one entry per link",
+          "item": {
+            "name": "name",
+            "noun": "link",
+            "state": "enabled",
+            "columns": ["direction", "transport", "host", "port"],
+            "id": "id"
+          }
+        },
+        "items": {
+          "type": "object",
+          "x-emc2": {
+            "groups": [
+              { "id": "connection", "label": "Connection", "description": "Where the link connects or listens, its TLS credential, and a multicast link's interface.", "properties": ["host", "port", "tlsCredential", "address", "interface"] },
+              { "id": "layers", "label": "Layers", "description": "Where received objects go, and which layers an out or both link sends from.", "properties": ["targetLayer", "sourceLayers"] },
+              { "id": "classification", "label": "Classification", "description": "The security label of what the link receives, and the highest classification it sends.", "properties": ["label", "highestClassification"] },
+              { "id": "sending", "label": "Sending", "description": "How long what an out or both link sends stays valid in TAK, and when unchanged objects are sent again.", "properties": ["staleSeconds", "refreshSeconds"] }
+            ]
+          },
+          "properties": {
+            "id": { "title": "Id", "description": "The link's stable id, which ECore fills in and never changes: a rename keeps it.", "type": "string", "readOnly": true },
+            "name": { "title": "Name", "description": "The link's name: lowercase words separated by hyphens, at most 64 characters (e.g. tak-north). It is the data source of what the link receives. 'manual' is reserved.", "type": "string", "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$", "maxLength": 64, "x-emc2": { "hint": "Lowercase words with hyphens, e.g. tak-north; it names what the link receives" } },
+            "transport": { "title": "Transport", "description": "tcp: a plain TCP client (a TAK Server's streaming input, 8087). tls: a TCP client with TLS and a client certificate from the server's local configuration, named like the link (8089). udp: one event per datagram, received on the address and port. multicast: a group (e.g. TAK's mesh SA, 239.2.3.1 port 6969) joined on a network interface that an administrator names.", "enum": ["tcp", "tls", "udp", "multicast"], "default": "tcp", "x-emc2": { "hint": "tcp and tls to a TAK Server, udp one event per datagram, multicast a group" } },
+            "direction": { "title": "Direction", "description": "in: the link receives CoT. out: it sends the objects of its source layers. both: it does both over one connection.", "enum": ["in", "out", "both"], "default": "in", "x-emc2": { "hint": "in receives, out sends the source layers' objects, both does both" } },
+            "enabled": { "title": "Enabled", "description": "Whether the plugin runs this link.", "type": "boolean", "default": true },
+            "host": { "title": "Host", "description": "tcp and tls: the host of the TAK Server's CoT streaming input. udp: where an out or both link sends to.", "type": "string", "minLength": 1, "maxLength": 253, "x-emc2": { "hint": "tcp, tls: the TAK Server's host. udp out: where to send", "enabledWhen": { "property": "transport", "in": ["tcp", "tls", "udp"] } } },
+            "port": { "title": "Port", "description": "tcp and tls: the TAK Server's port (8089 with TLS, 8087 without). udp and multicast: the port received on and sent to.", "type": "integer", "minimum": 1, "maximum": 65535, "x-emc2": { "hint": "tcp, tls: the TAK Server's port. udp, multicast: the port used" } },
+            "tlsCredential": { "title": "TLS credential", "description": "The name of a TLS credential in the server's local configuration; empty uses the link's name.", "type": "string", "default": "", "x-emc2": { "kind": "tls-credential", "hint": "tls: the client certificate to use; empty: the one named like the link", "enabledWhen": { "property": "transport", "in": ["tls"] } } },
+            "address": { "title": "Address", "description": "udp: the local address to listen on (default 127.0.0.1: only this computer; an administrator sets another address or 0.0.0.0 to receive from the network). multicast: the group to join (required).", "type": "string", "minLength": 1, "maxLength": 253, "x-emc2": { "hint": "udp: the local address to listen on. multicast: the group to join", "enabledWhen": { "property": "transport", "in": ["udp", "multicast"] } } },
+            "interface": { "title": "Interface", "description": "multicast: the name of the network interface that joins the group (required: without it the link stays stopped).", "type": "string", "minLength": 1, "maxLength": 256, "x-emc2": { "hint": "multicast: the network interface that joins the group (required)", "enabledWhen": { "property": "transport", "in": ["multicast"] } } },
+            "targetLayer": {
+              "title": "Receive into layer",
+              "description": "Where received objects go: a layer from the list, or one made with the + button, which creates it at once and picks it. Absent: a new layer named like the link, made at the first object. A layer that is deleted later is made again, by its name, at the next object; two links that name the same gone layer share the new one.",
+              "type": "object",
+              "x-emc2": { "hint": "Where received objects go; none: a new layer named like the link", "kind": "layer", "enabledWhen": { "property": "direction", "in": ["in", "both"] } },
+              "properties": {
+                "id": { "type": "string", "format": "uuid" },
+                "name": { "type": "string", "minLength": 1, "maxLength": 256 }
+              },
+              "required": ["name"]
+            },
+            "sourceLayers": {
+              "title": "Send from layers",
+              "description": "out and both: the layers whose objects this link sends: existing layers only. Their symbols with a point are sent as CoT.",
+              "type": "array",
+              "default": [],
+              "x-emc2": {
+                "hint": "The layers whose objects are sent; their symbols with a point go out as CoT",
+                "item": {
+                  "name": "name",
+                  "noun": "layer"
+                },
+                "enabledWhen": {
+                  "property": "direction",
+                  "in": ["out", "both"]
+                }
+              },
+              "items": {
+                "type": "object",
+                "x-emc2": { "kind": "layer", "allowNew": false },
+                "properties": {
+                  "id": { "type": "string", "format": "uuid" },
+                  "name": { "type": "string", "minLength": 1, "maxLength": 256 }
+                },
+                "required": ["name"]
+              }
+            },
+            "label": {
+              "title": "Label of what is received",
+              "description": "The security label of the link's layer and of the objects it creates. Default: the server's default label.",
+              "type": "object",
+              "x-emc2": { "hint": "The security label of the link's layer and its objects; none: the default", "enabledWhen": { "property": "direction", "in": ["in", "both"] } },
+              "properties": {
+                "policy": { "title": "Policy", "description": "The security policy, e.g. NATO.", "type": "string", "minLength": 1, "maxLength": 64 },
+                "classification": { "title": "Classification", "description": "The classification the policy defines, e.g. UNCLASSIFIED.", "type": "string", "minLength": 1, "maxLength": 64 }
+              },
+              "required": ["policy", "classification"],
+              "additionalProperties": false
+            },
+            "highestClassification": {
+              "title": "Highest classification",
+              "description": "out and both: objects above it are not sent. Absent: the classification of the server's default label.",
+              "type": "object",
+              "x-emc2": { "hint": "Objects above it are not sent; none: the server's default label", "enabledWhen": { "property": "direction", "in": ["out", "both"] } },
+              "properties": {
+                "policy": { "title": "Policy", "description": "The security policy, e.g. NATO.", "type": "string", "minLength": 1 },
+                "classification": { "title": "Classification", "description": "The classification the policy defines, e.g. UNCLASSIFIED.", "type": "string", "minLength": 1, "maxLength": 64 }
+              },
+              "required": ["policy", "classification"]
+            },
+            "staleSeconds": { "title": "Stale time", "description": "out and both: how long what is sent stays valid in TAK when the object has no expiry in the future and no stale time of its own.", "type": "integer", "minimum": 1, "maximum": 86400, "default": 60, "x-emc2": { "hint": "How long what is sent stays valid in TAK without an expiry of its own", "unit": "s", "enabledWhen": { "property": "direction", "in": ["out", "both"] } } },
+            "refreshSeconds": { "title": "Refresh", "description": "out and both: an object of a source layer that has not changed is sent again after this many seconds, so that TAK does not show it as stale. 0: only changes go out.", "type": "integer", "minimum": 0, "maximum": 86400, "default": 30, "x-emc2": { "hint": "Unchanged objects are sent again after this long; 0: only changes", "unit": "s", "enabledWhen": { "property": "direction", "in": ["out", "both"] } } }
+          },
+          "required": ["name", "direction"],
+          "additionalProperties": false
+        }
+      },
+      "idleTimeoutSeconds": {
+        "title": "Idle timeout",
+        "description": "A TCP or TLS link that receives nothing for this long is closed and connected again.",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3600,
+        "default": 300,
+        "x-emc2": { "hint": "A TCP or TLS link silent this long is closed and connected again", "unit": "s" }
+      },
+      "writeStallSeconds": {
+        "title": "Write stall",
+        "description": "An out or both TCP or TLS link on which one write (one event, or the presence event) has not finished for this long (the peer stays connected but stops reading), is closed and connected again.",
+        "type": "integer",
+        "minimum": 5,
+        "maximum": 3600,
+        "default": 60,
+        "x-emc2": { "hint": "A TCP or TLS link whose write is stuck this long is connected again", "unit": "s" }
+      },
+      "maxEventBytes": {
+        "title": "Largest event",
+        "description": "The largest CoT event accepted. A larger event is dropped and counted; the link continues.",
+        "type": "integer",
+        "minimum": 1024,
+        "maximum": 1048576,
+        "default": 65536,
+        "x-emc2": { "hint": "The largest CoT event accepted; a larger one is dropped and counted", "unit": "bytes" }
+      },
+      "sendPresence": {
+        "title": "Send presence",
+        "description": "Send one presence event (a t-x-c-t ping) on each TCP or TLS connection, for TAK Servers that send a client nothing until it has sent one event. It sends nothing else.",
+        "type": "boolean",
+        "default": true,
+        "x-emc2": { "hint": "One presence event per TCP or TLS connection, for TAK Servers that need it" }
+      },
+      "presenceCallsign": {
+        "title": "Presence callsign",
+        "description": "The callsign in the presence event.",
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "default": "emcc",
+        "x-emc2": { "width": "short" }
+      }
+    }
+  }
+}

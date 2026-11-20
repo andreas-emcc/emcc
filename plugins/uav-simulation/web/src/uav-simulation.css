@@ -1,0 +1,59 @@
+/* The Cameras panel (ADR-0034): tokens only; this file only arranges the content. */
+
+.uav-simulation-frame {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.uav-simulation-panel,
+.uav-simulation-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  min-width: 0;
+}
+
+.uav-simulation-panel {
+  padding: var(--emc2-space-padding);
+}
+
+.uav-simulation-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.uav-simulation-row,
+.uav-simulation-target,
+.uav-simulation-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--emc2-space-gap);
+  min-width: 0;
+}
+
+.uav-simulation-form {
+  padding: var(--emc2-space-padding);
+  border: 1px solid var(--emc2-color-border);
+  border-radius: var(--emc2-radius);
+}
+
+.uav-simulation-heading {
+  margin: 0;
+  font-size: inherit;
+  overflow-wrap: anywhere;
+}
+
+.uav-simulation-state {
+  font-weight: 600;
+}
+
+.uav-simulation-muted {
+  margin: 0;
+  color: var(--emc2-color-muted);
+}

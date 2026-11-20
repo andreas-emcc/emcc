@@ -1,0 +1,13 @@
+{
+  "id": "uav-simulation",
+  "name": "UAV simulation",
+  "version": "0.1.0",
+  "sdkVersion": "^1.9.0",
+  "kind": "general",
+  "category": "simulation",
+  "icon": "Video",
+  "uses": ["emc2.map-view"],
+  "permissions": ["plugin.uav-simulation.view", "plugin.uav-simulation.edit", "plugin.uav-simulation.run"],
+  "server": { "entryClass": "dev.emcc.plugins.uavsimulation.UavSimulationPlugin" },
+  "web": { "entry": "index.js", "css": ["uav-simulation.css"] }
+}

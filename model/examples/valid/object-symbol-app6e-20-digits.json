@@ -1,0 +1,16 @@
+{
+  "id": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e1a",
+  "type": "core.symbol",
+  "dataType": "core.general",
+  "dataSource": "manual",
+  "layerId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e01",
+  "version": 1,
+  "geometry": { "type": "Point", "coordinates": [16.5448, 59.6099] },
+  "symbol": { "standard": "APP-6E", "sidc": "13031000001211000000" },
+  "properties": { "name": "20-digit APP-6E: the 30-digit code with digits 21-30 all zero" },
+  "label": { "policyIdentifier": { "name": "NATO" }, "classification": "UNCLASSIFIED" },
+  "meta": {
+    "created": { "at": "2026-10-05T09:00:00.000Z", "by": { "plugin": "draw-symbols" } },
+    "modified": { "at": "2026-10-05T09:00:00.000Z", "by": { "plugin": "draw-symbols" } }
+  }
+}

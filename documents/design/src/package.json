@@ -1,0 +1,15 @@
+{
+  "name": "emc2-design-documents",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Builds the emc2 design documents (presentation and SDD) in documents/design/",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "node build.js",
+    "build:deck": "node build.js deck",
+    "build:sdd": "node build.js sdd"
+  },
+  "dependencies": {
+    "pptxgenjs": "4.0.1"
+  }
+}

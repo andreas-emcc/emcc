@@ -1,0 +1,14 @@
+{
+  "name": "emc2",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "npm workspace root of the emc2 web client and of the plugins' web parts (CR-0006). Root build file, owned by the MCA. Every plugins/<id>/web is a workspace through the glob below (package name @emc2/plugin-<id>), so plugin web parts need no line here. The lock file next to it is generated: commit the regenerated file, never edit it by hand.",
+  "workspaces": [
+    "web/shell",
+    "web/plugin-sdk",
+    "plugins/*/web"
+  ],
+  "engines": {
+    "node": ">=24"
+  }
+}

@@ -1,0 +1,188 @@
+/* Plugin styles: every class starts with the plugin id, and colours, fonts, sizes, corners and
+   shadows come from the shell's design tokens (ADR-0029, ADR-0034, brief function 21). No element
+   selectors at top level, no :root, nothing global. OpenLayers' own ol.css is not used: the map's
+   controls get map-view-2d- class names and are styled here. */
+.map-view-2d-map {
+  position: absolute;
+  inset: 0;
+  color: var(--emc2-color-text);
+  /* The neutral background, under a graticule, when no background map is shown. */
+  background: var(--emc2-color-pane);
+}
+
+/* What OpenLayers' stylesheet would give the map's own elements. */
+.map-view-2d-map canvas {
+  display: block;
+  max-width: none;
+}
+
+.map-view-2d-zoom,
+.map-view-2d-scale-line,
+.map-view-2d-attribution {
+  position: absolute;
+  font: var(--emc2-size-text-small) / 1.3 var(--emc2-font-text);
+}
+
+.map-view-2d-zoom {
+  top: var(--emc2-space-padding);
+  left: var(--emc2-space-padding);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--emc2-space-gap) / 3);
+}
+
+.map-view-2d-zoom button {
+  width: var(--emc2-size-field);
+  height: var(--emc2-size-field);
+  padding: 0;
+  border: 1px solid var(--emc2-color-field-border);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-pane);
+  box-shadow: var(--emc2-shadow-card);
+  color: var(--emc2-color-text);
+  font: 600 calc(var(--emc2-size-text) * 1.3) / 1 var(--emc2-font-text);
+  cursor: pointer;
+}
+
+.map-view-2d-zoom button:hover {
+  background: color-mix(in srgb, var(--emc2-color-pane) 92%, var(--emc2-color-text));
+}
+
+.map-view-2d-zoom button:focus-visible {
+  outline: var(--emc2-focus-width) solid var(--emc2-focus-color);
+  outline-offset: var(--emc2-focus-offset);
+}
+
+.map-view-2d-scale-line {
+  right: var(--emc2-space-padding);
+  bottom: calc(var(--emc2-space-padding) + var(--emc2-size-row));
+  padding: calc(var(--emc2-space-gap) / 3) var(--emc2-space-gap);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-pane);
+  opacity: 0.85;
+}
+
+.map-view-2d-scale-line-inner {
+  border: 1px solid var(--emc2-color-text);
+  border-top: none;
+  color: var(--emc2-color-text);
+  font-family: var(--emc2-font-data);
+  text-align: center;
+}
+
+.map-view-2d-attribution {
+  right: var(--emc2-space-padding);
+  bottom: var(--emc2-space-padding);
+  max-width: calc(100% - 2 * var(--emc2-space-padding));
+  padding: calc(var(--emc2-space-gap) / 6) var(--emc2-space-gap);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-pane);
+  opacity: 0.85;
+}
+
+.map-view-2d-attribution ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.map-view-2d-attribution li {
+  display: inline;
+}
+
+.map-view-2d-attribution a {
+  color: var(--emc2-color-text);
+}
+
+/* The attribution control's toggle button (unused: the attribution is not collapsible). */
+.map-view-2d-attribution button {
+  display: none;
+}
+
+.map-view-2d-cannot-draw {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(2 * var(--emc2-space-padding));
+  color: var(--emc2-color-error);
+  background: var(--emc2-color-pane);
+  font: 600 var(--emc2-size-text) / 1.4 var(--emc2-font-text);
+  text-align: center;
+}
+
+/* ---- Map Pane overlays ---- */
+
+.map-view-2d-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+  min-width: 12rem;
+  padding: var(--emc2-space-padding);
+  border: 1px solid var(--emc2-color-border);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-pane);
+  box-shadow: var(--emc2-shadow-card);
+  color: var(--emc2-color-text);
+  font: var(--emc2-size-text) / 1.3 var(--emc2-font-text);
+}
+
+/* Collapsed (owner, 2026-10-21): one icon button in the same place, with a warning marker when the
+   box would show a problem. */
+.map-view-2d-controls-toggle {
+  position: relative;
+  display: inline-flex;
+  border: 1px solid var(--emc2-color-border);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-pane);
+  box-shadow: var(--emc2-shadow-card);
+  color: var(--emc2-color-text);
+}
+
+.map-view-2d-controls-marker {
+  position: absolute;
+  top: calc(var(--emc2-space-gap) / -2);
+  right: calc(var(--emc2-space-gap) / -2);
+  width: var(--emc2-space-padding);
+  height: var(--emc2-space-padding);
+  border: 1px solid var(--emc2-color-pane);
+  border-radius: 50%;
+  background: var(--emc2-color-warning);
+}
+
+.map-view-2d-controls-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--emc2-space-gap);
+  font-family: var(--emc2-font-heading);
+  font-weight: var(--emc2-heading-weight);
+  letter-spacing: var(--emc2-heading-letter-spacing);
+  text-transform: var(--emc2-heading-case);
+}
+
+.map-view-2d-controls-problem {
+  margin: 0;
+  color: var(--emc2-color-warning);
+  font-size: var(--emc2-size-text-small);
+}
+
+.map-view-2d-notice {
+  max-width: 22rem;
+  border-radius: var(--emc2-radius);
+  box-shadow: var(--emc2-shadow-card);
+  color: var(--emc2-color-text);
+  font: var(--emc2-size-text) / 1.4 var(--emc2-font-text);
+}
+
+.map-view-2d-notice p {
+  margin: 0 0 var(--emc2-space-gap);
+}
+
+/* The selection box (Ctrl or Cmd with a drag) and the zoom box (Shift with a drag), brief function 14. */
+.map-view-2d-map .map-view-2d-select-box,
+.map-view-2d-map .ol-dragzoom {
+  border: 2px dashed var(--emc2-color-text);
+  background: transparent;
+}

@@ -1,0 +1,51 @@
+{
+  "id": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e35",
+  "type": "core.multipoint",
+  "dataType": "core.general",
+  "dataSource": "manual",
+  "layerId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e01",
+  "version": 1,
+  "geometry": {
+    "type": "MultiPoint",
+    "coordinates": [
+      [
+        18.0702,
+        59.3293
+      ]
+    ]
+  },
+  "symbol": {
+    "standard": "APP-6D",
+    "sidc": "10032500002422000000",
+    "modifiers": {
+      "distances": [
+        "3 km"
+      ]
+    }
+  },
+  "properties": {
+    "name": "Distance as text"
+  },
+  "label": {
+    "policyIdentifier": {
+      "name": "NATO"
+    },
+    "classification": "UNCLASSIFIED"
+  },
+  "meta": {
+    "created": {
+      "at": "2026-11-06T09:00:00.000Z",
+      "by": {
+        "plugin": "draw-tactical",
+        "user": "3f2c9a10-5d7e-4b8a-9c41-2e6f8d0a7b15"
+      }
+    },
+    "modified": {
+      "at": "2026-11-06T09:00:00.000Z",
+      "by": {
+        "plugin": "draw-tactical",
+        "user": "3f2c9a10-5d7e-4b8a-9c41-2e6f8d0a7b15"
+      }
+    }
+  }
+}

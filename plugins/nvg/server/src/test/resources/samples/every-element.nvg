@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Written by hand by PCA-nvg (brief, section 7): every element of the brief's section 3, around
+  Karlskrona and Goteborg, so that latitude differs from longitude everywhere. Not from any
+  specification example (the specification is not public).
+-->
+<nvg xmlns="https://tide.act.nato.int/schemas/2012/10/nvg" version="2.0.2">
+  <metadata>
+    <mb:BindingInformation xmlns:mb="urn:nato:stanag:4778:bindinginformation:1:0">
+      <mb:MetadataBindingContainer>
+        <mb:MetadataBinding>
+          <mb:Metadata>
+            <slab:originatorConfidentialityLabel xmlns:slab="urn:nato:stanag:4774:confidentialitymetadatalabel:1:0">
+              <slab:ConfidentialityInformation>
+                <slab:PolicyIdentifier>NATO</slab:PolicyIdentifier>
+                <slab:Classification>RESTRICTED</slab:Classification>
+              </slab:ConfidentialityInformation>
+              <slab:CreationDateTime>2026-11-12T08:00:00Z</slab:CreationDateTime>
+            </slab:originatorConfidentialityLabel>
+          </mb:Metadata>
+          <mb:DataReference URI=""/>
+        </mb:MetadataBinding>
+      </mb:MetadataBindingContainer>
+    </mb:BindingInformation>
+  </metadata>
+  <g uri="urn:sample:g:a" label="A">
+    <g uri="urn:sample:g:b" label="B">
+      <point uri="urn:sample:point" label="Rifle company" symbol="app6b:SFGPUCI----D---" x="15.2" y="58.4" speed="36" course="45" z="12.5" href="https://example.invalid/unit/1" style="stroke:#112233;font-weight:bold">
+        <metadata>
+          <mb:BindingInformation xmlns:mb="urn:nato:stanag:4778:bindinginformation:1:0">
+            <mb:MetadataBindingContainer>
+              <mb:MetadataBinding>
+                <mb:Metadata>
+                  <slab:originatorConfidentialityLabel xmlns:slab="urn:nato:stanag:4774:confidentialitymetadatalabel:1:0">
+                    <slab:ConfidentialityInformation>
+                      <slab:PolicyIdentifier>NATO</slab:PolicyIdentifier>
+                      <slab:Classification>UNCLASSIFIED</slab:Classification>
+                      <slab:Category TagName="Releasable to" Type="PERMISSIVE">
+                        <slab:GenericValue>SWE</slab:GenericValue>
+                        <slab:GenericValue>NATO</slab:GenericValue>
+                      </slab:Category>
+                    </slab:ConfidentialityInformation>
+                    <slab:CreationDateTime>2026-11-12T08:00:00Z</slab:CreationDateTime>
+                  </slab:originatorConfidentialityLabel>
+                </mb:Metadata>
+                <mb:DataReference URI="urn:sample:point"/>
+              </mb:MetadataBinding>
+            </mb:MetadataBindingContainer>
+          </mb:BindingInformation>
+        </metadata>
+        <ExtendedData schemaRef="#urn:sample:schema">
+          <SimpleData key="strength">120</SimpleData>
+        </ExtendedData>
+        <textInfo>Second company, dug in.</textInfo>
+        <TimeStamp>2026-11-12T07:30:00Z</TimeStamp>
+        <TimeSpan>
+          <begin>2026-11-12T06:00:00Z</begin>
+          <end>2026-11-13T06:00:00Z</end>
+        </TimeSpan>
+      </point>
+    </g>
+  </g>
+  <point uri="urn:sample:point:d" symbol="app6d:10031000001211000000" x="15.5869" y="56.1612"/>
+  <point uri="urn:sample:point:d-old" symbol="app06:10031000001211000000" x="15.6" y="56.17"/>
+  <point uri="urn:sample:point:anet" symbol="app06:100340000013100000000000000000" x="15.61" y="56.18"/>
+  <point uri="urn:sample:point:e" symbol="app6e:100310000012110000000000000001" x="15.62" y="56.19"/>
+  <point uri="urn:sample:point:2525" symbol="2525b:SFGPUCI----D---" x="15.63" y="56.2"/>
+  <point uri="urn:sample:point:unknown" x="15.64" y="56.21" modifiers="T=1st;M=2nd"/>
+  <text uri="urn:sample:text" x="15.2" y="58.4" rotation="30">
+    <content>Karlskrona</content>
+  </text>
+  <multipoint uri="urn:sample:multipoint" symbol="app6d:10002500001101000000" points="15.1,56.1 15.2,56.15 15.3,56.1"/>
+  <polyline uri="urn:sample:polyline" label="Route" points="11.9746,57.7089 12.1,57.8 12.3,57.75" style="stroke:#ff0000;stroke-width:3;stroke-dasharray:8,4"/>
+  <polyline uri="urn:sample:rhumb" points="11.0,57.0 12.0,58.0" leg-type="rhumb-line"/>
+  <polygon uri="urn:sample:polygon" points="11.9,57.6 12.1,57.6 12.1,57.8 11.9,57.8" style="fill:#00ff00;fill-opacity:0.25" minaltitude="0" maxaltitude="1500">
+    <exclude>
+      <linear-ring points="11.95,57.65 12.05,57.65 12.05,57.75 11.95,57.75"/>
+    </exclude>
+  </polygon>
+  <circle uri="urn:sample:circle" cx="11.9746" cy="57.7089" r="2500"/>
+  <ellipse uri="urn:sample:ellipse" cx="11.9746" cy="57.7089" rx="2000" ry="1000" rotation="30"/>
+  <rect uri="urn:sample:rect" cx="12.5" cy="57.5" rx="3000" ry="1000" rotation="20"/>
+  <arrow uri="urn:sample:arrow" points="12.0,57.0 12.2,57.1 12.3,57.3" width="500"/>
+  <corridor uri="urn:sample:corridor" points="12.0,56.9 12.4,57.0 12.6,57.2" width="2000"/>
+  <orbit uri="urn:sample:orbit" points="13.0,57.0 13.5,57.2" width="4000"/>
+  <arc uri="urn:sample:arc" cx="13.0" cy="56.5" rx="5000" ry="3000" rotation="10" startangle="0" endangle="90"/>
+  <arcband uri="urn:sample:arcband" cx="13.5" cy="56.4" minr="1000" maxr="5000" startangle="300" endangle="60"/>
+  <composite uri="urn:sample:composite" symbol="app6d:10002500001101000000">
+    <polyline uri="urn:sample:composite:1" points="14.0,56.0 14.1,56.1"/>
+    <polyline uri="urn:sample:composite:2" points="14.1,56.1 14.2,56.0"/>
+    <point uri="urn:sample:composite:3" x="14.1" y="56.05"/>
+  </composite>
+  <content-item uri="urn:sample:content"/>
+</nvg>

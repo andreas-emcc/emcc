@@ -1,0 +1,26 @@
+{
+  "id": "object-list",
+  "name": "Objects",
+  "version": "0.1.0",
+  "sdkVersion": "^1.8.0",
+  "icon": "List",
+  "kind": "general",
+  "category": "general",
+  "provides": ["emc2.object-list"],
+  "uses": ["emc2.map-view", "emc2.symbols"],
+  "web": { "entry": "index.js", "css": ["object-list.css"] },
+  "settings": {
+    "type": "object",
+    "properties": {
+      "pageSize": {
+        "title": "Objects per page",
+        "description": "How many objects one page of the list holds. At most 500, the largest page the server answers.",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 500,
+        "default": 100,
+        "x-emc2": { "hint": "At most 500, the largest page the server answers." }
+      }
+    }
+  }
+}

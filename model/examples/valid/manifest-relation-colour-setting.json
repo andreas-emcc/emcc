@@ -1,0 +1,40 @@
+{
+  "id": "gmti",
+  "name": "GMTI",
+  "version": "0.5.0",
+  "sdkVersion": "^1.6.0",
+  "kind": "general",
+  "settings": {
+    "type": "object",
+    "properties": {
+      "pairingColour": {
+        "type": "string",
+        "pattern": "^#[0-9A-Fa-f]{6}$",
+        "default": "#FFFF00",
+        "x-emc2": {
+          "kind": "colour"
+        }
+      }
+    },
+    "default": {
+      "pairingColour": "#FFFF00"
+    }
+  },
+  "relationKinds": [
+    {
+      "id": "gmti.pairing",
+      "label": "GMTI Pairing",
+      "line": {
+        "strokeColor": "#FFFF00",
+        "strokeWidth": 1,
+        "strokeDash": "solid",
+        "arrowhead": "none",
+        "strokeColorSetting": "/pairingColour"
+      },
+      "defaultOn": true
+    }
+  ],
+  "server": {
+    "entryClass": "dev.emcc.plugins.gmti.GmtiPlugin"
+  }
+}

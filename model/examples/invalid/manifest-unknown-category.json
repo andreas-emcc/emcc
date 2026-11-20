@@ -1,0 +1,11 @@
+{
+  "id": "gmti",
+  "name": "STANAG 4607 GMTI",
+  "version": "0.5.0",
+  "sdkVersion": "^1.6.0",
+  "kind": "general",
+  "category": "weather",
+  "server": {
+    "entryClass": "dev.emcc.plugins.gmti.GmtiPlugin"
+  }
+}

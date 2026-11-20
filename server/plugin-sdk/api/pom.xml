@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The Java Plugin SDK: the only code server parts of plugins may depend on (ADR-0003). JSpecify, and GeographicLib-Java used only inside the SDK (CR-0025 part 7). -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>dev.emcc</groupId>
+    <artifactId>emc2-plugin-sdk-parent</artifactId>
+    <version>1.9.0</version>
+  </parent>
+
+  <artifactId>emc2-plugin-sdk</artifactId>
+  <name>emc2 Plugin SDK</name>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.jspecify</groupId>
+      <artifactId>jspecify</artifactId>
+    </dependency>
+    <!--
+      SDK 1.2.0 (CR-0025 part 7, approved by the owner 2026-10-22): the geodesics of dev.emcc.sdk.geo.Geodesy.
+      MIT; jar 37 692 bytes, SHA-256 1e85feac761b436309a8d3d2ece07162129fd5670afbf1d2d435e38006da00dd.
+      Used only inside the SDK, behind its own types: ECore's plugin class loader does not share it with
+      plugins (R3), and PluginRules forbids it in plugin code. Pinned here, not in server/pom.xml (owner, 2026-10-25).
+    -->
+    <dependency>
+      <groupId>net.sf.geographiclib</groupId>
+      <artifactId>GeographicLib-Java</artifactId>
+      <version>2.1</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.tngtech.archunit</groupId>
+      <artifactId>archunit</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <testResources>
+      <!-- sdk-build.properties gets the Maven version, which SdkVersionTest compares with Sdk.VERSION. -->
+      <testResource>
+        <directory>src/test/resources</directory>
+        <filtering>true</filtering>
+      </testResource>
+    </testResources>
+  </build>
+</project>

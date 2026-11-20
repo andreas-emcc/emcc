@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>emcc mockup · Colour review</title>
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { display: flex; flex-direction: column; background: #23262b; color: #e8e8e8; font: 12px/1.3 system-ui, sans-serif; }
+  nav { padding: 6px 10px; border-bottom: 2px dashed #7d8590; }
+  nav a { color: #ffd27a; margin-right: 12px; }
+  div { flex: 1; display: grid; grid-template-columns: repeat(6, minmax(250px, 1fr)); gap: 2px; overflow-x: auto; }
+  iframe { width: 100%; height: 100%; border: 0; }
+</style>
+</head>
+<body>
+<nav><b>Colour review</b> · the six palettes as proposed, with their contrast (WCAG 2; ✗ marks a value below its limit) ·
+  <a href="view.html">View</a><a href="settings.html">Settings</a><a href="monitor.html">Monitor</a></nav>
+<div>
+  <iframe src="sample.html?embed&look=night-watch&scheme=dark&density=compact" title="Night Watch dark"></iframe>
+  <iframe src="sample.html?embed&look=night-watch&scheme=light&density=compact" title="Night Watch light"></iframe>
+  <iframe src="sample.html?embed&look=chart-room&scheme=dark&density=compact" title="Chart Room dark"></iframe>
+  <iframe src="sample.html?embed&look=chart-room&scheme=light&density=compact" title="Chart Room light"></iframe>
+  <iframe src="sample.html?embed&look=signal&scheme=dark&density=compact" title="Signal dark"></iframe>
+  <iframe src="sample.html?embed&look=signal&scheme=light&density=compact" title="Signal light"></iframe>
+</div>
+</body>
+</html>

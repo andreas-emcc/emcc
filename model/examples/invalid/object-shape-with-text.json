@@ -1,0 +1,51 @@
+{
+  "id": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e14",
+  "type": "core.shape",
+  "dataType": "core.general",
+  "dataSource": "manual",
+  "layerId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e01",
+  "version": 2,
+  "geometry": {
+    "type": "Circle",
+    "center": [
+      11.9746,
+      57.7089
+    ],
+    "radius": 2500
+  },
+  "style": {
+    "strokeColor": "#A33A3A",
+    "strokeWidth": 2,
+    "strokeDash": "dash",
+    "fillColor": "#FF8080",
+    "fillOpacity": 0.2
+  },
+  "properties": {
+    "name": "Restricted area"
+  },
+  "label": {
+    "policyIdentifier": {
+      "name": "NATO"
+    },
+    "classification": "UNCLASSIFIED"
+  },
+  "meta": {
+    "created": {
+      "at": "2026-10-03T08:40:00.000Z",
+      "by": {
+        "plugin": "draw-symbols",
+        "user": "3f2c9a10-5d7e-4b8a-9c41-2e6f8d0a7b15"
+      }
+    },
+    "modified": {
+      "at": "2026-10-03T08:41:12.500Z",
+      "by": {
+        "plugin": "draw-symbols",
+        "user": "3f2c9a10-5d7e-4b8a-9c41-2e6f8d0a7b15"
+      }
+    }
+  },
+  "text": {
+    "value": "Alpha"
+  }
+}

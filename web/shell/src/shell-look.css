@@ -1,0 +1,1732 @@
+/* The shell's look (UXA; agents/uxa.md): colours, backgrounds, borders and radii, shadows, outlines, type,
+   spacing, cursors, opacity and motion. Layout and structure are in shell.css (CDA), loaded just before
+   this file; each property is in one of the two files only (build/shell-css.test.ts). System fonts only:
+   nothing is loaded from the internet (ADR-0030). The values are the tokens (tokens.css). */
+:root {
+  /* The colours and sizes are the design tokens (tokens.css). */
+  font-family: var(--emc2-font-text);
+  font-size: var(--emc2-size-text);
+  color: var(--emc2-color-text);
+  background: var(--emc2-color-ground);
+}
+
+html,
+body,
+#root {
+  margin: 0;
+}
+
+/* ---- Top bar (ADR-0031 point 1) ---- */
+
+.top-bar {
+  gap: 16px;
+  /* No padding above and below: the tallest item (a plugin's item with room for its focus ring,
+     34 px compact; the "No login" mark, 44 px comfortable) fits in the bar's height from looks.md
+     less its border (T-113). */
+  padding: 0 12px;
+  /* The Edge colour at 1 px in every look: the bar's height is fixed (looks.md), and its items fit it. */
+  border-bottom: 1px solid var(--emc2-color-edge);
+  background: var(--control-pane-bg);
+}
+
+.top-bar .product {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+/* ---- The splash (ui/Logo.tsx; owner, 2026-10-29, from emcc_splash.html) ---- */
+
+.splash-backdrop {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: var(--emc2-color-backdrop);
+  cursor: pointer;
+}
+
+.splash-backdrop::backdrop {
+  background: transparent;
+}
+
+.splash {
+  padding: 20px;
+  background: #0f172a;
+  border-radius: var(--emc2-radius);
+  box-shadow: var(--emc2-shadow-menu);
+}
+
+/* Each half line has pathLength 1: it grows from the gap outward. */
+.splash-line {
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: splash-draw 1.8s ease-out forwards;
+}
+
+.splash-wordmark {
+  opacity: 0;
+  animation: splash-fade-in 5.6s ease-out 1.8s forwards, splash-pulse 2.8s ease-in-out 7.6s infinite;
+}
+
+@keyframes splash-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes splash-fade-in {
+  to { opacity: 1; }
+}
+
+@keyframes splash-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.78; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-line,
+  .splash-wordmark {
+    animation: none;
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+.view-tabs {
+  gap: 4px;
+}
+
+.view-tab {
+  padding: 6px 12px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.view-tab.selected {
+  border-bottom-color: var(--emc2-color-accent);
+  color: var(--shell-fg);
+}
+
+/* The active view tab per look (looks.md): Night Watch an accent underline (above), Chart Room an
+   accent pill on Accent soft, Signal a filled accent block. */
+:root[data-look='chart-room'] .view-tab {
+  border-bottom: 0;
+  border-radius: 999px;
+}
+
+:root[data-look='chart-room'] .view-tab.selected {
+  background: var(--emc2-color-accent-soft);
+  color: var(--emc2-color-accent);
+}
+
+:root[data-look='signal'] .view-tab {
+  border-bottom: 0;
+}
+
+:root[data-look='signal'] .view-tab.selected {
+  background: var(--emc2-color-accent);
+  color: var(--emc2-color-on-accent);
+}
+
+.top-bar-end {
+  gap: 12px;
+}
+
+.top-bar-items {
+  gap: var(--emc2-space-gap);
+}
+
+/* A plugin's item: a small control, its box capped so that one plugin cannot take the top bar.
+   Nothing is clipped: what the item draws outside its box (its focus ring, a menu below it) stays
+   visible (PCA-bookmarks, 2026-10-16). The SDK's Popover and dialogs go above everything anyway. */
+.top-bar-item {
+  padding: calc(var(--emc2-focus-width) + var(--emc2-focus-offset));
+}
+
+.clock {
+  padding: 2px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--emc2-radius);
+  background: none;
+  color: var(--emc2-color-text);
+  font-family: var(--emc2-font-data);
+  font-size: var(--emc2-size-text);
+  cursor: pointer;
+}
+
+.clock:hover {
+  border-color: var(--emc2-color-border);
+}
+
+.time-control.picked > .emc2-button {
+  border-color: var(--emc2-color-accent);
+  color: var(--emc2-color-accent);
+}
+
+.time-popover {
+  gap: calc(var(--emc2-space-gap) * 2);
+  padding: var(--emc2-space-gap);
+}
+
+.time-track {
+  margin: 1.25rem 1.5rem 0;
+}
+
+.time-track-line {
+  border-radius: 2px;
+  background: var(--emc2-color-border);
+}
+
+.time-span {
+  background: var(--emc2-color-accent);
+  opacity: 0.5;
+}
+
+.time-marker {
+  margin-left: -0.45rem;
+  border-radius: 3px;
+  background: var(--emc2-color-accent);
+  cursor: grab;
+}
+
+.time-marker-from,
+.time-marker-to {
+  margin-left: -0.25rem;
+}
+
+.time-marker.disabled {
+  background: var(--emc2-color-border);
+  cursor: default;
+}
+
+.time-marker-text {
+  font-family: var(--emc2-font-data);
+  font-size: 0.8em;
+  color: var(--emc2-color-text);
+}
+
+.time-marker:focus-visible {
+  outline: var(--emc2-focus-width) solid var(--emc2-focus-color);
+  outline-offset: var(--emc2-focus-offset);
+}
+
+.time-buttons {
+  gap: var(--emc2-space-gap);
+}
+
+.time-picker {
+  gap: 2px;
+  font-size: 0.85em;
+}
+
+.look-popover {
+  gap: var(--emc2-space-gap);
+}
+
+.setups-popover {
+  gap: var(--emc2-space-gap);
+}
+
+/* The help menu (ui/HelpMenu.tsx, M9 RC2): the SDK's Menu without a frame of its own (the popover is
+   the frame), its rows out to the popover's edges so their text lines up with the version line; the
+   version below a Border line as quiet small text. More groups (M10's licences) take the Menu's own
+   separators. */
+.help-popover {
+  gap: var(--emc2-space-gap);
+}
+
+.help-popover > .emc2-menu {
+  margin: 0 calc(-1 * var(--emc2-space-padding));
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.help-version {
+  margin: 0;
+  padding-top: var(--emc2-space-gap);
+  border-top: 1px solid var(--emc2-color-border);
+  color: var(--emc2-color-muted);
+  font-size: var(--emc2-size-text-small);
+}
+
+/* While it loads, the version line stands alone: no line above it. */
+.help-version:only-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.setups-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.setups-row {
+  gap: var(--emc2-space-gap);
+}
+
+.setups-restore {
+  padding: 0 var(--emc2-space-padding);
+  border: 0;
+  border-radius: var(--emc2-radius);
+  background: transparent;
+  color: var(--emc2-color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.setups-restore:hover:not(:disabled) {
+  /* Hover: a faint tint of the text colour; Accent soft is for selected rows (looks.md). */
+  background: color-mix(in srgb, var(--emc2-color-text) 6%, transparent);
+}
+
+.setups-hint {
+  margin: 0;
+  color: var(--emc2-color-muted);
+}
+
+.setups-save {
+  gap: var(--emc2-space-gap);
+}
+
+.setup-problem {
+  margin: 0;
+  color: var(--emc2-color-warning);
+}
+
+.top-bar .login {
+  gap: 8px;
+}
+
+/* One line each: when room is short, the end is cut with "…"; the whole text stays in the page for
+   screen readers and as the tooltip (owner, 2026-11-12). */
+.top-bar p {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.top-bar .no-login {
+  padding: 4px 8px;
+  border: 2px solid var(--warning);
+  border-radius: var(--emc2-radius);
+}
+
+/* ---- Views ---- */
+
+/* The other views cover View, which stays laid out underneath: the map keeps its size. */
+.other-view {
+  padding: 24px;
+  background: var(--shell-bg);
+}
+
+.other-view h1 {
+  margin: 0 0 12px;
+  font-size: 1.25rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* ---- Monitor tab ---- */
+
+.monitor-section {
+  margin: 16px 0 24px;
+}
+
+.monitor-section h2 {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+}
+
+/* T-203 part B: the Monitor in the card look (owner, 2026-11-13: Cards for Settings and the Monitor). */
+.monitor-card {
+  padding: var(--emc2-space-padding) calc(var(--emc2-space-padding) * 1.5);
+  border: 1px solid var(--emc2-color-edge-card);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-pane);
+  box-shadow: var(--emc2-shadow-card);
+}
+
+.monitor-tiles {
+  gap: var(--emc2-space-gap);
+}
+
+.monitor-tile {
+  gap: calc(var(--emc2-space-gap) / 2);
+  padding: var(--emc2-space-padding);
+  border: 1px solid var(--emc2-color-border);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-raised);
+}
+
+.monitor-tile-label {
+  color: var(--emc2-color-muted);
+  font-family: var(--emc2-font-label);
+  font-size: var(--emc2-size-text-small);
+  font-weight: var(--emc2-label-weight);
+  letter-spacing: var(--emc2-label-letter-spacing);
+  text-transform: var(--emc2-label-case);
+}
+
+/* The number itself: the data font, larger, so that it reads at a glance. */
+.monitor-tile-value {
+  color: var(--emc2-color-text);
+  font-family: var(--emc2-font-data);
+  font-size: calc(var(--emc2-size-text) * 1.5);
+  font-weight: 600;
+}
+
+.monitor-tile-note {
+  color: var(--emc2-color-muted);
+  font-size: var(--emc2-size-text-small);
+}
+
+.monitor-bar {
+  gap: var(--emc2-space-gap) var(--emc2-space-padding);
+  margin-bottom: var(--emc2-space-gap);
+  padding-bottom: var(--emc2-space-gap);
+  border-bottom: 1px solid var(--emc2-color-border);
+}
+
+.monitor-updated {
+  margin: 0;
+  font-size: var(--emc2-size-text-small);
+}
+
+.monitor-state {
+  gap: calc(var(--emc2-space-gap) / 2) var(--emc2-space-gap);
+}
+
+.monitor-state-detail {
+  color: var(--emc2-color-muted);
+  font-size: var(--emc2-size-text-small);
+}
+
+.monitor-table {
+  font-size: 0.85rem;
+  margin: 8px 0;
+}
+
+.monitor-table caption {
+  text-align: left;
+  font-weight: 500;
+  padding: 4px 0;
+}
+
+.monitor-table th,
+.monitor-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--pane-border);
+  text-align: left;
+}
+
+.monitor-table thead th {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.monitor-table tbody th {
+  font-weight: normal;
+}
+
+.monitor-toggle {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.monitor-details > td {
+  padding-left: 24px;
+  background: var(--control-pane-bg);
+}
+
+.monitor-details p {
+  margin: 4px 0;
+}
+
+.attention-warn > th:first-child,
+.attention-warn > td:first-child {
+  box-shadow: inset 4px 0 var(--warning);
+}
+
+.attention-bad > th:first-child,
+.attention-bad > td:first-child {
+  box-shadow: inset 4px 0 var(--error);
+}
+
+.attention-mark {
+  margin-left: 6px;
+  padding: 0 4px;
+  border: 1px solid currentColor;
+  border-radius: var(--emc2-radius);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.attention-mark-warn {
+  color: var(--warning);
+}
+
+.attention-mark-bad {
+  color: var(--error);
+}
+
+/* ---- The Settings list (ADR-0031 point 2): the entries on the left, the chosen one on the right ---- */
+
+.settings-layout {
+  gap: 24px;
+}
+
+/* T-203 part C, the card look (owner, 2026-11-13): the list with its filter is one card, the chosen
+   entry another, both framed in the card look's Edge on the ground. */
+.settings-list-card,
+.settings-entry-card {
+  border: var(--emc2-edge-width) solid var(--emc2-color-edge-card);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-pane);
+  box-shadow: var(--emc2-shadow-card);
+}
+
+.settings-list-card {
+  gap: var(--emc2-space-gap);
+  padding: var(--emc2-space-padding) 0;
+}
+
+.settings-list-card > .emc2-field {
+  padding: 0 var(--emc2-space-padding);
+}
+
+.settings-entry-card {
+  padding: calc(var(--emc2-space-padding) * 1.5) calc(var(--emc2-space-padding) * 1.5) var(--emc2-space-padding);
+}
+
+/* A card inside the entry's card is a group, not a second frame. */
+.settings-entry-card .settings-card {
+  border-color: var(--emc2-color-border);
+  box-shadow: none;
+}
+
+.settings-list-icon {
+  color: var(--emc2-color-muted);
+}
+
+.settings-list-entry.selected .settings-list-icon {
+  color: var(--emc2-color-accent);
+}
+
+/* The count of unsaved changes (or "edited"): a filled badge, read out by the hidden text beside it. */
+.unsaved-count {
+  padding: 0 calc(var(--emc2-space-gap) * 1.5);
+  border-radius: var(--emc2-radius-control);
+  background: var(--emc2-color-accent);
+  color: var(--emc2-color-on-accent);
+  font-size: var(--emc2-size-text-small);
+  font-weight: 700;
+}
+
+/* The one Save of the shown surface, pinned to the bottom while the page scrolls (its bar and Edge line
+   are the components'): set apart from the fields above it. */
+.settings-entry .emc2-panel-foot {
+  margin-top: calc(var(--emc2-space-padding) * 1.5);
+}
+
+/* The pinned save foot stops at the scrolling page's padding, so fields showed under it. On the
+   Settings page the space under the cards is a margin, not the page's padding: the foot reaches
+   the page's bottom edge while the page scrolls, and the space is still there at the end. */
+.other-view:has(.settings-layout) {
+  padding-bottom: 0;
+}
+
+.other-view .settings-layout {
+  margin-bottom: 24px;
+}
+
+/* SDK 1.6.0 (T-174): a category's heading in the Settings list; not a tab. */
+.settings-list-heading {
+  padding: var(--emc2-space-gap) var(--emc2-space-padding) 2px;
+  color: var(--emc2-color-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.settings-list-entry {
+  gap: var(--emc2-space-gap);
+  padding: 0 var(--emc2-space-padding);
+  border: 0;
+  border-left: 2px solid transparent;
+  background: none;
+  color: var(--emc2-color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-list-entry:hover {
+  background: color-mix(in srgb, var(--emc2-color-text) 6%, transparent);
+}
+
+.settings-list-entry.selected {
+  border-left-color: var(--emc2-color-accent);
+  background: var(--emc2-color-accent-soft);
+}
+
+.settings-list-entry:focus-visible {
+  outline: var(--emc2-focus-width) solid var(--emc2-focus-color);
+  outline-offset: calc(-1 * var(--emc2-focus-width));
+}
+
+.settings-entry > h2 {
+  margin: 0 0 8px;
+}
+
+/* ---- Settings: the entries' content ---- */
+
+.settings-section h2 {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+}
+
+/* Settings › Layers' group of one workspace (ADR-0039). */
+.settings-group h3 {
+  margin: 16px 0 4px;
+  font-size: 1rem;
+}
+
+.settings-card {
+  box-shadow: var(--emc2-shadow-card);
+  margin: 16px 0;
+  padding: 12px 16px;
+  border: 1px solid var(--emc2-color-edge-card);
+  border-radius: var(--emc2-radius);
+  background: var(--control-pane-bg);
+}
+
+.settings-card h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+
+.settings-card p {
+  margin: 4px 0;
+}
+
+/* A row of fields and buttons in a settings card (Settings › General, Settings › Layers). */
+.settings-inline {
+  gap: var(--emc2-space-gap) 16px;
+  margin-top: 8px;
+}
+
+.settings-id {
+  font-weight: normal;
+  font-size: 0.85rem;
+}
+
+/* A plugin's declared fields in its Settings entry (SDK 1.2.0): one item per field. */
+.declared-fields {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.declared-fields li {
+  padding: 6px 0;
+  border-top: 1px solid var(--pane-border);
+}
+
+.declared-fields li:first-child {
+  border-top: none;
+}
+
+.declared-field-name {
+  font-weight: 600;
+}
+
+.field {
+  gap: 2px;
+  margin: 10px 0;
+}
+
+.field-check {
+  column-gap: 8px;
+}
+
+.field label {
+  font-weight: 500;
+}
+
+/* A required input's mark after its label (the CDA's span; aria-required says it to screen readers):
+   in the accent, which is at least 4.5:1 on every surface (looks.md), never the error colour, so an
+   empty required field does not look wrong before it is. */
+.field-required-mark {
+  margin-left: 2px;
+  color: var(--emc2-color-accent);
+  font-weight: var(--emc2-heading-weight);
+}
+
+.field input[type='text'],
+.field select,
+.field-json {
+  padding: 4px 6px;
+  font: inherit;
+}
+
+.field-json {
+  font-family: var(--emc2-font-data);
+  font-size: 0.85rem;
+}
+
+.field [aria-invalid='true'] {
+  outline: 2px solid var(--error);
+}
+
+.field-help,
+.field-problem {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.field-help {
+  color: var(--muted);
+}
+
+.field-problem {
+  color: var(--error);
+}
+
+.field-group {
+  margin: 12px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--pane-border);
+  border-radius: var(--emc2-radius);
+}
+
+.field-group legend {
+  padding: 0 4px;
+  font-weight: 500;
+}
+
+/* An optional group's "Set …" or "Use the default" below its note or its fields. */
+.field-group > .emc2-button {
+  margin-top: var(--emc2-space-gap);
+}
+
+/* A layer picker's drop-down with its "+" (SDK 1.4.0, T-133), and the popover that names the new layer. */
+.layer-picker-row {
+  gap: var(--emc2-space-gap);
+}
+
+.layer-new-form {
+  gap: var(--emc2-space-gap);
+  padding: var(--emc2-space-padding);
+}
+
+/* A field enabled by another field's value (SDK 1.3.0, x-emc2.enabledWhen): no frame of its own;
+   greyed while it is disabled, its value kept. */
+.field-when {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.field-when:disabled {
+  opacity: 0.55;
+}
+
+.field-row {
+  gap: 8px;
+}
+
+.field-row .field {
+  margin: 4px 0;
+}
+
+.field-list {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.field-list-actions {
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+/*
+ * T-203 part E: the generated forms, after the design's plain page and side form
+ * (docs/ux/mockups/settings.html). The grid's gaps space the fields, so a field in a cell has no
+ * margin of its own; a group folds under a small head in the heading case with its count beside
+ * it; the help's (i) shows the longer text; a number's unit stands after it.
+ */
+.field-grid {
+  gap: var(--emc2-space-gap) var(--emc2-space-padding);
+  margin: var(--emc2-space-gap) 0 var(--emc2-space-padding);
+}
+
+.field-cell > :is(.field, .field-group),
+.field-cell > :is(.field-when, .field-shown-when) > :is(.field, .field-group),
+.field-cell > .field-shown-when > .field-when > :is(.field, .field-group) {
+  margin: 0;
+}
+
+.field-section-group {
+  margin: var(--emc2-space-padding) 0 0;
+}
+
+.field-section-group > summary {
+  padding: var(--emc2-space-gap) 0;
+  border-bottom: 1px solid var(--emc2-color-border);
+  color: var(--emc2-color-muted);
+  font-family: var(--emc2-font-heading);
+  font-size: var(--emc2-size-text-small);
+  font-weight: var(--emc2-heading-weight);
+  letter-spacing: var(--emc2-heading-letter-spacing);
+  text-transform: var(--emc2-heading-case);
+  cursor: pointer;
+}
+
+.field-section-group > summary::marker {
+  color: var(--emc2-color-muted);
+}
+
+.field-section-group[open] > summary,
+.field-section-group > summary:hover {
+  color: var(--emc2-color-text);
+}
+
+.field-section-group > summary:focus-visible {
+  outline: var(--emc2-focus-width) solid var(--emc2-focus-color);
+  outline-offset: 1px;
+}
+
+.field-section-count {
+  margin-left: var(--emc2-space-padding);
+  color: var(--emc2-color-muted);
+  font-family: var(--emc2-font-text);
+  font-weight: normal;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.field-help-line {
+  gap: var(--emc2-space-gap);
+}
+
+/* A 24 px target round the 16 px icon (WCAG 2.2, 2.5.8), the line's height kept by the margin. */
+.field-more-toggle {
+  margin: -4px;
+  padding: 4px;
+  border: 0;
+  border-radius: var(--emc2-radius-control);
+  background: none;
+  color: var(--emc2-color-muted);
+  cursor: pointer;
+}
+
+.field-more-toggle:hover,
+.field-more-toggle[aria-expanded='true'] {
+  color: var(--emc2-color-accent);
+}
+
+.field-more-toggle:focus-visible {
+  outline: var(--emc2-focus-width) solid var(--emc2-focus-color);
+  outline-offset: 1px;
+}
+
+.field-more {
+  margin: var(--emc2-space-gap) 0 0;
+  padding: var(--emc2-space-gap) var(--emc2-space-padding);
+  border-left: calc(var(--emc2-focus-width) + 1px) solid var(--emc2-color-accent);
+  background: var(--emc2-color-accent-soft);
+  color: var(--emc2-color-text);
+  font-size: var(--emc2-size-text-small);
+}
+
+.field-with-unit {
+  gap: var(--emc2-space-gap);
+}
+
+.field-number {
+  font-family: var(--emc2-font-data);
+  text-align: right;
+}
+
+.field-unit {
+  color: var(--emc2-color-muted);
+  font-family: var(--emc2-font-data);
+  font-size: var(--emc2-size-text-small);
+}
+
+/* T-161: a list of sections (e.g. a plugin's links), each entry collapsing under a header that
+   names it; the entry's own legend says the same, so it is left to screen readers. */
+.field-section-toggle {
+  gap: 4px;
+  margin: 4px 0;
+  padding: 4px 0;
+  border: 0;
+  border-bottom: 1px solid var(--emc2-color-border);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-actions {
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.settings-notice {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border: 2px solid var(--warning);
+  border-radius: var(--emc2-radius);
+}
+
+.settings-notice p {
+  margin: 0 0 6px;
+}
+
+.settings-saved {
+  color: var(--ok);
+}
+
+.settings-saved:empty {
+  margin: 0;
+}
+
+.settings-refused {
+  color: var(--error);
+}
+
+.settings-refused p,
+.settings-refused ul {
+  margin: 6px 0;
+}
+
+/*
+ * T-203 part D: Settings' two tables, after the design's "Table + side form" and Data types
+ * (docs/ux/mockups/settings.html). One table look for both: the head row in the field labels'
+ * font and case on the panel colour over an Edge line, rows between Border lines, the chosen row
+ * in the open panel's soft head (Accent soft and an accent bar), a refused row with an error bar.
+ */
+.settings-item-list {
+  margin: calc(var(--emc2-space-padding) * 1.5) 0 0;
+}
+
+.settings-item-list > h3,
+.settings-item-head > h4 {
+  margin: 0;
+  font-family: var(--emc2-font-heading);
+  font-size: var(--emc2-size-text);
+  font-weight: var(--emc2-heading-weight);
+  letter-spacing: var(--emc2-heading-letter-spacing);
+  text-transform: var(--emc2-heading-case);
+}
+
+.settings-item-list > h3 {
+  margin-bottom: var(--emc2-space-gap);
+}
+
+.settings-item-split,
+.settings-table-scroll {
+  border: 1px solid var(--emc2-color-border);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-pane);
+}
+
+.settings-item-bar {
+  gap: var(--emc2-space-gap);
+  padding: var(--emc2-space-gap) var(--emc2-space-padding);
+}
+
+.settings-item-table > table,
+.settings-data-type-table {
+  font-size: var(--emc2-size-text);
+}
+
+:is(.settings-item-table, .settings-table-scroll) thead th {
+  padding: var(--emc2-space-gap) var(--emc2-space-padding);
+  border-bottom: var(--emc2-edge-width) solid var(--emc2-color-edge);
+  background: var(--emc2-color-panel);
+  color: var(--emc2-color-muted);
+  font-family: var(--emc2-font-label);
+  font-size: var(--emc2-size-text-small);
+  font-weight: var(--emc2-heading-weight);
+  letter-spacing: var(--emc2-label-letter-spacing);
+  text-transform: var(--emc2-label-case);
+  text-align: left;
+}
+
+:is(.settings-item-table, .settings-table-scroll) tbody :is(th, td) {
+  padding: var(--emc2-space-gap) var(--emc2-space-padding);
+  border-bottom: 1px solid var(--emc2-color-border);
+  font-weight: normal;
+  text-align: left;
+}
+
+:is(.settings-item-table, .settings-table-scroll) tbody tr:last-child > :is(th, td) {
+  border-bottom: 0;
+}
+
+.settings-item-table tbody tr {
+  cursor: pointer;
+}
+
+.settings-item-table tbody tr:not([data-selected]):hover {
+  background: color-mix(in srgb, var(--emc2-color-text) 6%, transparent);
+}
+
+.settings-item-table tr[data-selected] {
+  background: var(--emc2-color-accent-soft);
+}
+
+.settings-item-table tr[data-selected] > :first-child {
+  box-shadow: inset calc(var(--emc2-focus-width) + 1px) 0 0 var(--emc2-color-accent);
+}
+
+:is(.settings-item-table, .settings-table-scroll) tr[data-refused] > :first-child {
+  box-shadow: inset calc(var(--emc2-focus-width) + 1px) 0 0 var(--emc2-color-error);
+}
+
+.settings-item-cell {
+  gap: var(--emc2-space-gap);
+}
+
+.settings-item-name {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--emc2-color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-item-name[aria-current] {
+  font-weight: var(--emc2-heading-weight);
+}
+
+.settings-item-name:focus-visible {
+  outline: var(--emc2-focus-width) solid var(--emc2-focus-color);
+  outline-offset: 1px;
+}
+
+/* The side form: an Edge line beside the table, or above it where it stacks under the table. The
+   900 px is shell.css's breakpoint on .settings-item-list's container; change both together. */
+.settings-item-form {
+  border-left: var(--emc2-edge-width) solid var(--emc2-color-edge);
+}
+
+@container (max-width: 900px) {
+  .settings-item-form {
+    border-left: 0;
+    border-top: var(--emc2-edge-width) solid var(--emc2-color-edge);
+  }
+}
+
+.settings-item-head {
+  gap: var(--emc2-space-gap);
+  padding: var(--emc2-space-gap) var(--emc2-space-gap) var(--emc2-space-gap) var(--emc2-space-padding);
+  border-bottom: 1px solid var(--emc2-color-border);
+  background: var(--emc2-color-panel);
+}
+
+.settings-item-form > .muted,
+.settings-item-form .settings-form {
+  margin: 0;
+  padding: var(--emc2-space-padding);
+}
+
+.settings-item-form .emc2-panel-foot {
+  margin: 0;
+}
+
+/* Settings › Data types */
+.settings-data-types .settings-table-scroll {
+  margin: var(--emc2-space-padding) 0 0;
+}
+
+.settings-id {
+  font-family: var(--emc2-font-data);
+  font-size: var(--emc2-size-text-small);
+}
+
+.settings-time {
+  gap: var(--emc2-space-gap);
+}
+
+.settings-time > .emc2-input {
+  text-align: right;
+}
+
+tr.settings-row-note > td {
+  padding: 0 var(--emc2-space-padding) var(--emc2-space-gap);
+}
+
+tr.settings-row-note .settings-notice,
+tr.settings-row-note .settings-refused {
+  margin: 0;
+}
+
+.labeling-policy {
+  margin: 0 0 12px;
+  border: 1px solid var(--emc2-color-border);
+  background: var(--emc2-color-pane);
+}
+
+.labeling-policy > header {
+  border-bottom: 1px solid var(--emc2-color-border);
+}
+
+.labeling-toggle {
+  gap: 8px;
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--emc2-color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.labeling-toggle strong {
+  font-size: 16px;
+}
+
+.labeling-policy > .notice,
+.labeling-policy [role='alert'] {
+  margin: 8px 12px 0;
+}
+
+.labeling-columns > div {
+  padding: 12px;
+}
+
+.labeling-columns > div + div {
+  border-left: 1px solid var(--emc2-color-border);
+}
+
+@media (max-width: 760px) {
+  .labeling-columns > div + div {
+    border-top: 1px solid var(--emc2-color-border);
+    border-left: 0;
+  }
+}
+
+.labeling-columns h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.labeling-columns h3:not(:first-child) {
+  margin-top: 12px;
+}
+
+.labeling-section h4 {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--emc2-color-text);
+}
+
+.labeling-section + .labeling-section {
+  margin-top: 10px;
+}
+
+.labeling-section-name {
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--emc2-color-border);
+}
+
+.labeling-ladder {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.labeling-ladder li {
+  gap: 6px;
+  padding: 3px 0;
+}
+
+.labeling-help {
+  margin: 6px 0;
+  color: var(--emc2-color-muted);
+  font-size: 12px;
+}
+
+.labeling-group {
+  margin-bottom: 12px;
+}
+
+.labeling-group h5,
+.labeling-editor h5 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--emc2-color-muted);
+}
+
+.labeling-editor h5 {
+  color: var(--emc2-color-text);
+}
+
+.labeling-chips,
+.labeling-made {
+  gap: 4px 6px;
+}
+
+.labeling-chips {
+  gap: 4px;
+}
+
+.labeling-chip {
+  padding: 1px 6px;
+  border: 1px solid var(--emc2-color-muted);
+  border-radius: 10px;
+  background: var(--emc2-color-panel);
+  color: var(--emc2-color-text);
+  font: 12px var(--emc2-font-data);
+  cursor: pointer;
+}
+
+.labeling-chip-text {
+  border-style: dashed;
+  font-family: var(--emc2-font-text);
+}
+
+.labeling-chip[aria-pressed='true'] {
+  border-color: var(--emc2-color-accent);
+  background: var(--emc2-color-accent-soft);
+}
+
+.labeling-toggles .labeling-chip[aria-pressed='false'] {
+  border-color: var(--emc2-color-border);
+  color: var(--emc2-color-muted);
+}
+
+/* A label: the policy and classification on its colour, then its releasability. */
+.labeling-label {
+  padding: 0;
+  border: 1px solid var(--emc2-color-border);
+  background: var(--emc2-color-panel);
+  color: var(--emc2-color-text);
+  font: 600 12px/1 var(--emc2-font-data);
+  text-align: left;
+}
+
+button.labeling-label {
+  cursor: pointer;
+}
+
+button.labeling-label[aria-pressed='true'] {
+  outline: 2px solid var(--emc2-color-accent);
+  outline-offset: 2px;
+}
+
+.labeling-cls {
+  padding: 4px 6px;
+  color: #fff;
+}
+
+.labeling-rel {
+  padding: 4px 6px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.labeling-editor,
+.labeling-value-edit {
+  margin: 0 0 12px;
+  padding: 10px;
+  border: 1px dashed var(--emc2-color-muted);
+  background: var(--emc2-color-panel);
+}
+
+.labeling-editor-row {
+  gap: 12px;
+}
+
+.labeling-editor-end {
+  margin-top: 8px;
+}
+
+.labeling-toggles {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.labeling-toggles legend {
+  margin-bottom: 3px;
+  padding: 0;
+  font-weight: 600;
+}
+
+.labeling-empty {
+  margin: 0 0 8px;
+  padding: 16px;
+  border: 1px dashed var(--emc2-color-border);
+  color: var(--emc2-color-muted);
+}
+
+.labeling-error {
+  margin: 6px 0 0;
+  color: var(--error);
+  font-size: 13px;
+}
+
+.labeling-warn {
+  margin: 6px 0 0;
+  color: var(--warning);
+  font-size: 13px;
+}
+
+/* ---- Map Pane ---- */
+
+.map-pane .placeholder {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* The overlay layer lets the pointer through to the map, except on the overlays themselves. */
+.overlays {
+  gap: 8px;
+  margin: 8px;
+}
+
+/* ---- Workspace: the panes (ADR-0031 point 4) ---- */
+
+.workspace-centre > .fatal {
+  margin: 0;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--emc2-color-border);
+  background: var(--emc2-color-panel);
+}
+
+.live-notice {
+  gap: var(--emc2-space-gap);
+  margin: 0;
+  padding: 4px 10px;
+  border: 1px solid var(--emc2-color-warning);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-panel);
+  color: var(--emc2-color-warning);
+}
+
+.pane {
+  background: var(--emc2-color-pane);
+}
+
+.pane-left {
+  border-right: var(--emc2-edge-width) solid var(--emc2-color-edge);
+}
+
+.pane-right {
+  border-left: var(--emc2-edge-width) solid var(--emc2-color-edge);
+}
+
+.pane-bottom {
+  border-top: var(--emc2-edge-width) solid var(--emc2-color-edge);
+}
+
+.pane-toggle {
+  padding: 2px;
+}
+
+.panel {
+  border-bottom: 1px solid var(--emc2-color-border);
+}
+
+.panel-head {
+  gap: 2px;
+  padding: 0 2px 0 4px;
+  background: var(--emc2-color-panel);
+}
+
+/* The open panel's soft head, the same in every look (ADR-0056 point 4; owner, 2026-11-13): the
+   Accent soft tint, an accent bar on the left, the chevron and the icon in the accent. It shows by the
+   bar and the chevron's direction too, not by colour alone. */
+.panel[data-open] > .panel-head {
+  background: var(--emc2-color-accent-soft);
+  box-shadow: inset calc(var(--emc2-focus-width) + 1px) 0 0 var(--emc2-color-accent);
+}
+
+.panel[data-open] > .panel-head .panel-toggle .emc2-icon {
+  color: var(--emc2-color-accent);
+}
+
+.panel-title {
+  margin: 0;
+  font-size: var(--emc2-size-text);
+  font-family: var(--emc2-font-heading);
+  font-weight: var(--emc2-heading-weight);
+  letter-spacing: var(--emc2-heading-letter-spacing);
+  text-transform: var(--emc2-heading-case);
+}
+
+.panel-toggle {
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+/* The move buttons in the muted text colour, at full strength; only a disabled one looks disabled
+   (looks.md: muted, with its icon at 60 %; conformance review F2). */
+.panel-moves {
+  gap: 0;
+}
+
+.panel-moves .emc2-icon-button,
+.pane-toggle .emc2-icon-button {
+  color: var(--emc2-color-muted);
+}
+
+.panel-moves .emc2-icon-button:hover:not(:disabled),
+.pane-toggle .emc2-icon-button:hover {
+  color: var(--emc2-color-text);
+}
+
+/* The look's focus ring on the shell's own controls (looks.md, "Focus"). Drawn inside where an
+   edge or a scrolling strip would cut it off. */
+.view-tab:focus-visible,
+.clock:focus-visible,
+.setups-restore:focus-visible,
+.top-bar button:focus-visible,
+.live-notice button:focus-visible {
+  outline: var(--emc2-focus-width) solid var(--emc2-focus-color);
+  outline-offset: var(--emc2-focus-offset);
+}
+
+.panel-toggle:focus-visible,
+.bottom-tab:focus-visible,
+.resize-handle:focus-visible {
+  outline: var(--emc2-focus-width) solid var(--emc2-focus-color);
+  outline-offset: calc(-1 * var(--emc2-focus-width));
+}
+
+.panel-body {
+  padding: var(--emc2-space-padding);
+}
+
+.pane-tabs {
+  gap: 4px;
+  padding-right: 2px;
+  background: var(--emc2-color-panel);
+  border-bottom: 1px solid var(--emc2-color-border);
+}
+
+.bottom-tab {
+  gap: 4px;
+  padding: 4px 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--emc2-color-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.bottom-tab.selected {
+  border-bottom-color: var(--emc2-color-accent);
+  background: var(--emc2-color-accent-soft);
+  color: var(--emc2-color-text);
+}
+
+.bottom-tab.selected .emc2-icon {
+  color: var(--emc2-color-accent);
+}
+
+.bottom-panel {
+  padding: var(--emc2-space-padding);
+  border: 0;
+}
+
+/* The handle sits on the pane's edge towards the map. */
+.resize-handle {
+  background: transparent;
+}
+
+.resize-handle:hover,
+.resize-handle:focus-visible {
+  background: var(--emc2-color-accent-soft);
+}
+
+.resize-left,
+.resize-right {
+  cursor: col-resize;
+}
+
+.resize-bottom {
+  cursor: row-resize;
+}
+
+.status-panel p {
+  margin: 0 0 4px;
+  color: var(--emc2-color-muted);
+}
+
+.no-login strong {
+  color: var(--warning);
+  text-transform: uppercase;
+}
+
+.live-closed,
+.live-incompatible,
+.live-logged-out {
+  color: var(--warning) !important;
+}
+
+.fatal,
+.plugin-error {
+  color: var(--error);
+}
+
+.plugin-list {
+  margin-top: 8px;
+}
+
+.plugin-list ul {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plugin-list li {
+  margin-bottom: 6px;
+}
+
+.plugin-name {
+  font-weight: 600;
+}
+
+.plugin-state {
+  color: var(--muted);
+}
+
+.plugin-degraded .plugin-state {
+  color: var(--warning);
+}
+
+.plugin-failed .plugin-state {
+  color: var(--error);
+}
+
+.plugin-note {
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ---- The shell's menu for objects and the map (actions/ActionMenu.tsx) ---- */
+
+/* At the point it opened, kept inside the window by the component, in the browser's top layer
+   (popover="manual", as the SDK's popovers since CR-0021), so the browser's own [popover] place
+   (inset 0, margin auto) is reset. Without the feature it is fixed in the page. */
+.action-menu {
+  margin: 0;
+  padding: 4px 0;
+  border: 1px solid var(--emc2-color-border);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-panel);
+  box-shadow: var(--emc2-shadow-menu);
+  color: var(--emc2-color-text);
+}
+
+.action-menu:focus {
+  outline: none;
+}
+
+.action-menu-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.action-menu-item {
+  gap: var(--emc2-space-gap);
+  padding: 0 var(--emc2-space-padding);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.action-menu-item:hover:not([aria-disabled="true"]),
+.action-menu-item:focus-visible {
+  /* A faint tint of the text colour, as hover in every look (looks.md); Accent soft is for selected rows. */
+  background: color-mix(in srgb, var(--emc2-color-text) 6%, transparent);
+}
+
+.action-menu-item:focus-visible {
+  outline: var(--emc2-focus-width) solid var(--emc2-focus-color);
+  outline-offset: calc(-1 * var(--emc2-focus-width));
+}
+
+.action-menu-none {
+  color: var(--emc2-color-muted);
+  cursor: default;
+}
+
+.action-menu-layer {
+  color: var(--emc2-color-muted);
+}
+
+.action-menu-note {
+  margin: 0;
+  padding: 4px var(--emc2-space-padding);
+  color: var(--emc2-color-muted);
+}
+
+.action-menu-problem {
+  color: var(--emc2-color-error);
+}
+
+.action-menu-separator {
+  margin: 4px 0;
+  background: var(--emc2-color-border);
+}
+
+/* ---- Notifications ---- */
+
+.notifications {
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notification {
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--emc2-color-border);
+  border-left: 4px solid var(--muted);
+  border-radius: var(--emc2-radius);
+  background: var(--notification-bg);
+  box-shadow: var(--emc2-shadow-menu);
+  font-size: 0.9rem;
+}
+
+.notification-warning {
+  border-left-color: var(--warning);
+}
+
+.notification-error {
+  border-left-color: var(--error);
+}
+
+.notification-source {
+  font-weight: 600;
+}
+
+.notification button {
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* SDK 1.4.0 part 5: the display settings window (ADR-0052) and Settings › Display. The controls are
+   the web SDK's shared ones; the window about ten rows wide, as the Coordinates one.
+   T-162 (owner, 2026-11-10): the icon and the window have map-view-2d's map settings frame, and the
+   window takes the icon's place in the corner, so it grows to the left over the map. */
+.display-toggle {
+  border: 1px solid var(--emc2-color-border);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-pane);
+  box-shadow: var(--emc2-shadow-card);
+  color: var(--emc2-color-text);
+}
+
+.display-window {
+  gap: var(--emc2-space-gap);
+  padding: var(--emc2-space-padding);
+  border: 1px solid var(--emc2-color-border);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-pane);
+  box-shadow: var(--emc2-shadow-card);
+  color: var(--emc2-color-text);
+  font: var(--emc2-size-text) / 1.3 var(--emc2-font-text);
+}
+
+.display-head {
+  gap: var(--emc2-space-gap);
+  font-family: var(--emc2-font-heading);
+  font-weight: var(--emc2-heading-weight);
+  letter-spacing: var(--emc2-heading-letter-spacing);
+  text-transform: var(--emc2-heading-case);
+}
+
+.display-form,
+.display-section,
+.display-labels {
+  gap: var(--emc2-space-gap);
+}
+
+.display-section h3 {
+  margin: 0;
+  font-size: inherit;
+  font-family: var(--emc2-font-heading);
+  font-weight: var(--emc2-heading-weight);
+  letter-spacing: var(--emc2-heading-letter-spacing);
+  text-transform: var(--emc2-heading-case);
+  color: var(--emc2-color-muted);
+}
+
+.display-labels {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.display-labels legend {
+  padding: 0;
+  margin-bottom: var(--emc2-space-gap);
+}
+/* SDK 1.6.0 (CR-0041 part F): a colour setting, the browser's picker before its hex text. */
+.field-colour {
+  gap: var(--emc2-space-gap);
+}
+
+.field-colour input[type="color"] {
+  padding: 2px;
+  border: 1px solid var(--emc2-color-border);
+  border-radius: var(--emc2-radius);
+  background: var(--emc2-color-pane);
+  cursor: pointer;
+}
+
+.field-colour input[type="color"]:disabled {
+  cursor: default;
+}

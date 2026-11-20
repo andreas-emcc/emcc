@@ -1,0 +1,35 @@
+{
+  "id": "gmti",
+  "name": "STANAG 4607 GMTI",
+  "version": "0.5.0",
+  "sdkVersion": "^1.6.0",
+  "kind": "general",
+  "category": "data-links",
+  "settings": {
+    "type": "object",
+    "properties": {
+      "pairingColour": {
+        "description": "Data model 1.6.0 (CR-0041 part F; owner Q60 A): a colour setting, shown as a colour picker.",
+        "type": "string",
+        "pattern": "^#[0-9A-Fa-f]{6}$",
+        "default": "#FFFF00",
+        "x-emc2": { "kind": "colour" }
+      },
+      "dwellAreaColour": {
+        "type": "object",
+        "properties": {
+          "use": { "enum": ["identity", "fixed"], "default": "identity" },
+          "colour": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "default": "#FFFF00",
+            "x-emc2": { "kind": "colour", "visibleWhen": { "property": "use", "in": ["fixed"] } }
+          }
+        },
+        "default": { "use": "identity", "colour": "#FFFF00" }
+      }
+    },
+    "default": { "pairingColour": "#FFFF00", "dwellAreaColour": { "use": "identity", "colour": "#FFFF00" } }
+  },
+  "server": { "entryClass": "dev.emcc.plugins.gmti.GmtiPlugin" }
+}

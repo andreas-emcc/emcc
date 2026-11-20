@@ -1,0 +1,379 @@
+{
+  "id": "ais",
+  "name": "AIS",
+  "version": "0.1.0",
+  "sdkVersion": "^1.8.0",
+  "icon": "Ship",
+  "kind": "general",
+  "category": "data-links",
+  "properties": [
+    "ingoing"
+  ],
+  "connections": [
+    {
+      "kinds": [
+        "udp",
+        "tcp-client"
+      ],
+      "direction": "in",
+      "settings": "/links",
+      "reason": "AIS as NMEA 0183 AIVDM sentences from a receiver or a feed: a UDP receiver and a TCP client, as each link in the settings names it. The hosts, ports and addresses come only from the links."
+    }
+  ],
+  "internet": {
+    "hosts": [],
+    "reason": "An admin may point a TCP link at an AIS feed on the internet. No host is contacted by default; the hosts come only from the links."
+  },
+  "dataTypes": [
+    {
+      "id": "ais.vessel",
+      "name": "AIS vessel",
+      "description": "Ships received as AIS messages (NMEA 0183 AIVDM).",
+      "fieldSets": ["ship"],
+      "defaults": {
+        "expiresAfterSeconds": 600,
+        "fadeWhenExpired": true,
+        "removeAfterExpirySeconds": 1800
+      }
+    }
+  ],
+  "fields": [
+    {
+      "name": "callSign",
+      "type": "text",
+      "label": "Call sign",
+      "description": "The ship's radio call sign (AIS type 5 and 24B).",
+      "maxLength": 7,
+      "editableByOthers": true
+    },
+    {
+      "name": "imo",
+      "type": "integer",
+      "label": "IMO number",
+      "description": "The ship's IMO number (AIS type 5).",
+      "minimum": 1,
+      "maximum": 999999999,
+      "editableByOthers": true
+    },
+    {
+      "name": "shipType",
+      "type": "integer",
+      "label": "Ship type",
+      "description": "The AIS ship and cargo type, 0 to 99 (ITU-R M.1371 table 53).",
+      "minimum": 0,
+      "maximum": 99,
+      "editableByOthers": true
+    },
+    {
+      "name": "navStatus",
+      "type": "integer",
+      "label": "Navigational status",
+      "description": "The navigational status code of ITU-R M.1371: 0 under way using engine, 1 at anchor, 2 not under command, 3 restricted manoeuvrability, 4 constrained by draught, 5 moored, 6 aground, 7 engaged in fishing, 8 under way sailing, 9 and 10 reserved, 11 towing astern, 12 pushing ahead or towing alongside, 13 reserved, 14 AIS-SART active.",
+      "minimum": 0,
+      "maximum": 14,
+      "editableByOthers": true
+    },
+    {
+      "name": "heading",
+      "type": "integer",
+      "label": "Heading",
+      "description": "The ship's true heading.",
+      "unit": "deg",
+      "minimum": 0,
+      "maximum": 359,
+      "editableByOthers": true
+    },
+    {
+      "name": "length",
+      "type": "number",
+      "label": "Length",
+      "description": "The ship's length overall.",
+      "unit": "m",
+      "minimum": 0,
+      "maximum": 1000,
+      "editableByOthers": true
+    },
+    {
+      "name": "beam",
+      "type": "number",
+      "label": "Beam",
+      "description": "The ship's beam.",
+      "unit": "m",
+      "minimum": 0,
+      "maximum": 1000,
+      "editableByOthers": true
+    },
+    {
+      "name": "draught",
+      "type": "number",
+      "label": "Draught",
+      "description": "The ship's draught.",
+      "unit": "m",
+      "minimum": 0,
+      "maximum": 1000,
+      "editableByOthers": true
+    },
+    {
+      "name": "destination",
+      "type": "text",
+      "label": "Destination",
+      "description": "The destination the ship reports (AIS type 5).",
+      "maxLength": 20,
+      "editableByOthers": true
+    },
+    {
+      "name": "class",
+      "type": "choice",
+      "label": "AIS class",
+      "description": "Whether the ship sends as class A or class B.",
+      "choices": [
+        {
+          "value": "A",
+          "label": "Class A"
+        },
+        {
+          "value": "B",
+          "label": "Class B"
+        }
+      ],
+      "editableByOthers": true
+    }
+  ],
+  "fieldSets": [
+    {
+      "id": "ship",
+      "label": "AIS ship",
+      "fields": [
+        "callSign",
+        "imo",
+        "shipType",
+        "navStatus",
+        "heading",
+        "length",
+        "beam",
+        "draught",
+        "destination",
+        "class"
+      ]
+    }
+  ],
+  "server": {
+    "entryClass": "dev.emcc.plugins.ais.AisPlugin"
+  },
+  "settings": {
+    "type": "object",
+    "properties": {
+      "links": {
+        "title": "Links",
+        "description": "The connections that receive AIS, one entry per link (a TCP client or a UDP receiver). Without an entry the plugin does nothing.",
+        "type": "array",
+        "default": [],
+        "x-emc2": {
+          "hint": "Each link receives AIS from a receiver or a feed",
+          "item": {
+            "name": "name",
+            "noun": "link",
+            "state": "enabled",
+            "columns": ["mode", "host", "port", "symbolType"]
+          }
+        },
+        "items": {
+          "type": "object",
+          "x-emc2": {
+            "groups": [
+              { "id": "connection", "label": "Connection", "description": "The receiver or feed a TCP link connects to, or the address a UDP link listens on.", "properties": ["host", "port", "listen"] },
+              { "id": "picture", "label": "Picture", "description": "Where the link's ships go, and how they are drawn.", "properties": ["targetLayer", "symbolType", "standardIdentity"] },
+              { "id": "classification", "label": "Classification", "description": "The security label of the link's layer and ships.", "properties": ["label"] },
+              { "id": "advanced", "label": "Advanced", "description": "When a silent TCP link connects again.", "properties": ["idleSeconds"], "advanced": true }
+            ]
+          },
+          "properties": {
+            "name": {
+              "title": "Name",
+              "description": "The link's name: lowercase words separated by hyphens, at most 64 characters (e.g. harbour-north). It is the data source of the ships the link receives. 'manual' is reserved.",
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+              "maxLength": 64,
+              "x-emc2": {
+                "hint": "Lowercase words with hyphens, e.g. harbour-north; also the ships' data source"
+              }
+            },
+            "mode": {
+              "title": "Mode",
+              "description": "tcp-client: connects to a receiver or feed that serves AIS as lines of text over TCP. udp: receives datagrams, one or more sentences each, on the listen address and port.",
+              "enum": [
+                "udp",
+                "tcp-client"
+              ],
+              "default": "tcp-client",
+              "x-emc2": {
+                "hint": "tcp-client connects to a receiver or feed; udp receives datagrams"
+              }
+            },
+            "direction": {
+              "title": "Direction",
+              "description": "in: the link receives AIS. The plugin sends nothing.",
+              "enum": [
+                "in"
+              ],
+              "default": "in"
+            },
+            "host": {
+              "title": "Host",
+              "description": "tcp-client: the host of the receiver or feed.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253,
+              "x-emc2": {
+                "visibleWhen": { "property": "mode", "in": ["tcp-client"] }
+              }
+            },
+            "port": {
+              "title": "Port",
+              "description": "tcp-client: the port of the receiver or feed.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535,
+              "x-emc2": {
+                "visibleWhen": { "property": "mode", "in": ["tcp-client"] }
+              }
+            },
+            "listen": {
+              "title": "Listen on",
+              "description": "udp: where to receive. The address defaults to 127.0.0.1 (only this computer); an administrator sets another address, or 0.0.0.0, to receive from the network.",
+              "type": "object",
+              "x-emc2": {
+                "hint": "127.0.0.1 listens on this computer only; 0.0.0.0 on the network",
+                "visibleWhen": { "property": "mode", "in": ["udp"] }
+              },
+              "required": [
+                "port"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "address": {
+                  "title": "Address",
+                  "description": "The local address to listen on.",
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 253,
+                  "default": "127.0.0.1"
+                },
+                "port": {
+                  "title": "Port",
+                  "description": "The local port to listen on.",
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65535
+                }
+              }
+            },
+            "idleSeconds": {
+              "title": "Reconnect when idle",
+              "description": "tcp-client: the link connects again when nothing has come for this long. 0: never.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 86400,
+              "default": 300,
+              "x-emc2": {
+                "hint": "tcp-client: connect again after this long without data; 0: never",
+                "unit": "s"
+              }
+            },
+            "targetLayer": {
+              "title": "Layer",
+              "description": "Where the ships go: a layer picked in the list, or one made at once with the \"+\" button (it is saved with its id). A picked layer that is deleted later is made again under its name at the next ship. Absent: a new layer named like the link. Two links that name the same gone layer share the new one.",
+              "type": "object",
+              "x-emc2": {
+                "kind": "layer",
+                "hint": "Where the ships go; empty: a new layer named like the link"
+              },
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "name"
+              ]
+            },
+            "label": {
+              "title": "Security label",
+              "description": "The security label of the link's layer and ships. Default: the server's default label.",
+              "type": "object",
+              "x-emc2": {
+                "hint": "The label of the link's layer and ships; empty: the server's default"
+              },
+              "properties": {
+                "policy": {
+                  "title": "Policy",
+                  "description": "The security policy, e.g. NATO.",
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "classification": {
+                  "title": "Classification",
+                  "description": "The classification the policy defines, e.g. UNCLASSIFIED.",
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                }
+              },
+              "required": [
+                "policy",
+                "classification"
+              ],
+              "additionalProperties": false
+            },
+            "standardIdentity": {
+              "title": "Standard identity",
+              "description": "The standard identity of the symbol of every ship of the link (APP-6D). AIS does not say friend or foe: unknown by default; neutral suits a civilian feed.",
+              "enum": [
+                "pending",
+                "unknown",
+                "assumed-friend",
+                "friend",
+                "neutral",
+                "suspect",
+                "hostile"
+              ],
+              "default": "unknown",
+              "x-emc2": {
+                "hint": "AIS does not say friend or foe; neutral suits a civilian feed"
+              }
+            },
+            "symbolType": {
+              "title": "Symbols",
+              "description": "How the ships are drawn: vessel (a hull, filled by ship-type group) or app6 (APP-6D sea surface symbols). Absent: APP-6, for links stored before M5.",
+              "enum": [
+                "vessel",
+                "app6"
+              ],
+              "default": "vessel",
+              "x-emc2": {
+                "hint": "vessel: a hull by ship-type group; app6: APP-6D sea surface symbols"
+              }
+            },
+            "enabled": {
+              "title": "Enabled",
+              "description": "Whether the plugin runs this link.",
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  }
+}

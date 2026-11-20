@@ -1,0 +1,14 @@
+{
+  "sequenceNo": 1043,
+  "requestId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e23",
+  "entityType": "object",
+  "operation": "delete",
+  "entityId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e14",
+  "version": 3,
+  "previousVersion": 2,
+  "baseVersion": 2,
+  "state": null,
+  "label": { "policyIdentifier": { "name": "NATO" }, "classification": "UNCLASSIFIED" },
+  "at": "2026-10-03T09:11:45.000Z",
+  "by": { "plugin": "draw-symbols", "user": "3f2c9a10-5d7e-4b8a-9c41-2e6f8d0a7b15" }
+}

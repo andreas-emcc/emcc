@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A small NVG 2.0 file for the manual's screenshots (shots.mjs), written by the UDA from the public NVG schema. -->
+<nvg xmlns="https://tide.act.nato.int/schemas/2012/10/nvg" version="2.0.2">
+  <g uri="urn:manual:g" label="Exercise">
+    <point uri="urn:manual:p1" label="Alpha" symbol="app6d:10031000001211000000" x="14.6" y="62.7"/>
+    <point uri="urn:manual:p2" label="Bravo" symbol="app6d:10061000001211000000" x="15.1" y="62.55"/>
+    <text uri="urn:manual:t1" x="14.9" y="62.9" rotation="0">
+      <content>Assembly area</content>
+    </text>
+    <polyline uri="urn:manual:l1" label="Road" points="14.2,62.4 14.6,62.5 15.0,62.6" style="stroke:#c04000;stroke-width:3"/>
+    <polygon uri="urn:manual:a1" label="Area" points="14.4,62.8 14.8,62.8 14.8,63.0 14.4,63.0" style="fill:#2060c0;fill-opacity:0.25;stroke:#2060c0"/>
+    <circle uri="urn:manual:c1" label="Range" cx="15.3" cy="62.8" r="8000"/>
+  </g>
+</nvg>

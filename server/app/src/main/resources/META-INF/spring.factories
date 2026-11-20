@@ -1,0 +1,3 @@
+# ADR-0060 (M9 C1): the installation's settings files, read before the edge starts.
+# ADR-0061 (M9 C2): HTTPS when the settings name the SSL bundle emcc.
+org.springframework.boot.EnvironmentPostProcessor=dev.emcc.app.SettingsFiles,dev.emcc.app.HttpsSettings

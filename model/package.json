@@ -1,0 +1,14 @@
+{
+  "name": "@emc2/model",
+  "private": true,
+  "version": "1.9.0",
+  "description": "emc2 common data model (JSON Schema). The version is the data model version (SemVer, see README).",
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1"
+  }
+}

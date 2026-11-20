@@ -1,0 +1,19 @@
+{
+  "requestId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e41",
+  "entityType": "object",
+  "operation": "create",
+  "entityId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e42",
+  "data": {
+    "type": "core.symbol",
+    "dataType": "cot-in.cot",
+    "dataSource": "tak-north",
+    "time": { "observed": "2026-10-03T08:20:00.000Z", "expires": "2026-10-03T08:25:00.000Z" },
+    "layerId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e02",
+    "geometry": { "type": "Point", "coordinates": [18.1012, 59.3507] },
+    "symbol": { "standard": "APP-6B", "sidc": "SFGPUCI--------" },
+    "label": { "policyIdentifier": { "name": "NATO" }, "classification": "UNCLASSIFIED" },
+    "extensions": { "cot-in": { "type": "a-f-G-U-C-I", "how": "m-g" } }
+  },
+  "externalRef": { "system": "cot", "id": "ANDROID-358240051111110" },
+  "source": { "plugin": "cot-in", "system": "tak-north" }
+}

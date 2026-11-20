@@ -1,0 +1,14 @@
+{
+  "name": "emcc-marketing-shots",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Takes the marketing screenshots of emcc from a running release",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "shots": "node shots.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "1.63.0"
+  }
+}

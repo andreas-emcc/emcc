@@ -1,0 +1,58 @@
+{
+  "id": "ais",
+  "name": "AIS",
+  "version": "0.3.0",
+  "sdkVersion": "^1.4.0",
+  "kind": "general",
+  "dataTypes": [
+    {
+      "id": "ais.vessel",
+      "name": "AIS vessel",
+      "defaults": {
+        "expiresAfterSeconds": 600,
+        "fadeWhenExpired": true,
+        "removeAfterExpirySeconds": 1800
+      },
+      "fieldSets": [
+        "s1",
+        "s2",
+        "s3",
+        "s4",
+        "s5",
+        "s6",
+        "s7",
+        "s8",
+        "s9"
+      ]
+    }
+  ],
+  "fields": [
+    {
+      "name": "mmsi",
+      "type": "text",
+      "label": "MMSI",
+      "maxLength": 9,
+      "editableByOthers": true
+    },
+    {
+      "name": "shipName",
+      "type": "text",
+      "label": "Ship name",
+      "maxLength": 20,
+      "editableByOthers": true
+    }
+  ],
+  "fieldSets": [
+    {
+      "id": "ship",
+      "label": "AIS ship",
+      "fields": [
+        "mmsi",
+        "shipName"
+      ]
+    }
+  ],
+  "server": {
+    "entryClass": "dev.emcc.plugins.ais.AisPlugin"
+  }
+}

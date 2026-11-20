@@ -1,0 +1,9 @@
+{
+  "requestId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e26",
+  "entityType": "object",
+  "operation": "update",
+  "entityId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e11",
+  "code": "CONFLICT",
+  "message": "Version conflict.",
+  "at": "2026-10-05T09:07:00.000Z"
+}

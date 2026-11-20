@@ -1,0 +1,13 @@
+{
+  "id": "layer-panel",
+  "name": "Layers",
+  "version": "0.7.0",
+  "sdkVersion": "^1.8.0",
+  "icon": "Layers",
+  "kind": "general",
+  "category": "general",
+  "requires": ["emc2.map-view"],
+  "uses": ["emc2.object-list"],
+  "web": { "entry": "index.js", "css": ["layer-panel.css"] },
+  "permissions": ["layers.edit"]
+}

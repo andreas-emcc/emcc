@@ -1,0 +1,43 @@
+/* Plugin styles: every class starts with the plugin id, and every colour, font, size and space
+   comes from the shell's design tokens (ADR-0029, ADR-0034). No element selectors at top level, no
+   :root, nothing global. The shared components bring their own CSS; this file only arranges content. */
+.bookmarks-control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--emc2-space-gap);
+}
+
+.bookmarks-popover {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--emc2-space-gap);
+  color: var(--emc2-color-text);
+}
+
+.bookmarks-hint {
+  margin: 0;
+  color: var(--emc2-color-muted);
+  font-size: var(--emc2-size-text-small);
+}
+
+.bookmarks-form {
+  /* room for a proposed name (the view's coordinates); the popover is otherwise as wide as its content */
+  min-width: calc(var(--emc2-size-row) * 9);
+  display: flex;
+  flex-direction: column;
+  gap: var(--emc2-space-gap);
+}
+
+.bookmarks-form-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--emc2-space-gap);
+}
+
+.bookmarks-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--emc2-space-gap);
+}

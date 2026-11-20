@@ -1,0 +1,40 @@
+{
+  "id": "draw-symbols",
+  "name": "Draw symbols",
+  "version": "0.1.0",
+  "sdkVersion": "^1.8.0",
+  "kind": "general",
+  "category": "drawing",
+  "icon": "Flag",
+  "requires": ["emc2.map-view", "emc2.symbols", "emc2.coordinates"],
+  "web": { "entry": "index.js", "css": ["draw-symbols.css"] },
+  "permissions": ["objects.edit"],
+  "settings": {
+    "type": "object",
+    "properties": {
+      "standard": {
+        "title": "Standard",
+        "description": "The APP-6 standard of new symbols.",
+        "type": "string",
+        "enum": ["APP-6D", "APP-6E"],
+        "default": "APP-6D"
+      },
+      "pickerSymbolSize": {
+        "title": "Symbol size in the picker",
+        "description": "The size of the symbol images in the picker, in pixels.",
+        "type": "integer",
+        "minimum": 16,
+        "maximum": 128,
+        "default": 40,
+        "x-emc2": { "unit": "px" }
+      },
+      "dataType": {
+        "title": "Data type",
+        "description": "The data type of new symbols until a user chooses one in this browser. It must be an available data type (ADR-0023), else core.general is used.",
+        "type": "string",
+        "default": "core.general",
+        "x-emc2": { "hint": "Used until a user chooses one in this browser; else core.general" }
+      }
+    }
+  }
+}

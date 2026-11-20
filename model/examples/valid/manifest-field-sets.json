@@ -1,0 +1,53 @@
+{
+  "id": "cot",
+  "name": "Cursor on Target",
+  "version": "0.5.0",
+  "sdkVersion": "^1.4.0",
+  "kind": "general",
+  "fields": [
+    {
+      "name": "callsign",
+      "type": "text",
+      "label": "Callsign",
+      "maxLength": 64,
+      "editableByOthers": true
+    },
+    {
+      "name": "role",
+      "type": "choice",
+      "label": "Role",
+      "choices": [
+        {
+          "value": "team-member",
+          "label": "Team member"
+        },
+        {
+          "value": "hq",
+          "label": "HQ"
+        }
+      ],
+      "editableByOthers": true
+    },
+    {
+      "name": "group",
+      "type": "text",
+      "label": "Team colour",
+      "maxLength": 32,
+      "editableByOthers": true
+    }
+  ],
+  "fieldSets": [
+    {
+      "id": "unit",
+      "label": "CoT unit",
+      "fields": [
+        "callsign",
+        "role",
+        "group"
+      ]
+    }
+  ],
+  "server": {
+    "entryClass": "dev.emcc.plugins.cot.CotPlugin"
+  }
+}

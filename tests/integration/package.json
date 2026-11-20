@@ -1,0 +1,13 @@
+{
+  "name": "@emc2/integration-tests",
+  "private": true,
+  "version": "0.0.0",
+  "description": "emc2 integration tests (ITA). Not shipped.",
+  "type": "module",
+  "scripts": {
+    "test": "node run.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e18",
+  "type": "core.symbol",
+  "dataType": "core.general",
+  "dataSource": "manual",
+  "layerId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e01",
+  "version": 1,
+  "geometry": { "type": "Point", "coordinates": [16.5448, 59.6099] },
+  "symbol": {
+    "standard": "APP-6E",
+    "sidc": "130310000012110000000000000752",
+    "modifiers": { "uniqueDesignation": "2", "higherFormation": "41 BN", "speed": 0 }
+  },
+  "label": {
+    "policyIdentifier": { "name": "NATO", "uri": "urn:nato:stanag:4774:confidentialitymetadatalabel:1:0:policy:NATO" },
+    "classification": "UNCLASSIFIED",
+    "creationDateTime": "2026-10-05T09:00:00.000Z"
+  },
+  "meta": {
+    "created": { "at": "2026-10-05T09:00:00.000Z", "by": { "plugin": "draw-symbols" } },
+    "modified": { "at": "2026-10-05T09:00:00.000Z", "by": { "plugin": "draw-symbols" } }
+  }
+}

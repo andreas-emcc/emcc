@@ -1,0 +1,30 @@
+{
+  "id": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e61",
+  "name": "Own forces, planned",
+  "drawOrder": 20.5,
+  "visible": true,
+  "label": {
+    "policyIdentifier": {
+      "name": "NATO"
+    },
+    "classification": "UNCLASSIFIED"
+  },
+  "version": 4,
+  "meta": {
+    "created": {
+      "at": "2026-10-03T07:00:00.000Z",
+      "by": {
+        "plugin": "layer-panel",
+        "user": "3f2c9a10-5d7e-4b8a-9c41-2e6f8d0a7b15"
+      }
+    },
+    "modified": {
+      "at": "2026-10-03T08:05:00.000Z",
+      "by": {
+        "plugin": "layer-panel",
+        "user": "3f2c9a10-5d7e-4b8a-9c41-2e6f8d0a7b15"
+      }
+    }
+  },
+  "locked": true
+}

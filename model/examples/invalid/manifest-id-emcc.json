@@ -1,0 +1,10 @@
+{
+  "id": "emcc",
+  "name": "Reserved emcc",
+  "version": "1.0.0",
+  "sdkVersion": "^1.9.0",
+  "kind": "general",
+  "server": {
+    "entryClass": "dev.emcc.plugins.emc2.Emc2Plugin"
+  }
+}

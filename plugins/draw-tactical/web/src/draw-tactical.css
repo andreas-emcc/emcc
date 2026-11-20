@@ -1,0 +1,142 @@
+/* Plugin styles: every class starts with the plugin id, and every colour, font, size and space
+   comes from the shell's design tokens (ADR-0029, ADR-0034). No element selectors at top level, no
+   :root, nothing global. The shared components bring their own CSS; this file only arranges content.
+   The panels work in every pane: content wraps, nothing has a fixed width or height. */
+.draw-tactical-content {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--emc2-space-gap);
+  color: var(--emc2-color-text);
+}
+
+.draw-tactical-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--emc2-space-gap);
+}
+
+.draw-tactical-hint {
+  margin: 0;
+  color: var(--emc2-color-muted);
+  font-size: var(--emc2-size-text-small);
+}
+
+.draw-tactical-picker,
+.draw-tactical-groups,
+.draw-tactical-group,
+.draw-tactical-all,
+.draw-tactical-chosen,
+.draw-tactical-amplifiers {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--emc2-space-gap);
+  min-width: 0;
+}
+
+.draw-tactical-group-title {
+  margin: 0;
+  font-size: var(--emc2-size-text);
+  font-weight: 600;
+}
+
+.draw-tactical-points {
+  margin: 0;
+  padding-left: var(--emc2-space-padding);
+  font-size: var(--emc2-size-text-small);
+  overflow-wrap: anywhere;
+}
+
+.draw-tactical-list {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--emc2-space-gap);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.draw-tactical-legend {
+  padding: 0;
+  color: var(--emc2-color-muted);
+  font-size: var(--emc2-size-text-small);
+}
+
+.draw-tactical-list-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--emc2-space-gap);
+}
+
+.draw-tactical-list-row > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.draw-tactical-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--emc2-space-gap) var(--emc2-space-padding);
+  margin: 0;
+  font-size: var(--emc2-size-text-small);
+}
+
+.draw-tactical-facts dt {
+  color: var(--emc2-color-muted);
+}
+
+.draw-tactical-facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The Graphics tiles (T-204): the picture of a graphic on its tile, and the fold that opens "All graphics". */
+.draw-tactical-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.draw-tactical-thumb-picture {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--emc2-radius);
+}
+
+.draw-tactical-all-head {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--emc2-color-border);
+  background: none;
+  color: var(--emc2-color-muted);
+  font: inherit;
+  font-size: var(--emc2-size-text-small);
+  font-weight: var(--emc2-heading-weight);
+  letter-spacing: var(--emc2-heading-letter-spacing);
+  text-align: left;
+  text-transform: var(--emc2-heading-case);
+  cursor: pointer;
+}
+
+.draw-tactical-all-head:hover {
+  color: var(--emc2-color-text);
+}
+
+.draw-tactical-all-head:focus-visible {
+  outline: var(--emc2-focus-width) solid var(--emc2-focus-color);
+  outline-offset: var(--emc2-focus-offset);
+}
+
+/* The labels in a tile's picture use the look's text font; their colour and size come from the renderer (APP-6). */
+.draw-tactical-thumb-label {
+  font-family: var(--emc2-font-text);
+  font-weight: 700;
+}

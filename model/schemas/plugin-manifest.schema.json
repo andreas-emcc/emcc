@@ -1,0 +1,437 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:emc2:schema:plugin-manifest",
+  "title": "emc2 plugin manifest (plugin.json)",
+  "description": "Describes one plugin package: identity, kind, start order, services, internet and network use, data types and its optional server and web parts (overview 4.1, docs/plugins/sdk-v1.md). Read by ECore's plugin host and the web shell. Versioned with the SDK, not with the data model. SDK 1.9.0 (PDA).",
+  "type": "object",
+  "properties": {
+    "id": { "description": "Plugin id, also the extension namespace. Data model 1.9.0: the ids emc2 and emcc, and the ids that start with emc2- or emcc-, are reserved for the product. ECore also refuses core and the ids that start with core- (its own and the shell's), with its own reason, and so does the web SDK's manifestProblem. An outside plugin's id starts with its vendor's prefix and a hyphen, e.g. acme-tracks: a rule the schema cannot check, since the product's own plugins have none.", "$ref": "urn:emc2:schema:common#/$defs/pluginId", "not": { "anyOf": [ { "const": "emcc" }, { "type": "string", "pattern": "^(emc2|emcc)-" } ] } },
+    "name": { "description": "Display name.", "type": "string", "minLength": 1, "maxLength": 128 },
+    "version": { "description": "SemVer version of the plugin. Server and web part share it (ADR-0003).", "$ref": "#/$defs/semver" },
+    "sdkVersion": { "description": "Compatible SDK versions with npm semver semantics: an exact version, or a caret (^), tilde (~) or >= range. Shared test cases: model/examples/sdk-version-matching.json.", "type": "string", "pattern": "^(\\^|~|>=)?(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$" },
+    "kind": { "description": "At most one map-view plugin is active per Map Pane.", "enum": ["map-view", "background-map", "utility", "general"] },
+    "category": { "description": "Data model 1.6.0 (CR-0041 part F; T-174, owner QC A and QD A): the Settings workspace's category of the plugin, from a fixed list, shown in this order as Data Links, GeoMetoc, Map and Symbols, Drawing, Simulation and General. Absent means general. Not the same as kind.", "enum": ["data-links", "geometoc", "map-and-symbols", "drawing", "simulation", "general"] },
+    "icon": { "description": "Data model 1.8.0 (CR-0043 part D; owner UZ A): the plugin's icon in the Settings list, also for a plugin without a web part: a name from the web SDK's PLUGIN_ICONS (Lucide icons), e.g. Radar. The list grows in a minor SDK; the shell shows a name it does not know, or none, as its neutral icon.", "type": "string", "pattern": "^[A-Z][A-Za-z0-9]*$", "maxLength": 64 },
+    "properties": {
+      "description": "Ingoing: consumes external data. Outgoing: sends data out (overview 3.4).",
+      "type": "array",
+      "items": { "enum": ["ingoing", "outgoing"] },
+      "uniqueItems": true
+    },
+    "dependsOn": {
+      "description": "Plugins that must be started before this one.",
+      "type": "array",
+      "items": { "$ref": "urn:emc2:schema:common#/$defs/pluginId" },
+      "uniqueItems": true
+    },
+    "provides": { "description": "Web service keys this plugin provides.", "type": "array", "items": { "$ref": "#/$defs/serviceKey" }, "uniqueItems": true },
+    "requires": { "description": "Web service keys this plugin needs. The shell activates providers first, and does not load the plugin when no loaded plugin provides one (it reports why).", "type": "array", "items": { "$ref": "#/$defs/serviceKey" }, "uniqueItems": true },
+    "uses": { "description": "Web service keys this plugin uses when a provider is there (SDK 1.0.0, CR-0011). The shell activates loaded providers first and reports a missing one, like requires, but always loads the plugin; ctx.services.get on such a key then rejects at once. A key is never in both requires and uses (the shell refuses the plugin).", "type": "array", "items": { "$ref": "#/$defs/serviceKey" }, "uniqueItems": true },
+    "required": { "description": "If true, the application does not start when this plugin fails to start.", "type": "boolean" },
+    "internet": {
+      "description": "Declares that the server part reaches hosts outside the emc2 server through the SDK's outbound HTTP, why, and its default hosts (ADR-0030, CR-0013). A plugin's own sockets are declared as connections, whatever host an admin names (ADR-0036 point 7, CR-0052). Absent means it declares none. A declaration only, shown in the monitor view, not an allow-list: ECore does not check the hosts, and the server part may reach any host, internet hosts included (owner, 2026-10-18), but never one taken from a browser request, a message or an object's data (ADR-0030; owner, 2026-10-19). Every function must still have a way to work offline. Web parts never contact hosts other than the emc2 server (the edge's Content-Security-Policy is 'self').",
+      "type": "object",
+      "properties": {
+        "hosts": {
+          "description": "The hosts the plugin contacts with its default settings, without scheme or path. Empty when it has none, e.g. when every outside host comes from settings an admin fills in (data model 1.2.0, CR-0022).",
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "maxLength": 253 },
+          "uniqueItems": true
+        },
+        "reason": { "description": "Why, and in which environments (e.g. development and demos only).", "type": "string", "minLength": 1, "maxLength": 512 }
+      },
+      "required": ["hosts", "reason"],
+      "additionalProperties": false
+    },
+    "connections": {
+      "description": "Data model 1.2.0 (ADR-0036 point 7, CR-0025): the server part's own connections, opened in connection tasks: what it connects to or listens on, and why. A declaration shown in the monitor view, not an allow-list: ECore checks no endpoint, and hosts, ports and multicast groups come from the plugin's settings, never from a browser request, a message or an object's data. A connection that listens binds to loopback unless an admin chooses otherwise. A connection covers the hosts an admin names, internet hosts included; 'internet' declares the SDK's outbound HTTP only (ADR-0036 point 7, CR-0052). Absent means it declares none. 'network' keeps its meaning for the deprecated listener only.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kinds": {
+            "description": "The kinds of connection its links may use; one link uses one of them.",
+            "type": "array",
+            "items": {
+              "enum": [
+                "tcp-client",
+                "tcp-server",
+                "udp",
+                "multicast",
+                "other"
+              ]
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "direction": {
+            "description": "Whether it receives, sends or both over one connection.",
+            "enum": [
+              "in",
+              "out",
+              "both"
+            ]
+          },
+          "settings": {
+            "description": "A JSON Pointer into the plugin's settings to the links these connections are configured in.",
+            "type": "string",
+            "pattern": "^(/[A-Za-z0-9_-]+)+$",
+            "maxLength": 256
+          },
+          "reason": {
+            "description": "What the connections are for.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "kinds",
+          "direction",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "network": {
+      "description": "Local-network connections of the server part's listeners (SDK v1, CR-0010): TCP or TLS client connections to hosts and ports taken from the plugin's own settings, e.g. TAK Servers. Absent means none. ECore lets listeners connect only to the endpoints found at these places in the current settings. This is not internet use (ADR-0014).",
+      "type": "object",
+      "properties": {
+        "endpoints": {
+          "description": "JSON Pointers into the plugin's settings. Each points to an object with 'host' (string) and 'port' (integer), or to an array of such objects.",
+          "type": "array",
+          "items": { "type": "string", "pattern": "^(/[A-Za-z0-9_-]+)+$", "maxLength": 256 },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "reason": { "description": "What the connections are for.", "type": "string", "minLength": 1, "maxLength": 512 }
+      },
+      "required": ["endpoints", "reason"],
+      "additionalProperties": false
+    },
+    "dataTypes": {
+      "description": "Data types this plugin declares (ADR-0023). ECore builds the list of available data types from these at start-up, plus the built-in core.general. Every id must start with the plugin's own id and a dot (ECore refuses the plugin otherwise).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/dataType" },
+      "uniqueItems": true
+    },
+    "workspaces": {
+      "description": "Data model 1.2.0 (ADR-0039). The workspaces this plugin declares, shown as tabs next to View to users with their viewPermission. Each id once. Every id starts with the plugin's own id and a dot, and both permissions are among the plugin's own permissions (ECore refuses the plugin otherwise).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/workspace" },
+      "uniqueItems": true,
+      "maxItems": 16
+    },
+    "fields": {
+      "description": "Data model 1.2.0 (ADR-0038). The fields this plugin declares in its own extension namespace, so that editors can show them with their labels and units, and set those editable by others by naming them in a change request. Each name once (ECore refuses the plugin otherwise).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/declaredField" },
+      "maxItems": 256
+    },
+    "capabilities": {
+      "description": "SDK 1.4.0 (ADR-0044, CR-0030 part 4). The optional capabilities this plugin implements, each once: in its server part the capability's Java interface on the plugin class, in its web part the capability's object in the module. Declaration and code must agree, and an id this SDK does not know fails this schema; ECore then does not start the plugin, and the Monitor names the capability (ADR-0044 points 4 and 5). In 1.4.0: temporal (the user's time, ADR-0045).",
+      "type": "array",
+      "items": { "enum": ["temporal"] },
+      "uniqueItems": true,
+      "maxItems": 16
+    },
+    "folders": {
+      "description": "SDK 1.4.0 (CR-0030 part 6, ADR-0049 point 4). The local folders the server part reads, through the SDK's LocalFolder only: plugins never do their own file I/O (CLAUDE.md section 4). Each folder's path is the settings value its setting points to, which only an admin sets; never a path from a request, a message or an object. ECore reads for the plugin, read only, confined to the folder. The Monitor shows each folder, its path and whether it is readable. Each id once (rule 19).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/folder" },
+      "uniqueItems": true,
+      "maxItems": 8
+    },
+    "symbolPalettes": {
+      "description": "Data model 1.6.0 (CR-0041 part G; T-156, the M7 plan's Q1 A, the ACA's note on ADR-0010): symbol palettes this plugin offers draw-symbols' Symbols panel, e.g. cot's \"CoT\". A palette's full id is '<plugin-id>.<id>'. Each id once (ECore refuses the plugin otherwise). Declared only: no plugin writes another's.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/symbolPalette" },
+      "minItems": 1,
+      "maxItems": 8
+    },
+    "fieldSets": {
+      "description": "Data model 1.4.0 (ADR-0050, CR-0030 part 3). Named groups of this plugin's own declared fields, e.g. the fields a protocol uses. A set's full id is '<plugin-id>.<id>', e.g. cot.unit; objects list the sets they carry in fieldSets. Each id once, and every field among the plugin's own fields (ECore refuses the plugin otherwise; model rule 18).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/fieldSet" },
+      "uniqueItems": true,
+      "maxItems": 32
+    },
+    "channelKinds": {
+      "description": "Data model 1.9.0 (CR-0048 point 4; ADR-0059 point 3, gap G3): channel kinds this plugin declares, each with a JSON payload whose shape its schema gives. A kind's id is '<plugin-id>.<name>', e.g. fmv.camera-pose. The plugin's own output channels may take them (ChannelSpec.declaredKinds); other plugins send DeclaredItems of them. ECore checks each item's size (at most 64 KiB) and its payload against the schema at send. The schema is self-contained: a $ref only inside it (#/...), never to another document (model rule 23).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/channelKind" },
+      "minItems": 1,
+      "maxItems": 16
+    },
+    "compute": {
+      "description": "Data model 1.9.0 (CR-0048 point 5; ADR-0064 point 1): the compute threads the server part may run at once, at most, and why, shown in the Monitor. Absent means none. An admin may lower the number in the plugin's Settings entry, or switch it off (0); ECore caps the running compute tasks of all plugins together.",
+      "type": "object",
+      "properties": {
+        "threads": { "description": "How many compute tasks may run at once, at most.", "type": "integer", "minimum": 1, "maximum": 64 },
+        "reason": { "description": "Why, e.g. renders one simulated camera per thread.", "type": "string", "minLength": 1, "maxLength": 512 }
+      },
+      "required": ["threads", "reason"],
+      "additionalProperties": false
+    },
+    "relationKinds": {
+      "description": "Data model 1.4.0 (ADR-0051 point 2, CR-0031). The kinds of relations between objects this plugin declares, with how the map view draws them and whether the user's switch is on by default. Each id once, starting with the plugin's own id and a dot (ECore refuses the plugin otherwise; model rule 17).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/relationKind" },
+      "uniqueItems": true,
+      "maxItems": 16
+    },
+    "server": {
+      "type": "object",
+      "properties": {
+        "entryClass": { "description": "Fully qualified name of the class implementing dev.emcc.sdk.Plugin.", "type": "string", "pattern": "^[a-z][a-z0-9_]*(\\.[a-z0-9_]+)*\\.[A-Z][A-Za-z0-9_]*$", "maxLength": 256 }
+      },
+      "required": ["entryClass"],
+      "additionalProperties": false
+    },
+    "web": {
+      "type": "object",
+      "properties": {
+        "entry": { "description": "The ES module the shell imports, relative to the plugin's web folder.", "$ref": "#/$defs/relativeFile" },
+        "css": { "description": "Style sheets loaded before the entry module.", "type": "array", "items": { "$ref": "#/$defs/relativeFile" }, "uniqueItems": true },
+        "shared": {
+          "description": "Shared library versions the web part was built against. Written by the SDK's build plugin, never by hand. The shell refuses a plugin whose versions differ from its own.",
+          "type": "object",
+          "propertyNames": { "pattern": "^(@[a-z0-9-]+/)?[a-z0-9][a-z0-9.-]*$" },
+          "additionalProperties": { "$ref": "#/$defs/semver" }
+        }
+      },
+      "required": ["entry"],
+      "additionalProperties": false
+    },
+    "settings": {
+      "description": "JSON Schema (draft 2020-12) of the plugin's settings, with a default for every setting. From SDK v1 the configured values apply; users with settings.admin change them at runtime in the plugin's entry in the Settings tab (ADR-0031), and ECore validates them against this schema. The settings reach every logged-in browser, so they must hold no secrets.",
+      "type": "object",
+      "properties": {
+        "type": { "const": "object" },
+        "properties": { "type": "object" }
+      },
+      "required": ["type", "properties"]
+    },
+    "permissions": {
+      "description": "Permissions the plugin declares (plugin.<id>.<name>) or checks (core permissions such as objects.edit). Checked from M1 (ADR-0022).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/permission" },
+      "uniqueItems": true
+    }
+  },
+  "required": ["id", "name", "version", "sdkVersion", "kind"],
+  "additionalProperties": false,
+  "anyOf": [
+    { "type": "object", "required": ["server"] },
+    { "type": "object", "required": ["web"] }
+  ],
+  "$defs": {
+    "steppedFade": {
+      "description": "Data model 1.7.0 (CR-0042; T-192): the value a data type's fadeSetting points to, which a plugin's settings schema declares in this form. Counted from an object's time.observed: full opacity before fromSeconds; from fromSeconds, one step down by stepPercent every (invisibleAtSeconds - fromSeconds) * stepPercent / 100 seconds; 0 from invisibleAtSeconds. E.g. 10, 5, 100: 95 % from 14.5 s, 50 % from 55 s, invisible from 100 s. invisibleAtSeconds must be above fromSeconds (model rule 22); off (on false) means no stepped fade.",
+      "type": "object",
+      "properties": {
+        "on": { "type": "boolean" },
+        "fromSeconds": { "type": "integer", "minimum": 0, "maximum": 86400 },
+        "stepPercent": { "description": "A divisor of 100, so the steps end at 0.", "enum": [1, 2, 4, 5, 10, 20, 25, 50] },
+        "invisibleAtSeconds": { "type": "integer", "minimum": 1, "maximum": 86400 }
+      },
+      "required": ["on", "fromSeconds", "stepPercent", "invisibleAtSeconds"],
+      "additionalProperties": false
+    },
+    "dataType": {
+      "type": "object",
+      "properties": {
+        "id": { "description": "'<plugin-id>.<name>', e.g. cot-in.cot.", "$ref": "urn:emc2:schema:common#/$defs/typeName" },
+        "name": { "description": "Display name, e.g. CoT.", "type": "string", "minLength": 1, "maxLength": 128 },
+        "description": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "defaults": {
+          "description": "Default behaviour of objects of this data type. ECore's settings per data type override it (ADR-0023 point 7). Absent fields mean: never expires, not faded, never removed.",
+          "type": "object",
+          "properties": {
+            "expiresAfterSeconds": { "description": "For objects without time.expires: they expire this long after time.observed. From data model 1.5.0 (CR-0038 point 9) an object without time.observed does not expire by its data type (model rule 15).", "type": "integer", "minimum": 1 },
+            "fadeWhenExpired": { "description": "Expired objects are drawn faded.", "type": "boolean" },
+            "removeAfterExpirySeconds": { "description": "ECore deletes expired objects this long after their expiry (owner, 2026-10-10).", "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "fadeSetting": { "description": "Data model 1.7.0 (CR-0042; T-192, owner TA A): a JSON Pointer into this plugin's settings to a stepped fade, an object of the form $defs/steppedFade, e.g. /detectionFade. The map view draws objects of this type at the stepped opacity, counted from time.observed, in place of the expiry fade (fadeWhenExpired); while the value is missing, off or not of that form, there is no stepped fade. Absent: none.", "type": "string", "pattern": "^(/[A-Za-z0-9_-]+)+$", "maxLength": 256 },
+        "fieldSets": {
+          "description": "Data model 1.5.0 (CR-0038 point 1). The field sets objects of this data type carry: ids of sets this plugin declares in its own fieldSets, each once, at most 8. The object store adds them to a core.symbol object on a create and on an update that changes its data type (model rule 21; in 1.5.0 symbols only, owner NO A), and editors show them when a user chooses the data type. ECore refuses a manifest that names a set it does not declare (model rule 20). Absent: none.",
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$", "maxLength": 64 },
+          "uniqueItems": true,
+          "maxItems": 8
+        },
+        "manual": {
+          "description": "Data model 1.5.0 (CR-0038 point 6). Whether users make objects of this data type by hand. False: editors leave it out of their data type select, except for an object that already has it. The object store does not check it. Default true.",
+          "type": "boolean"
+        },
+        "sensorReport": {
+          "description": "Data model 1.5.0 (CR-0039 point 6; T-151). Whether objects of this data type are sensor reports, which the map view draws with the symbology service's sensor report symbol instead of their APP-6 symbol. The object store does not check it. Default false.",
+          "type": "boolean"
+        }
+      },
+      "required": ["id", "name"],
+      "additionalProperties": false
+    },
+    "workspace": {
+      "description": "One workspace (ADR-0039 point 1).",
+      "type": "object",
+      "properties": {
+        "id": { "description": "'<plugin-id>.<name>', e.g. simulator.simulation.", "$ref": "urn:emc2:schema:common#/$defs/typeName" },
+        "name": { "description": "The tab's name, e.g. Simulation.", "type": "string", "minLength": 1, "maxLength": 64 },
+        "viewPermission": { "description": "Who sees the workspace and its layers and objects.", "$ref": "#/$defs/permission" },
+        "editPermission": { "description": "Who changes its layers and their objects, instead of objects.edit and layers.edit, which stay View's.", "$ref": "#/$defs/permission" },
+        "order": { "description": "Lower comes first after View; default 100.", "type": "integer" }
+      },
+      "required": ["id", "name", "viewPermission", "editPermission"],
+      "additionalProperties": false
+    },
+    "permission": { "type": "string", "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$", "maxLength": 128 },
+    "declaredField": {
+      "description": "One declared field (ADR-0038 point 1). Values are stored in extensions.<plugin-id>.<name>: a string for text and choice, a number for number and integer, true or false for boolean.",
+      "type": "object",
+      "properties": {
+        "name": { "$ref": "urn:emc2:schema:common#/$defs/fieldName" },
+        "type": { "enum": ["text", "number", "integer", "choice", "boolean"] },
+        "label": { "description": "Shown in editors, e.g. Callsign.", "type": "string", "minLength": 1, "maxLength": 128 },
+        "description": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "unit": { "description": "For number and integer: the unit values are stored in, an SI unit where one exists (m, m/s, s), deg for angles.", "type": "string", "minLength": 1, "maxLength": 16 },
+        "minimum": { "description": "For number and integer: the smallest value.", "type": "number" },
+        "maximum": { "description": "For number and integer: the largest value.", "type": "number" },
+        "maxLength": { "description": "For text: the longest value in characters (default 1024).", "type": "integer", "minimum": 1, "maximum": 4096 },
+        "required": { "description": "The value may not be removed (set to null). It does not ask for the field on existing objects.", "type": "boolean" },
+        "choices": {
+          "description": "For choice: the values and their labels.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "value": { "type": "string", "minLength": 1, "maxLength": 64 },
+              "label": { "type": "string", "minLength": 1, "maxLength": 128 }
+            },
+            "required": ["value", "label"],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 256
+        },
+        "editableByOthers": { "description": "Whether users may set it through any plugin's editor. Default false: only the plugin itself sets it.", "type": "boolean" },
+        "dataTypes": {
+          "description": "Deprecated in data model 1.5.0 (CR-0038 point 8): a data type names its field sets instead (dataTypes[].fieldSets). Still valid in 1.x; editors no longer show a group for it. The data types it belongs to; absent: every object.",
+          "type": "array",
+          "items": { "$ref": "urn:emc2:schema:common#/$defs/typeName" },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": ["name", "type", "label"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "type": "object", "properties": { "type": { "const": "choice" } }, "required": ["type"] },
+          "then": { "type": "object", "required": ["choices"] },
+          "else": { "not": { "type": "object", "required": ["choices"] } }
+        },
+        {
+          "if": { "type": "object", "properties": { "type": { "enum": ["number", "integer"] } }, "required": ["type"] },
+          "then": true,
+          "else": { "not": { "anyOf": [{ "type": "object", "required": ["unit"] }, { "type": "object", "required": ["minimum"] }, { "type": "object", "required": ["maximum"] }] } }
+        },
+        {
+          "if": { "type": "object", "properties": { "type": { "const": "text" } }, "required": ["type"] },
+          "then": true,
+          "else": { "not": { "type": "object", "required": ["maxLength"] } }
+        }
+      ]
+    },
+    "channelKind": {
+      "description": "Data model 1.9.0 (CR-0048 point 4): one declared channel kind.",
+      "type": "object",
+      "properties": {
+        "name": { "description": "The kind's name; its id is '<plugin-id>.<name>'. Each name once.", "type": "string", "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$", "maxLength": 64 },
+        "title": { "description": "What the kind is, for the Monitor and the reference, e.g. Camera pose.", "type": "string", "minLength": 1, "maxLength": 64 },
+        "description": { "description": "What one item carries and when it is sent.", "type": "string", "minLength": 1, "maxLength": 512 },
+        "payload": { "description": "The payload's JSON Schema (draft 2020-12), an object schema, self-contained (model rule 23).", "type": "object", "properties": { "type": { "const": "object" } }, "required": ["type"] }
+      },
+      "required": ["name", "title", "description", "payload"],
+      "additionalProperties": false
+    },
+    "folder": {
+      "type": "object",
+      "properties": {
+        "id": { "description": "The folder's id, as the plugin names it in context.folders().folder(id).", "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "maxLength": 64 },
+        "setting": { "description": "A JSON Pointer into the plugin's settings to the string that holds the folder's absolute path, e.g. /heightDataFolder (rule 19), or from data model 1.6.0 (CR-0041 part H; T-157, the ACA's note on ADR-0049) a path that starts with %emcc%/ (or %emcc%\\), which ECore resolves below the emcc folder, the folder the server was started in; a result outside it, links included, is unusable, as is any other relative value. An empty string means not set.", "type": "string", "pattern": "^(/[A-Za-z0-9_-]+)+$", "maxLength": 256 },
+        "reason": { "description": "Why the plugin reads it, shown in the Monitor.", "type": "string", "minLength": 1, "maxLength": 256 }
+      },
+      "required": ["id", "setting", "reason"],
+      "additionalProperties": false
+    },
+    "fieldSet": {
+      "description": "One field set (ADR-0050 point 1).",
+      "type": "object",
+      "properties": {
+        "id": { "description": "The set's name within the plugin, e.g. unit; its full id is '<plugin-id>.<id>'.", "type": "string", "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$", "maxLength": 64 },
+        "label": { "description": "Shown as the group's heading and in the editor's drop-down, e.g. CoT unit.", "type": "string", "minLength": 1, "maxLength": 128 },
+        "fields": { "description": "The names of the plugin's own declared fields in the set, in the order editors show them.", "type": "array", "items": { "$ref": "urn:emc2:schema:common#/$defs/fieldName" }, "minItems": 1, "maxItems": 256, "uniqueItems": true }
+      },
+      "required": ["id", "label", "fields"],
+      "additionalProperties": false
+    },
+    "symbolPalette": {
+      "description": "One symbol palette (CR-0041 part G).",
+      "type": "object",
+      "properties": {
+        "id": { "description": "The palette's name within the plugin, e.g. cot; its full id is '<plugin-id>.<id>'.", "type": "string", "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$", "maxLength": 64 },
+        "name": { "description": "Shown in the Symbols panel's drop-down, e.g. CoT.", "type": "string", "minLength": 1, "maxLength": 64 },
+        "symbols": { "description": "The palette's symbols, in the order the panel shows them.", "type": "array", "items": { "$ref": "#/$defs/paletteSymbol" }, "minItems": 1, "maxItems": 2000 }
+      },
+      "required": ["id", "name", "symbols"],
+      "additionalProperties": false
+    },
+    "paletteSymbol": {
+      "description": "One symbol of a palette: an APP-6 standard and a whole code valid for it (as a core.symbol's sidc), with an optional label shown instead of the catalogue's name.",
+      "type": "object",
+      "properties": {
+        "standard": { "enum": ["APP-6B", "APP-6D", "APP-6E"] },
+        "code": { "type": "string" },
+        "label": { "type": "string", "minLength": 1, "maxLength": 128 }
+      },
+      "required": ["standard", "code"],
+      "additionalProperties": false,
+      "allOf": [
+        { "if": { "type": "object", "properties": { "standard": { "const": "APP-6B" } } }, "then": { "type": "object", "properties": { "code": { "type": "string", "pattern": "^[A-Z0-9*-]{15}$" } } } },
+        { "if": { "type": "object", "properties": { "standard": { "const": "APP-6D" } } }, "then": { "type": "object", "properties": { "code": { "type": "string", "pattern": "^1[0-2][0-9]{18}$" } } } },
+        { "if": { "type": "object", "properties": { "standard": { "const": "APP-6E" } } }, "then": { "type": "object", "properties": { "code": { "type": "string", "pattern": "^1[34][0-9]{18}([0-9]{10})?$" } } } }
+      ]
+    },
+    "relationKind": {
+      "description": "One kind of relation (ADR-0051 point 2).",
+      "type": "object",
+      "properties": {
+        "id": { "description": "'<plugin-id>.<name>', e.g. gmti.pairing.", "$ref": "urn:emc2:schema:common#/$defs/typeName" },
+        "label": { "description": "Shown at the user's switch, e.g. GMTI Pairing.", "type": "string", "minLength": 1, "maxLength": 64 },
+        "line": {
+          "description": "How the map view draws the line from the object to the other one, in the shape style's words.",
+          "type": "object",
+          "properties": {
+            "strokeColor": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+            "strokeWidth": { "description": "Screen pixels; default 1.", "type": "number", "minimum": 0.5, "maximum": 10 },
+            "strokeDash": { "description": "Default solid.", "enum": ["solid", "dash", "dot"] },
+            "arrowhead": { "description": "An arrowhead at the other object; default none.", "enum": ["none", "end"] },
+            "strokeColorSetting": { "description": "Data model 1.6.0 (CR-0041 part C; T-181): a JSON Pointer into this plugin's settings to a #RRGGBB string that gives the line's colour, e.g. /pairingColour; strokeColor is the fallback while it is missing or not a colour.", "type": "string", "pattern": "^(/[A-Za-z0-9_-]+)+$", "maxLength": 256 }
+          },
+          "required": ["strokeColor"],
+          "additionalProperties": false
+        },
+        "defaultOn": { "description": "The default of the user's switch for the kind; absent means off.", "type": "boolean" }
+      },
+      "required": ["id", "label", "line"],
+      "additionalProperties": false
+    },
+    "semver": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$", "maxLength": 64 },
+    "serviceKey": { "description": "A web service key: the SDK's own, emc2.<name>, e.g. emc2.map-view, or from data model 1.9.0 (CR-0048 point 3) a plugin's own, <plugin-id>.<name>, which only that plugin provides (the shell refuses another provider).", "type": "string", "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*(\\.[a-z][a-z0-9]*(-[a-z0-9]+)*)+$", "maxLength": 128 },
+    "relativeFile": { "type": "string", "pattern": "^(?!/)(?!.*\\.\\.)[A-Za-z0-9._/-]+$", "maxLength": 256 }
+  }
+}

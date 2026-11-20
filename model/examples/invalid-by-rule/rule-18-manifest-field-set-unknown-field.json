@@ -1,0 +1,29 @@
+{
+  "id": "cot",
+  "name": "Cursor on Target",
+  "version": "0.5.0",
+  "sdkVersion": "^1.4.0",
+  "kind": "general",
+  "fields": [
+    {
+      "name": "callsign",
+      "type": "text",
+      "label": "Callsign",
+      "maxLength": 64,
+      "editableByOthers": true
+    }
+  ],
+  "fieldSets": [
+    {
+      "id": "unit",
+      "label": "CoT unit",
+      "fields": [
+        "callsign",
+        "remarks"
+      ]
+    }
+  ],
+  "server": {
+    "entryClass": "dev.emcc.plugins.cot.CotPlugin"
+  }
+}

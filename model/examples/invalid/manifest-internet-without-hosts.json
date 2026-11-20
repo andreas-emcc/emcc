@@ -1,0 +1,9 @@
+{
+  "id": "basemap-osm",
+  "name": "OpenStreetMap background",
+  "version": "0.1.0",
+  "sdkVersion": "^1.0.0",
+  "kind": "background-map",
+  "internet": { "reason": "Fetches OpenStreetMap tiles." },
+  "web": { "entry": "index.js" }
+}

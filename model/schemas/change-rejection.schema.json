@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:emc2:schema:change-rejection",
+  "title": "emc2 change rejection",
+  "description": "Sent by the object store to the requester (not published on objects.changed) when it does not apply a change request. A change request is answered by exactly one change event or one change rejection, correlated by requestId. Data model 1.9.0 (PDA), see model/README.md.",
+  "type": "object",
+  "properties": {
+    "requestId": { "$ref": "urn:emc2:schema:common#/$defs/uuid" },
+    "entityType": { "enum": ["object", "layer"] },
+    "operation": { "enum": ["create", "update", "delete"] },
+    "entityId": { "$ref": "urn:emc2:schema:common#/$defs/uuid" },
+    "code": {
+      "description": "Why the request was rejected. VALIDATION_FAILED: the request breaks the schema or a rule in model/README.md. ENTITY_NOT_FOUND: update or delete of an entity that does not exist. ENTITY_EXISTS: create with an id already in use. EXTERNAL_REF_EXISTS: create with an externalRef that another object has (model rule 16). LAYER_NOT_FOUND: the object's layerId refers to no layer. LAYER_NOT_EMPTY: delete of a layer that still has objects. PERMISSION_DENIED: the user or plugin may not do this. LAYER_LOCKED (data model 1.3.0, ADR-0042): a user's change to a locked layer's content; one detail names the layer. INTERNAL_ERROR: the object store failed; the request may be retried.",
+      "enum": ["VALIDATION_FAILED", "ENTITY_NOT_FOUND", "ENTITY_EXISTS", "EXTERNAL_REF_EXISTS", "LAYER_NOT_FOUND", "LAYER_NOT_EMPTY", "PERMISSION_DENIED", "INTERNAL_ERROR", "LAYER_LOCKED"]
+    },
+    "message": { "description": "Human-readable explanation in English, for logs and notifications.", "type": "string", "minLength": 1, "maxLength": 1024 },
+    "details": {
+      "description": "For VALIDATION_FAILED: what is wrong where. For LAYER_LOCKED (data model 1.3.0): one item, whose problem names the locked layer and whose path is /data/layerId when the request carries that layer's id there, else empty. path is a JSON Pointer into the change request.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string", "maxLength": 512 },
+          "problem": { "type": "string", "minLength": 1, "maxLength": 512 }
+        },
+        "required": ["path", "problem"],
+        "additionalProperties": false
+      },
+      "maxItems": 50
+    },
+    "at": { "$ref": "urn:emc2:schema:common#/$defs/timestamp" }
+  },
+  "required": ["requestId", "entityType", "operation", "entityId", "code", "message", "at"],
+  "additionalProperties": false
+}

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:emc2:schema:change-event",
+  "title": "emc2 change event",
+  "description": "Published by the object store on topic 'objects.changed' after applying a change request (ADR-0005). Contains everything needed for persistence, the live picture and, later, history. Data model 1.9.0 (PDA), see model/README.md.",
+  "type": "object",
+  "properties": {
+    "sequenceNo": { "description": "Global, gapless order of all changes on one server.", "type": "integer", "minimum": 1 },
+    "requestId": { "$ref": "urn:emc2:schema:common#/$defs/uuid" },
+    "entityType": { "enum": ["object", "layer"] },
+    "operation": { "enum": ["create", "update", "delete"] },
+    "entityId": { "$ref": "urn:emc2:schema:common#/$defs/uuid" },
+    "version": { "description": "Version after the change. For delete: the previous version plus one.", "$ref": "urn:emc2:schema:common#/$defs/version" },
+    "previousVersion": { "description": "Null for create.", "oneOf": [{ "$ref": "urn:emc2:schema:common#/$defs/version" }, { "type": "null" }] },
+    "baseVersion": { "$ref": "urn:emc2:schema:common#/$defs/version" },
+    "state": { "description": "Complete state after the change. Null for delete.", "type": ["object", "null"] },
+    "label": { "description": "Label of the entity (for delete: as it was before deletion), so receivers can filter without the state.", "$ref": "urn:emc2:schema:security-label" },
+    "at": { "$ref": "urn:emc2:schema:common#/$defs/timestamp" },
+    "by": { "$ref": "urn:emc2:schema:common#/$defs/actor" }
+  },
+  "required": ["sequenceNo", "requestId", "entityType", "operation", "entityId", "version", "previousVersion", "state", "label", "at", "by"],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "type": "object", "properties": { "operation": { "const": "delete" } } },
+      "then": { "type": "object", "properties": { "state": { "type": "null" } } },
+      "else": { "type": "object", "properties": { "state": { "type": "object" } } }
+    },
+    {
+      "if": { "type": "object", "properties": { "operation": { "const": "create" } } },
+      "then": { "type": "object", "properties": { "previousVersion": { "type": "null" }, "version": { "const": 1 } } },
+      "else": { "type": "object", "properties": { "previousVersion": { "type": "integer" } } }
+    },
+    {
+      "if": { "type": "object", "properties": { "entityType": { "const": "object" }, "state": { "type": "object" } } },
+      "then": { "type": "object", "properties": { "state": { "$ref": "urn:emc2:schema:map-object" } } }
+    },
+    {
+      "if": { "type": "object", "properties": { "entityType": { "const": "layer" }, "state": { "type": "object" } } },
+      "then": { "type": "object", "properties": { "state": { "$ref": "urn:emc2:schema:layer" } } }
+    }
+  ]
+}

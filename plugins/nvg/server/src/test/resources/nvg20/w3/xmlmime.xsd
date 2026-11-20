@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  A stub written by PCA-nvg (Apache-2.0), NOT the W3C schema: STANAG 4778's bindinginformation.xsd
+  imports the xmlmime schema from this path for its contentType attribute. The W3C's own file is not
+  copied (its licence is not on the project's list, CLAUDE.md section 4).
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.w3.org/2005/05/xmlmime">
+  <xs:attribute name="contentType" type="xs:string"/>
+</xs:schema>

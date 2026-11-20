@@ -1,0 +1,37 @@
+{
+  "id": "cot",
+  "name": "CoT",
+  "version": "0.9.0",
+  "sdkVersion": "^1.6.0",
+  "kind": "general",
+  "category": "data-links",
+  "symbolPalettes": [
+    {
+      "id": "cot",
+      "name": "CoT",
+      "symbols": [
+        {
+          "standard": "APP-6D",
+          "code": "1003100000121100000",
+          "label": "G-U-C-I – Infantry"
+        },
+        {
+          "standard": "APP-6D",
+          "code": "10030100001101000000",
+          "label": "A-M-F – Fixed wing"
+        },
+        {
+          "standard": "APP-6B",
+          "code": "SFGPUCI----D---"
+        },
+        {
+          "standard": "APP-6E",
+          "code": "130310000012110000000000000000"
+        }
+      ]
+    }
+  ],
+  "server": {
+    "entryClass": "dev.emcc.plugins.cot.CotPlugin"
+  }
+}

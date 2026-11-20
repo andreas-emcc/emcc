@@ -1,0 +1,23 @@
+{
+  "id": "basemap-naturalearth",
+  "name": "Natural Earth background",
+  "version": "0.1.0",
+  "sdkVersion": "^1.8.0",
+  "kind": "background-map",
+  "category": "geometoc",
+  "icon": "Globe",
+  "provides": ["emc2.background-map"],
+  "web": { "entry": "index.js" },
+  "settings": {
+    "type": "object",
+    "properties": {
+      "showBorders": {
+        "title": "Country borders",
+        "description": "Draw the country borders on land. Read when the page loads.",
+        "type": "boolean",
+        "default": true,
+        "x-emc2": { "hint": "A change shows after the page is reloaded" }
+      }
+    }
+  }
+}

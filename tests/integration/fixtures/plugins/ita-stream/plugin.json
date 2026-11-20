@@ -1,0 +1,9 @@
+{
+  "id": "ita-stream",
+  "name": "ITA stream test plugin",
+  "version": "0.1.0",
+  "sdkVersion": "^1.8.0",
+  "kind": "utility",
+  "permissions": ["plugin.ita-stream.view"],
+  "server": { "entryClass": "dev.emcc.itatest.stream.StreamPlugin" }
+}

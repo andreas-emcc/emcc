@@ -1,0 +1,9 @@
+{
+  "id": "ita-compute",
+  "name": "ITA compute test plugin",
+  "version": "0.1.0",
+  "sdkVersion": "^1.9.0",
+  "kind": "utility",
+  "server": { "entryClass": "dev.emcc.itatest.compute.ComputePlugin" },
+  "compute": { "threads": 64, "reason": "the ITA's tests of compute tasks under load: spinning tasks, one that ignores its stop, an echo" }
+}

@@ -1,0 +1,149 @@
+{
+  "id": "map-view-2d",
+  "name": "2D map view",
+  "version": "0.1.0",
+  "sdkVersion": "^1.8.0",
+  "kind": "map-view",
+  "category": "map-and-symbols",
+  "icon": "MapPin",
+  "provides": ["emc2.map-view"],
+  "uses": ["emc2.symbols"],
+  "web": { "entry": "index.js", "css": ["map-view-2d.css"] },
+  "settings": {
+    "type": "object",
+    "x-emc2": {
+      "groups": [
+        { "id": "start", "label": "Start view", "description": "The projection, centre and zoom level a map starts with.", "properties": ["initialProjection", "initialCenter", "initialZoom"] },
+        { "id": "controls", "label": "Controls", "description": "Limits of the Map Pane's dim slider and of Zoom to.", "properties": ["highestDim", "zoomToWidthMetres"] },
+        { "id": "performance", "label": "Performance", "description": "How much the map draws one by one, and how often it applies changes; the defaults suit most computers.", "properties": ["textThreshold", "updateCadenceMs", "softwareBudget", "hardwareBudget"], "advanced": true }
+      ]
+    },
+    "properties": {
+      "projections": {
+        "title": "Projections",
+        "description": "The map projections the view can switch to. Each has a code, proj4 text, the projected extent and the lon/lat world extent (polar projections need both, spike S2).",
+        "type": "array",
+        "minItems": 1,
+        "x-emc2": { "hint": "The projections the map can switch to; each has proj4 text and two extents", "item": { "name": "code", "noun": "projection" } },
+        "items": {
+          "type": "object",
+          "properties": {
+            "code": { "title": "Code", "description": "The projection's code, which the Projection list shows, e.g. EPSG:3857.", "type": "string", "x-emc2": { "hint": "What the Projection list shows, e.g. EPSG:3857" } },
+            "proj4": { "title": "proj4 text", "description": "The projection's definition as proj4 text.", "type": "string", "x-emc2": { "hint": "The projection as proj4 text", "width": "full" } },
+            "extent": { "title": "Projected extent", "description": "The projection's extent in its own coordinates: minimum x, minimum y, maximum x, maximum y.", "type": "array", "items": { "type": "number" }, "minItems": 4, "maxItems": 4, "x-emc2": { "hint": "The projected extent: minimum x, minimum y, maximum x, maximum y" } },
+            "worldExtent": { "title": "World extent", "description": "The part of the world the projection covers, in longitude and latitude: west, south, east, north.", "type": "array", "items": { "type": "number" }, "minItems": 4, "maxItems": 4, "x-emc2": { "hint": "The lon/lat extent it covers: west, south, east, north" } }
+          },
+          "required": ["code", "proj4", "extent", "worldExtent"]
+        },
+        "default": [
+          {
+            "code": "EPSG:3857",
+            "proj4": "+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +k=1 +units=m +nadgrids=@null +wktext +no_defs",
+            "extent": [-20037508.342789244, -20037508.342789244, 20037508.342789244, 20037508.342789244],
+            "worldExtent": [-180, -85.0511287798066, 180, 85.0511287798066]
+          },
+          {
+            "code": "EPSG:3413",
+            "proj4": "+proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs",
+            "extent": [-4194304, -4194304, 4194304, 4194304],
+            "worldExtent": [-180, 30, 180, 90]
+          },
+          {
+            "code": "EPSG:3031",
+            "proj4": "+proj=stere +lat_0=-90 +lat_ts=-71 +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs",
+            "extent": [-4194304, -4194304, 4194304, 4194304],
+            "worldExtent": [-180, -90, 180, -30]
+          }
+        ]
+      },
+      "initialProjection": {
+        "title": "Start projection",
+        "description": "The code of the projection the map starts in; one of the configured projections.",
+        "type": "string",
+        "x-emc2": { "hint": "The projection the map starts in; one of the configured codes" },
+        "default": "EPSG:3857"
+      },
+      "initialCenter": {
+        "title": "Start centre",
+        "description": "The centre the map starts at, as [longitude, latitude] in WGS84.",
+        "type": "array",
+        "items": { "type": "number" },
+        "minItems": 2,
+        "maxItems": 2,
+        "x-emc2": { "hint": "Where the map starts: longitude, latitude (WGS84)" },
+        "default": [15, 62]
+      },
+      "initialZoom": {
+        "title": "Start zoom level",
+        "description": "The zoom level the map starts at.",
+        "type": "number",
+        "minimum": 0,
+        "maximum": 28,
+        "default": 5
+      },
+      "textThreshold": {
+        "title": "Symbols with text",
+        "description": "Up to this many visible symbols, symbols are drawn with their text (the labels the user placed and the amplifiers); above it, without text from shared images (spike S2).",
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 100000,
+        "x-emc2": { "hint": "Up to this many visible symbols have their text; above it, none", "unit": "symbols" },
+        "default": 2000
+      },
+      "updateCadenceMs": {
+        "title": "Update interval",
+        "description": "How often changes of a large change stream are applied to a map layer, in milliseconds (ADR-0017 point 4). Faster blocks the page more.",
+        "type": "integer",
+        "minimum": 250,
+        "maximum": 60000,
+        "x-emc2": { "hint": "How often a large change stream is drawn; faster blocks the page", "unit": "ms" },
+        "default": 1000
+      },
+      "preferredBackgrounds": {
+        "title": "Preferred backgrounds",
+        "description": "Background map provider names in order of preference. After switching to a projection the chosen background does not support, the map takes the user's last choice for that projection, otherwise the first available one in this order.",
+        "type": "array",
+        "items": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "maxItems": 50,
+        "x-emc2": { "hint": "Background maps in order of preference, used after a projection switch" },
+        "default": ["OpenStreetMap", "Natural Earth"]
+      },
+      "softwareBudget": {
+        "title": "Object budget without a GPU",
+        "description": "Object budget without a GPU: the most objects drawn one by one; above it the server sends clusters (ADR-0017 point 2, spike S3).",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10000000,
+        "x-emc2": { "hint": "Most objects drawn one by one without a GPU; above it, clusters", "unit": "objects" },
+        "default": 10000
+      },
+      "hardwareBudget": {
+        "title": "Object budget with a GPU",
+        "description": "Object budget with a GPU: the most objects drawn one by one; above it the server sends clusters (spike S3).",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10000000,
+        "x-emc2": { "hint": "Most objects drawn one by one with a GPU; above it, clusters", "unit": "objects" },
+        "default": 100000
+      },
+      "highestDim": {
+        "title": "Highest dim level",
+        "description": "The highest level the dim slider in the Map Pane darkens the background map to, in percent (brief function 19); the slider moves in steps of 10 %.",
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 90,
+        "x-emc2": { "hint": "The highest level the dim slider darkens the map to, in steps of 10 %", "unit": "%" },
+        "default": 90
+      },
+      "zoomToWidthMetres": {
+        "title": "Zoom to width",
+        "description": "How wide Zoom to shows a single object, in metres; Zoom to never goes closer for several objects either (brief function 16).",
+        "type": "integer",
+        "minimum": 100,
+        "maximum": 1000000,
+        "x-emc2": { "hint": "How wide Zoom to shows one object; it goes no closer for several", "unit": "m" },
+        "default": 10000
+      }
+    }
+  }
+}

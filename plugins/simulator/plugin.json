@@ -1,0 +1,83 @@
+{
+  "id": "simulator",
+  "name": "Simulator",
+  "version": "0.1.0",
+  "sdkVersion": "^1.8.0",
+  "kind": "general",
+  "category": "simulation",
+  "icon": "Play",
+  "requires": ["emc2.map-view"],
+  "uses": ["emc2.symbols"],
+  "server": { "entryClass": "dev.emcc.plugins.simulator.SimulatorPlugin" },
+  "web": { "entry": "index.js", "css": ["simulator.css"] },
+  "permissions": ["plugin.simulator.view", "plugin.simulator.edit", "plugin.simulator.run"],
+  "workspaces": [
+    {
+      "id": "simulator.simulation",
+      "name": "Simulation",
+      "viewPermission": "plugin.simulator.view",
+      "editPermission": "plugin.simulator.edit"
+    }
+  ],
+  "dataTypes": [
+    {
+      "id": "simulator.route",
+      "name": "Route",
+      "manual": false,
+      "description": "A simulator route: a line through its points, with a speed and an altitude at each point. Never faded or removed by expiry."
+    }
+  ],
+  "relationKinds": [
+    { "id": "simulator.beyond-reach", "label": "Beyond output reach", "line": { "strokeColor": "#FF0000", "strokeWidth": 1 }, "defaultOn": true }
+  ],
+  "settings": {
+    "type": "object",
+    "properties": {
+      "outputStaleSeconds": {
+        "title": "Expiry of sent tracks",
+        "description": "The expiry, in seconds after the tick's time, put on everything the simulator sends to outputs, so that a paused simulation's tracks go stale at the receiver.",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3600,
+        "default": 5,
+        "x-emc2": { "hint": "Expiry after each tick, so a paused simulation's tracks go stale", "unit": "s" }
+      },
+      "jobAreaColour": {
+        "title": "Job area colour",
+        "description": "The sensors' job areas: their dotted outline and faint fill.",
+        "type": "object",
+        "properties": {
+          "use": { "title": "Use", "description": "identity: the platform's identity colour (APP-6's frame colours); fixed: the colour below.", "type": "string", "enum": ["identity", "fixed"], "default": "fixed", "x-emc2": { "hint": "identity: the platform's frame colour; fixed: the colour below" } },
+          "colour": { "title": "Colour", "description": "#RRGGBB, used when Use is fixed.", "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$", "default": "#BDCF3D", "x-emc2": { "kind": "colour", "visibleWhen": { "property": "use", "in": ["fixed"] } } }
+        },
+        "required": ["use"],
+        "additionalProperties": false,
+        "default": { "use": "fixed", "colour": "#BDCF3D" }
+      },
+      "coverageColour": {
+        "title": "Coverage colour",
+        "description": "The sensors' coverage and its bearing and range labels.",
+        "type": "object",
+        "properties": {
+          "use": { "title": "Use", "description": "identity: the platform's identity colour (APP-6's frame colours); fixed: the colour below.", "type": "string", "enum": ["identity", "fixed"], "default": "fixed", "x-emc2": { "hint": "identity: the platform's frame colour; fixed: the colour below" } },
+          "colour": { "title": "Colour", "description": "#RRGGBB, used when Use is fixed.", "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$", "default": "#FD0909", "x-emc2": { "kind": "colour", "visibleWhen": { "property": "use", "in": ["fixed"] } } }
+        },
+        "required": ["use"],
+        "additionalProperties": false,
+        "default": { "use": "fixed", "colour": "#FD0909" }
+      },
+      "dwellColour": {
+        "title": "Dwell colour",
+        "description": "The ground radars' dwells drawn in Simulation.",
+        "type": "object",
+        "properties": {
+          "use": { "title": "Use", "description": "identity: the platform's identity colour (APP-6's frame colours); fixed: the colour below.", "type": "string", "enum": ["identity", "fixed"], "default": "fixed", "x-emc2": { "hint": "identity: the platform's frame colour; fixed: the colour below" } },
+          "colour": { "title": "Colour", "description": "#RRGGBB, used when Use is fixed.", "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$", "default": "#7EF26A", "x-emc2": { "kind": "colour", "visibleWhen": { "property": "use", "in": ["fixed"] } } }
+        },
+        "required": ["use"],
+        "additionalProperties": false,
+        "default": { "use": "fixed", "colour": "#7EF26A" }
+      }
+    }
+  }
+}

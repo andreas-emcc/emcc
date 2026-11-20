@@ -1,0 +1,63 @@
+{
+  "id": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e32",
+  "type": "core.multipoint",
+  "dataType": "core.general",
+  "dataSource": "manual",
+  "layerId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e01",
+  "version": 1,
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [
+        17.9,
+        59.41
+      ],
+      [
+        17.82,
+        59.36
+      ],
+      [
+        17.74,
+        59.33
+      ],
+      [
+        17.8,
+        59.35
+      ]
+    ]
+  },
+  "symbol": {
+    "standard": "APP-6D",
+    "sidc": "10032500001514030000",
+    "modifiers": {
+      "uniqueDesignation": "2 BDE",
+      "dtg": "060600ZNOV26",
+      "dtg1": "061800ZNOV26"
+    }
+  },
+  "properties": {
+    "name": "Main attack, 2 BDE"
+  },
+  "label": {
+    "policyIdentifier": {
+      "name": "NATO"
+    },
+    "classification": "UNCLASSIFIED"
+  },
+  "meta": {
+    "created": {
+      "at": "2026-11-06T09:00:00.000Z",
+      "by": {
+        "plugin": "draw-tactical",
+        "user": "3f2c9a10-5d7e-4b8a-9c41-2e6f8d0a7b15"
+      }
+    },
+    "modified": {
+      "at": "2026-11-06T09:00:00.000Z",
+      "by": {
+        "plugin": "draw-tactical",
+        "user": "3f2c9a10-5d7e-4b8a-9c41-2e6f8d0a7b15"
+      }
+    }
+  }
+}

@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Parent POM for the emc2 server (owned by the CDA).
+  Every dependency and plugin version used by any server module is pinned here.
+  Other agents add only the single <module> line for their own module (owner decision 2026-10-04).
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>dev.emcc</groupId>
+  <artifactId>emc2-server</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>emc2 server</name>
+
+  <licenses>
+    <license>
+      <name>Apache-2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+  </licenses>
+
+  <modules>
+    <module>ecore</module>
+    <module>app</module>
+    <module>service</module>
+    <module>plugin-sdk</module>
+    <module>../plugins/_template/server</module>
+    <module>../plugins/adsb/server</module>
+    <module>../plugins/ais/server</module>
+    <module>../plugins/basemap-osm/server</module>
+    <module>../plugins/basemap-wms/server</module>
+    <module>../plugins/cot/server</module>
+    <module>../plugins/fmv/server</module>
+    <module>../plugins/gmti/server</module>
+    <module>../plugins/nvg/server</module>
+    <module>../plugins/simulator/server</module>
+    <module>../plugins/terrain/server</module>
+    <module>../plugins/uav-simulation/server</module>
+  </modules>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <maven.compiler.release>25</maven.compiler.release>
+
+    <!-- Libraries. SLF4J, JUnit and AssertJ follow the versions managed by Spring Boot,
+         so ECore and the edge never run with two different versions. -->
+    <spring-boot.version>4.1.1</spring-boot.version>
+    <slf4j.version>2.0.18</slf4j.version>
+    <jspecify.version>1.0.1</jspecify.version>
+    <junit.version>6.0.3</junit.version>
+    <assertj.version>3.27.7</assertj.version>
+    <archunit.version>1.5.1</archunit.version>
+    <!-- Jackson follows Spring Boot's managed version (ADR-0002 keeps the BOM out of here). -->
+    <jackson.version>3.1.5</jackson.version>
+    <!-- 3.0.6 is the newest release built on Jackson 3.1.x (owner approved 2026-10-07). -->
+    <json-schema-validator.version>3.0.6</json-schema-validator.version>
+
+    <!-- Build plugins -->
+    <maven-enforcer-plugin.version>3.6.3</maven-enforcer-plugin.version>
+    <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
+    <maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
+    <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
+    <maven-surefire-plugin.version>3.6.0</maven-surefire-plugin.version>
+    <maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
+    <maven-install-plugin.version>3.2.0</maven-install-plugin.version>
+    <maven-deploy-plugin.version>3.2.0</maven-deploy-plugin.version>
+    <maven-site-plugin.version>3.22.0</maven-site-plugin.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>dev.emcc</groupId>
+        <artifactId>emc2-ecore</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>dev.emcc</groupId>
+        <artifactId>emc2-plugin-sdk</artifactId>
+        <version>1.9.0</version>
+      </dependency>
+      <dependency>
+        <groupId>dev.emcc</groupId>
+        <artifactId>emc2-plugin-sdk-testkit</artifactId>
+        <!-- The SDK API (above) and the test kit have their own version, apart from the project version:
+             SDK 1.9.0 for both (CR-0048; changed by the PDA as the owner allowed for 1.1.0, 2026-10-15, for 1.2.0, 2026-10-26, for 1.3.0, 2026-10-30, for 1.4.0, 2026-11-05, for 1.5.0, 2026-11-10, NP A, for 1.6.0, 2026-11-12, RQ A, for 1.7.0, 2026-11-12, TD A, for 1.8.0, 2026-11-13, UO A, and for 1.9.0, 2026-11-16, ZB A; without -SNAPSHOT at the 1.9.0 freeze, ACH A, 2026-11-18). -->
+        <version>1.9.0</version>
+      </dependency>
+      <dependency>
+        <groupId>tools.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.networknt</groupId>
+        <artifactId>json-schema-validator</artifactId>
+        <version>${json-schema-validator.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jspecify</groupId>
+        <artifactId>jspecify</artifactId>
+        <version>${jspecify.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.assertj</groupId>
+        <artifactId>assertj-core</artifactId>
+        <version>${assertj.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.tngtech.archunit</groupId>
+        <artifactId>archunit</artifactId>
+        <version>${archunit.version}</version>
+      </dependency>
+      <!-- Spring Boot's BOM is deliberately NOT imported here: only server/app may use Spring (ADR-0002). -->
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-clean-plugin</artifactId>
+          <version>${maven-clean-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>${maven-resources-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${maven-compiler-plugin.version}</version>
+          <configuration>
+            <compilerArgs>
+              <arg>-Xlint:all</arg>
+            </compilerArgs>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${maven-surefire-plugin.version}</version>
+          <configuration>
+            <!-- Mockito (via spring-boot-starter-test) attaches an agent at runtime: allow it explicitly.
+                 The agent appends to the boot class path, which disables class data sharing with a
+                 warning; -Xshare:off turns sharing off up front so the test log stays clean. -->
+            <argLine>-XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>${maven-jar-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-install-plugin</artifactId>
+          <version>${maven-install-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-deploy-plugin</artifactId>
+          <version>${maven-deploy-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-site-plugin</artifactId>
+          <version>${maven-site-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-maven-plugin</artifactId>
+          <version>${spring-boot.version}</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>${maven-enforcer-plugin.version}</version>
+        <executions>
+          <execution>
+            <id>enforce-build-environment</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireJavaVersion>
+                  <version>[25,26)</version>
+                  <message>emc2 needs JDK 25 (ADR-0001).</message>
+                </requireJavaVersion>
+                <requireMavenVersion>
+                  <version>[3.9,)</version>
+                </requireMavenVersion>
+                <requirePluginVersions>
+                  <message>Pin every plugin version in server/pom.xml.</message>
+                </requirePluginVersions>
+                <dependencyConvergence/>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

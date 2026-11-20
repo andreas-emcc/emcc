@@ -1,0 +1,150 @@
+{
+  "id": "adsb",
+  "name": "ADS-B aircraft",
+  "version": "0.1.0",
+  "sdkVersion": "^1.8.0",
+  "kind": "general",
+  "category": "data-links",
+  "icon": "Plane",
+  "properties": ["ingoing"],
+  "connections": [
+    {
+      "kinds": ["tcp-client"],
+      "direction": "in",
+      "settings": "/links",
+      "reason": "Aircraft positions from an ADS-B decoder (dump1090, readsb) that serves SBS-1 (BaseStation) text on TCP port 30003, as each link in the settings names it. The host and port come only from the links. Input only: nothing is sent."
+    }
+  ],
+  "internet": {
+    "hosts": [],
+    "reason": "A link may point at a decoder on another host, which an administrator names in the links. No host is built in and none comes from received data."
+  },
+  "dataTypes": [
+    {
+      "id": "adsb.aircraft",
+      "name": "ADS-B aircraft",
+      "description": "Aircraft received as SBS-1 lines from an ADS-B decoder, at their last reported position.",
+      "defaults": { "expiresAfterSeconds": 60, "fadeWhenExpired": true, "removeAfterExpirySeconds": 300 },
+      "fieldSets": ["aircraft"]
+    }
+  ],
+  "fields": [
+    {
+      "name": "squawk",
+      "type": "text",
+      "label": "Squawk",
+      "description": "The transponder code, four octal digits (SBS-1 MSG,6).",
+      "maxLength": 4,
+      "editableByOthers": true
+    },
+    {
+      "name": "altitudeFt",
+      "type": "integer",
+      "label": "Altitude",
+      "description": "The barometric altitude as the aircraft reports it, in feet (not SI, on purpose: pilots and the feed use feet).",
+      "unit": "ft",
+      "editableByOthers": true
+    },
+    {
+      "name": "verticalRateFpm",
+      "type": "integer",
+      "label": "Vertical rate",
+      "description": "The climb (positive) or descent (negative) rate, in feet per minute.",
+      "unit": "ft/min",
+      "editableByOthers": true
+    },
+    {
+      "name": "emergency",
+      "type": "boolean",
+      "label": "Emergency",
+      "description": "Whether the aircraft declares an emergency.",
+      "editableByOthers": true
+    },
+    {
+      "name": "onGround",
+      "type": "boolean",
+      "label": "On ground",
+      "description": "Whether the aircraft reports that it is on the ground.",
+      "editableByOthers": true
+    }
+  ],
+  "fieldSets": [
+    {
+      "id": "aircraft",
+      "label": "ADS-B aircraft",
+      "fields": ["squawk", "altitudeFt", "verticalRateFpm", "emergency", "onGround"]
+    }
+  ],
+  "server":{ "entryClass": "dev.emcc.plugins.adsb.AdsbPlugin" },
+  "settings": {
+    "type": "object",
+    "properties": {
+      "links": {
+        "title": "Links",
+        "description": "The decoders to read, one entry per link. Without an entry the plugin does nothing. A link's name is the data source of what it receives.",
+        "type": "array",
+        "default": [],
+        "x-emc2": {
+          "hint": "One entry per decoder. A link's name is its data source.",
+          "item": {
+            "name": "name",
+            "noun": "link",
+            "state": "enabled",
+            "columns": ["host", "port", "standardIdentity"]
+          }
+        },
+        "items": {
+          "type": "object",
+          "x-emc2": {
+            "groups": [
+              { "id": "connection", "label": "Connection", "description": "The decoder the link reads from, and when a silent link connects again.", "properties": ["host", "port", "idleSeconds"] },
+              { "id": "picture", "label": "Picture", "description": "Where the link's aircraft go, and how they are drawn.", "properties": ["targetLayer", "standardIdentity"] },
+              { "id": "classification", "label": "Security label", "description": "The security label of the link's layer and aircraft.", "properties": ["label"] }
+            ]
+          },
+          "properties": {
+            "name": { "title": "Name", "description": "The link's name: lowercase words separated by hyphens, at most 64 characters (e.g. dump1090-north). It is the data source of what the link receives.", "type": "string", "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$", "maxLength": 64, "x-emc2": { "hint": "Lowercase words and hyphens, e.g. dump1090-north.", "width": "full" } },
+            "mode": { "title": "Mode", "description": "tcp-client: connects to the decoder's SBS-1 output and reads it. The only mode.", "enum": ["tcp-client"], "default": "tcp-client", "x-emc2": { "hint": "tcp-client: the only mode." } },
+            "direction": { "title": "Direction", "description": "in: the link receives. The only direction.", "enum": ["in"], "default": "in" },
+            "host": { "title": "Host", "description": "The decoder's host, e.g. 127.0.0.1.", "type": "string", "minLength": 1, "maxLength": 253, "x-emc2": { "width": "full" } },
+            "port": { "title": "Port", "description": "The decoder's SBS-1 port (dump1090 serves it on 30003).", "type": "integer", "minimum": 1, "maximum": 65535, "default": 30003, "x-emc2": { "width": "short" } },
+            "idleSeconds": { "title": "Reconnect when idle", "description": "A link that gets nothing for this long is closed and connected again. 0: never.", "type": "integer", "minimum": 0, "maximum": 86400, "default": 60, "x-emc2": { "hint": "Reconnect after this long without data. 0: never.", "unit": "s", "width": "short" } },
+            "targetLayer": {
+              "title": "Layer",
+              "description": "Where the aircraft go: a layer picked in the form (the \"+\" beside the picker creates one at once, and it keeps its id). Absent: a layer named like the link. A picked layer that is gone is made again by its name at the next aircraft. Two links that name the same layer share one.",
+              "type": "object",
+              "x-emc2": { "kind": "layer", "hint": "Pick a layer, or use + to make one. Absent: named like the link." },
+              "properties": {
+                "id": { "type": "string", "format": "uuid" },
+                "name": { "type": "string", "minLength": 1, "maxLength": 256 }
+              },
+              "required": ["name"]
+            },
+            "label": {
+              "title": "Security label",
+              "description": "The security label of the link's layer and of the aircraft it creates. Default: the server's default label.",
+              "type": "object",
+              "x-emc2": { "hint": "The layer's and the aircraft's security label." },
+              "properties": {
+                "policy": { "title": "Policy", "description": "The security policy, e.g. NATO.", "type": "string", "minLength": 1, "maxLength": 64 },
+                "classification": { "title": "Classification", "description": "The classification the policy defines, e.g. UNCLASSIFIED.", "type": "string", "minLength": 1, "maxLength": 64 }
+              },
+              "required": ["policy", "classification"],
+              "additionalProperties": false
+            },
+            "standardIdentity": {
+              "title": "Standard identity",
+              "description": "The APP-6D standard identity of every aircraft of the link. ADS-B does not say whether an aircraft is friend or foe: set neutral for civil traffic.",
+              "enum": ["pending", "unknown", "assumed-friend", "friend", "neutral", "suspect", "hostile"],
+              "default": "unknown",
+              "x-emc2": { "hint": "Set neutral for civil traffic; ADS-B does not say." }
+            },
+            "enabled": { "title": "Enabled", "description": "Whether the plugin runs this link.", "type": "boolean", "default": true }
+          },
+          "required": ["name", "host"],
+          "additionalProperties": false
+        }
+      }
+    }
+  }
+}

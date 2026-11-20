@@ -1,0 +1,17 @@
+{
+  "requestId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e54",
+  "entityType": "object",
+  "operation": "update",
+  "entityId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e42",
+  "baseVersion": 3,
+  "data": {
+    "type": "core.shape",
+    "dataType": "core.general",
+    "dataSource": "manual",
+    "layerId": "0192a5c4-3b1e-7c2d-9f00-1a2b3c4d5e01",
+    "geometry": { "type": "Point", "coordinates": [11.9746, 57.7089] },
+    "label": { "policyIdentifier": { "name": "NATO" }, "classification": "UNCLASSIFIED" }
+  },
+  "externalRef": { "system": "cot", "id": "ANDROID-358240051111110" },
+  "source": { "plugin": "draw-symbols" }
+}
