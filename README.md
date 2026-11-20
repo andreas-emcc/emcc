@@ -45,7 +45,7 @@ The agents' setup and the project's working records are not in this repository. 
 
 ## Status
 
-Ten releases so far, M0 to M9 (10 October to 19 November 2026); M7 was the first release for outside users. M9, released on 19 November 2026, brings HTTPS, emcc as a Windows service, guides for admins and plugin authors, a help menu with the manual and the version, a start without login by a double-click (`start_standalone.bat`) and the UAV simulator. Its user manual has 74 chapters.
+Ten releases so far, M0 to M9 (10 October to 19 November 2026); M7 was the first release for outside users. M9, released on 19 November 2026, brings HTTPS, emcc as a Windows service, guides for admins and plugin authors, a help menu with the manual and the version, a start without login by a double-click (`start_standalone.bat`) and the UAV simulator. Its user manual has 74 chapters. M9.1, released on 20 November 2026, is a fix for GMTI: the STANAG 4607 job definition is sent at least every 20 seconds, and each GMTI out link can send Edition 3 or Edition 4.
 
 ## Licence
 

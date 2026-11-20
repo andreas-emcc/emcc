@@ -6,10 +6,12 @@ Product name: **emcc**, always lower case. English. No owner name, no contact ad
 
 ## Hero
 
+- **Top menu:** Workspaces, Standards, Ideas, Parts, AI agents, Status, and "GitHub ↗" to https://github.com/andreas-emcc/emcc, the menu's only outside link (owner, 2026-11-20).
 - **Title:** emcc. Extensible Modular Command and Control – a lightweight C2 (and simulation) system. (Owner, 2026-11-19; before: "A command and control picture for the browser.")
 - **Line:** A shared live map for units, tactical graphics and tracks, with links to other systems and a simulator; extend the functionality with plugins. (Owner, 2026-11-19: "and extend the functionality with plugins" for "and a plugin for everything".)
 - **Mock-up tag:** Mock-up · demonstration system
 - **One line on how it was built:** Built by Claude Code agents, with humans as architects making every decision (owner, 2026-11-19; before: "with one human making every decision"). (No "in 41 days": the owner, 2026-11-12, found it boastful and it dates quickly.)
+- **Source button:** "Source code on GitHub", a link to https://github.com/andreas-emcc/emcc under the Built line (owner, 2026-11-20: GitHub also in the top menu, the hero and the footer; text only, no logo).
 - **Picture:** `view-light.jpg` / `view-dark.jpg` (by the reader's light or dark). Caption: The View workspace of the M8 release, with a made-up exercise on Natural Earth's map of Gotland. Every unit, name and position is fictional.
 
 ## Highlights (owner, 2026-11-12; the third slide 2026-11-16; the fourth 2026-11-18; M8 and M9 screenshots)
@@ -143,6 +145,7 @@ M9 is shown first: released on 19 November 2026 (owner, 2026-11-19; the MCA: "M9
 - **M7 · The first release for outside users** (Released 13 November 2026: RC3 `c2d7dc9e` approved by the owner, docs/status.md): NVG in and out; A Scenario button in the top bar; Symbol palettes, one of them for CoT; Categories in the Settings list; Listing and emptying a layer; Adding points to the end of a line; A height map in Terrain, and better sensors. [checked in RC2 and its manual: 3.18 NVG, the Scenario button and the palettes in the pictures, 5.4 Layers "Delete all objects" (T-175), 3.11 Shapes "Append", 3.13 Terrain, 4.4 Sensors]
 - **M8 · Full motion video and a new look** (Released 16 November 2026: RC2 `ab29d8f7`, "RC2 looks good", docs/status.md): Full motion video in STANAG 4609, with the camera and its field of view on the map; MPEG-2 video converted to H.264 on the server; A new look for every workspace, and Settings as tables with one Save (the UXA's design, T-198, T-203); Symbol labels set by place round a symbol (T-163); A Systematic scan for ground radars, and dwells at the rate their settings ask (T-197, T-196); New default colours for dwells, sensor ranges and job areas (T-189); Bug fixes, among them vessel symbols that no longer flicker (T-200).
 - **M9 · Ready for others to try and extend** (Released 19 November 2026; checked against the release `emcc-M9-2026-11-19-0575b37d`) [docs/architecture/m9-plan.md; docs/status.md, "Milestone M9"]: HTTPS on the server, and TLS certificates kept apart from the links (ADR-0061, ADR-0062); Settings and credentials in files of their own (ADR-0060); emcc as a Windows service (ADR-0063); An admin guide for existing infrastructure (G1); A plugin template, a developer cookbook and instructions for AI agents (D3, D5, `docs/plugins/for-agents.md`); A help menu, "?", with the manual and the version (M9-R17; the "?" at the top bar's right in the release); A start without login by a double-click: start_standalone.bat (the release's `start_standalone.bat`, "the same as start.bat -standalone"); A UAV simulator whose cameras send STANAG 4609 full motion video, drawn from orthophotos and height data that you add (ADR-0058, ADR-0059, `uav-simulation`; not part of the public release, owner ADH, 2026-11-19). No note about M10 (owner, 2026-11-18: remove mentions of M10).
+- **M9.1 · A fix for GMTI** (Released 20 November 2026; the MCA's round, owner 2026-11-20, approving RC2: "a small step after M9, in the same plain words; don't call it more than it is"). A small mark on the track after M9, carrying "Released"; M9 stays the panel shown first. The STANAG 4607 job definition sent at least every 20 seconds, as receivers expect (it was 30 s, which receivers flagged); A choice of STANAG 4607 Edition 3 or Edition 4 for each GMTI out link (the out link's new setting `edition`: Edition 3, version "30", the default, or Edition 4, "41"). No M10 contents.
 
 ## Built by AI agents (one short section)
 
@@ -152,14 +155,16 @@ No counts of tokens, commits, ADRs or change requests (owner, 2026-11-19: take t
 
 ## Status
 
-- Released: M9, 19 November 2026 (ten releases since 10 October: M0 to M9).
+- Released: M9.1, 20 November 2026: a fix for GMTI on top of M9 of 19 November (eleven releases since 10 October: M0 to M9.1). (The MCA's round, owner, 2026-11-20.)
 - Manual: a user manual of 74 chapters comes with the release [the M9 release's `manual/`, 74 numbered chapter pages: RC1's 73 and "UAV simulation"; the final build changes only the manual, so recount if it differs].
-- Source: "The source code is published on GitHub." (owner, 2026-11-18: "under source just mention that source code is published on GitHub"; true once the repository is public, before the site goes up). No Next or Later line (owner, 2026-11-18: no M10).
+- Source: "The source code is on GitHub: github.com/andreas-emcc/emcc", a link to https://github.com/andreas-emcc/emcc, the public repository (the MCA's round, owner, 2026-11-20; text only, no GitHub logo). No Next or Later line (owner, 2026-11-18: no M10).
 
 ## Footer
 
 - **emcc is a demonstration.** It is not an operational system, it does not protect classified information, and it is not certified for any use. It is not affiliated with or endorsed by NATO, any armed force or any company. Standards are named only to say what emcc reads and writes.
 - The pictures show the real user interface of the M8 and M9 releases, with a fictional scenario; the video in the FMV picture is our own test stream, rendered from public-domain height data, and the UAV picture's video is drawn by emcc from Lantmäteriet's historical orthophotos of 2001 (CC0). Map data: Made with Natural Earth (public domain). emcc is licensed under the Apache License 2.0.
+- Source code: github.com/andreas-emcc/emcc, a link to https://github.com/andreas-emcc/emcc (owner, 2026-11-20).
+- Contact: andreas@emcc.dev, a mailto link (the MCA's round, owner, 2026-11-20).
 - This site sets no cookies, runs no scripts and loads nothing from other servers.
 - **The sources** (owner, 2026-11-19: a disclaimer at the end of the page and of the readme). "No classified STANAGs or specifications were used to make emcc, and no document marked NATO UNCLASSIFIED: only unmarked or public documents. Most of them were downloaded from NATO's NSDD, the NATO Standardization Document Database, or from other publicly available sources."
 
