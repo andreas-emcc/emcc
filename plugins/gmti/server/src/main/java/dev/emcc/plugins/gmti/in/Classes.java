@@ -1,5 +1,6 @@
 package dev.emcc.plugins.gmti.in;
 
+import dev.emcc.plugins.gmti.format.Edition;
 import java.util.Locale;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -52,7 +53,19 @@ public final class Classes {
 
   private Classes() {}
 
-  /** The class's name with its number, e.g. "wheeled vehicle, simulated (130)". */
+  /**
+   * The class's name with its number as the packet's edition ({@code P1}) defines it (M9.1). Edition 3 and older print the
+   * tagging device as 143 (their table lists no 142, and 143 also opens the reserved range); Edition A moved it to 142 and
+   * reserved 143. Every other value means the same in both.
+   */
+  public static String name(int value, String version) {
+    if (value == 143 && !Edition.editionAOrLater(version)) {
+      return "tagging device, simulated (143)";
+    }
+    return name(value);
+  }
+
+  /** The class's name with its number in Edition A, e.g. "wheeled vehicle, simulated (130)". */
   public static String name(int value) {
     String name = base(value);
     if (name == null) {

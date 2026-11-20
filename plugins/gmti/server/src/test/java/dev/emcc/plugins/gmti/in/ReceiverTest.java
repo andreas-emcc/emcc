@@ -298,12 +298,13 @@ class ReceiverTest {
   }
 
   @Test
-  void anOlderVersionIsReportedOncePerLink() {
+  void aVersionGmtiDoesNotWriteIsReportedOncePerLink_editions3And4AreNot() {
     receive(mission(DAY));
     receive(mission(DAY));
     receiver.packet(packet(header("21", 1, 7), mission(DAY)), now, sink);
+    receiver.packet(packet(header("21", 1, 7), mission(DAY)), now, sink);
     receiver.packet(packet(header("41", 1, 7), mission(DAY)), now, sink);
-    assertThat(sink.versions).containsExactly("30", "21");
+    assertThat(sink.versions).as("M9.1: \"30\" (this test's own) and \"41\" are the editions gmti writes").containsExactly("21");
   }
 
   @Test

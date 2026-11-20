@@ -235,7 +235,7 @@ test('the Areas through gmti (gmti criteria 33, 34, 36 and 37; map-view-2d funct
       expect(await putSettings(server, 'gmti', { dwellAreaColour: { use: 'fixed', colour: '#FF00F' } }), 'not #RRGGBB').toBe(400);
       await setSettings(server, 'gmti', { dwellAreaColour: { use: 'fixed', colour: '#FF00FF' }, coverageColour: { use: 'fixed', colour: '#00FF00' } });
       await expect.poll(() => String(shapes(all, 'dwell').at(-1)!.style.strokeColor).toUpperCase(), { timeout: 20_000, message: 'the next dwell area in #FF00FF' }).toBe('#FF00FF');
-      await expect.poll(() => String(shapes(all, 'coverage').at(-1)!.style.strokeColor).toUpperCase(), { timeout: 45_000, message: 'the coverage in #00FF00 (re-sent at least every 30 s)' }).toBe('#00FF00');
+      await expect.poll(() => String(shapes(all, 'coverage').at(-1)!.style.strokeColor).toUpperCase(), { timeout: 45_000, message: 'the coverage in #00FF00 (the job definition, re-sent at least every 20 s from M9.1)' }).toBe('#00FF00');
 
       // Criterion 37: no display setting of the user's own; the dwell areas, the coverage and the pairing lines show.
       expect(await display(server), 'no display setting of the user\'s own').toEqual({});

@@ -1,5 +1,6 @@
 package dev.emcc.plugins.gmti.transport;
 
+import dev.emcc.plugins.gmti.format.Edition;
 import dev.emcc.plugins.gmti.in.LabelRule;
 import dev.emcc.plugins.gmti.in.Receiver;
 import dev.emcc.plugins.gmti.in.StandardIdentity;
@@ -34,6 +35,7 @@ import org.jspecify.annotations.Nullable;
  * @param maxReportsPerSegment {@code out}: at most this many reports per dwell segment
  * @param coverage {@code in}: draw each sensor's coverage, the job's bounding area (T-158; on by default)
  * @param oneSegmentPerPacket {@code out}: each segment in its own packet (T-159; on by default, owner MY)
+ * @param edition {@code out}: the STANAG 4607 edition the packets follow (M9.1; Edition 3 by default, owner 2026-11-20)
  */
 public record LinkSettings(
     @Nullable LayerChoice targetLayer,
@@ -49,7 +51,8 @@ public record LinkSettings(
     boolean exercise,
     int maxReportsPerSegment,
     boolean coverage,
-    boolean oneSegmentPerPacket) {
+    boolean oneSegmentPerPacket,
+    Edition edition) {
 
   /** The defaults of brief section 5. */
   public static final int DEFAULT_CAP = 1_000;
@@ -119,9 +122,14 @@ public record LinkSettings(
         throw new IllegalArgumentException("nationality is two capital letters, e.g. XN for NATO");
       }
       boolean exercise = entry.get("exercise") instanceof JsonBoolean b && b.value();
+      String editionText = text(entry, "edition");
+      Edition edition = editionText == null ? Edition.EDITION_3 : Edition.of(editionText);
+      if (edition == null) {
+        throw new IllegalArgumentException("edition is edition-3 or edition-4");
+      }
       return new LinkSettings(LayerChoice.from(entry.get("targetLayer")), label, symbol, identity,
           number(entry, "maxReportsPerDwell", DEFAULT_CAP), time, map, names, highest, nationality, exercise,
-          number(entry, "maxReportsPerSegment", DEFAULT_PER_SEGMENT), flag(entry, "coverage"), flag(entry, "oneSegmentPerPacket"));
+          number(entry, "maxReportsPerSegment", DEFAULT_PER_SEGMENT), flag(entry, "coverage"), flag(entry, "oneSegmentPerPacket"), edition);
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException("link " + name + ": " + e.getMessage(), e);
     }

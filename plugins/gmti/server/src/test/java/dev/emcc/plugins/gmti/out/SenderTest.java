@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.within;
 import dev.emcc.plugins.gmti.format.Angles;
 import dev.emcc.plugins.gmti.format.Decoder;
 import dev.emcc.plugins.gmti.format.Dwell;
+import dev.emcc.plugins.gmti.format.Edition;
 import dev.emcc.plugins.gmti.format.JobDefinition;
 import dev.emcc.plugins.gmti.format.Mission;
 import dev.emcc.plugins.gmti.format.Packet;
@@ -107,7 +108,7 @@ class SenderTest {
     List<Packet> packets = decode(result);
     assertThat(packets).hasSize(1);
     Packet p = packets.getFirst();
-    assertThat(p.header().version()).isEqualTo("41");
+    assertThat(p.header().version()).as("Edition 3, the link's default (M9.1)").isEqualTo("30");
     assertThat(p.header().nationality()).isEqualTo("XN");
     assertThat(p.header().classificationSystem()).isEqualTo("XN");
     assertThat(p.header().classification()).as("P4 5: unclassified").isEqualTo(5);
@@ -722,6 +723,63 @@ class SenderTest {
     return detections;
   }
 
+  // ------------------------------------------------------------------- M9.1: the edition, Edition 3 by default (owner, 2026-11-20)
+
+  /** {@link #segmentsApart}'s link, in the edition given. */
+  static Sender inEdition(Edition edition, boolean apart) {
+    var settings = new Sender.Settings("XN", false, 120, Decoder.MAX_PACKET, UNCLASSIFIED, new ClassificationLimit("NATO", "COSMIC TOP SECRET"), LabelRule.NATO,
+        apart, edition);
+    return new Sender(settings, Classifications.nato(), START);
+  }
+
+  @Test
+  void m91_edition3_isVersion30_andEveryPacketCarriesTheJob_asBeforeM91() {
+    assertThat(decode(sender().dwell(dwell(START, sector(), List.of()))).getFirst().header().version()).as("the default").isEqualTo("30");
+    List<Packet> packets = decode(inEdition(Edition.EDITION_3, true).dwell(dwell(START, sector(), vehicles130())));
+    assertThat(packets).extracting(p -> p.segments().getFirst().type()).containsExactly(1, 5, 2, 2);
+    assertThat(packets).extracting(p -> p.header().version()).containsOnly("30");
+    long job = ((JobDefinition) packets.get(1).segments().getFirst()).jobId();
+    assertThat(job).isPositive();
+    assertThat(packets).extracting(p -> p.header().jobId()).as("Edition 3 allows the job in a packet without a dwell").containsOnly(job);
+  }
+
+  @Test
+  void m91_edition4_isVersion41_andAPacketWithoutADwellHasJobId0() {
+    List<Packet> packets = decode(inEdition(Edition.EDITION_4, true).dwell(dwell(START, sector(), vehicles130())));
+    assertThat(packets).extracting(p -> p.segments().getFirst().type()).containsExactly(1, 5, 2, 2);
+    assertThat(packets).extracting(p -> p.header().version()).containsOnly("41");
+    long job = ((JobDefinition) packets.get(1).segments().getFirst()).jobId();
+    assertThat(job).isPositive();
+    assertThat(packets).extracting(p -> p.header().jobId()).as("AEDP 3.1.10: 0 without a dwell, the dwells' job with one")
+        .containsExactly(0L, 0L, job, job);
+    assertThat(packets).extracting(p -> p.header().withJobId(0)).as("the header otherwise the same").containsOnly(packets.getFirst().header());
+
+    List<Packet> one = decode(inEdition(Edition.EDITION_4, false).dwell(dwell(START, sector(), vehicles130())));
+    assertThat(one).hasSize(1);
+    assertThat(one.getFirst().header().version()).isEqualTo("41");
+    assertThat(one.getFirst().header().jobId()).as("one packet with the dwells: their job").isEqualTo(job);
+  }
+
+  @Test
+  void m91_bothEditionsComeBackTheSameThroughAnInLink() {
+    for (Edition edition : Edition.values()) {
+      var in = new Receiver(1_000, Receiver.TimeMode.AS_RECORDED);
+      var back = new Collected();
+      List<Packet> packets = decode(inEdition(edition, true).dwell(dwell(START, sector(), vehicles130())));
+      long job = ((JobDefinition) packets.get(1).segments().getFirst()).jobId();
+      for (Packet p : packets) {
+        in.packet(p, START.plusSeconds(5), back);
+      }
+      assertThat(back.detections).as("%s: every report", edition).hasSize(130);
+      assertThat(back.detections).as("%s: each with the job's values", edition).allSatisfy(d -> {
+        assertThat(d.job()).isNotNull();
+        assertThat(d.job().jobId()).isEqualTo(job);
+      });
+      assertThat(back.coverages).as("%s: the job's box", edition).hasSize(1);
+      assertThat(back.areas).extracting(Receiver.AreaFix::jobId).as("%s: the dwell's area, in its job", edition).isNotEmpty().containsOnly(job);
+    }
+  }
+
   /** {@code P2}, bytes 2 to 5 of the packet header, big-endian. */
   static long p2(byte[] packet) {
     return ((packet[2] & 0xFFL) << 24) | ((packet[3] & 0xFFL) << 16) | ((packet[4] & 0xFFL) << 8) | (packet[5] & 0xFFL);
@@ -884,7 +942,7 @@ class SenderTest {
   void criterion24_aChangedJobAreaSendsAJobDefinitionWithTheNextDwell_noneIsTheBoxRoundTheDwellArea() {
     Sender s = sender();
     s.dwell(tasked(START, ring(TASKED)));
-    assertThat(types(s.dwell(tasked(START.plusSeconds(10), ring(TASKED))))).as("the same area within 30 s").containsExactly(1, 2);
+    assertThat(types(s.dwell(tasked(START.plusSeconds(10), ring(TASKED))))).as("the same area within 20 s").containsExactly(1, 2);
     List<Position> moved = List.of(Position.of(15.20, 58.40), Position.of(15.60, 58.40), Position.of(15.60, 58.20), Position.of(15.20, 58.20));
     List<Packet> changed = decode(s.dwell(tasked(START.plusSeconds(20), ring(moved))));
     assertThat(changed.getFirst().segments()).extracting(Segment::type).as("a changed area: the job definition again").containsExactly(1, 5, 2);
@@ -966,13 +1024,47 @@ class SenderTest {
   }
 
   @Test
-  void theJobDefinitionGoesFirstAndThenEvery30Seconds() {
+  void theJobDefinitionGoesFirstAndThenEvery20Seconds() {
     Sender s = sender();
     assertThat(types(s.dwell(dwell(START, sector(), List.of())))).containsExactly(1, 5, 2);
     assertThat(types(s.dwell(dwell(START.plusSeconds(10), sector(), List.of())))).containsExactly(1, 2);
-    assertThat(types(s.dwell(dwell(START.plusSeconds(30), sector(), List.of())))).containsExactly(1, 5, 2);
-    List<Dwell> third = dwells(decode(s.dwell(dwell(START.plusSeconds(40), sector(), List.of()))));
-    assertThat(third.getFirst().revisitIndex()).as("one revisit per dwell").isEqualTo(3);
+    assertThat(types(s.dwell(dwell(START.plusMillis(19_999), sector(), List.of())))).as("not before 20 s").containsExactly(1, 2);
+    assertThat(types(s.dwell(dwell(START.plusSeconds(20), sector(), List.of())))).as("at 20 s").containsExactly(1, 5, 2);
+    List<Dwell> fifth = dwells(decode(s.dwell(dwell(START.plusSeconds(30), sector(), List.of()))));
+    assertThat(fifth.getFirst().revisitIndex()).as("one revisit per dwell").isEqualTo(4);
+  }
+
+  // ------------------------------------------------------------------- M9.1: the job definition at least every 20 s (owner ADQ B)
+
+  /** The times of the dwells a job definition goes with, for one sensor sending a dwell every {@code interval} for {@code length}. */
+  private static List<Instant> jobDefinitions(Duration interval, Duration length) {
+    Sender s = sender();
+    var times = new ArrayList<Instant>();
+    for (Instant t = START; !t.isAfter(START.plus(length)); t = t.plus(interval)) {
+      if (decode(s.dwell(dwell(t, sector(), List.of()))).stream().flatMap(p -> p.segments().stream()).anyMatch(seg -> seg.type() == 5)) {
+        times.add(t);
+      }
+    }
+    return times;
+  }
+
+  @Test
+  void m91_aDwellEvery200MsOr4s_theJobDefinitionGoesAtLeastEvery20Seconds_noGapReaches30Seconds() {
+    assertThat(Sender.JOB_EVERY).isEqualTo(Duration.ofSeconds(20));
+    Duration length = Duration.ofSeconds(65);
+    // The MCA's two rates, and 3 s, which does not divide 20 s: its gaps are 21 s
+    for (Duration interval : List.of(Duration.ofMillis(200), Duration.ofSeconds(4), Duration.ofSeconds(3))) {
+      List<Instant> jobs = jobDefinitions(interval, length);
+      assertThat(jobs.getFirst()).as("%s: with the first dwell", interval).isEqualTo(START);
+      assertThat(jobs).as("%s: about 0, 20, 40 and 60 s", interval).hasSize(4);
+      for (int i = 1; i < jobs.size(); i++) {
+        Duration gap = Duration.between(jobs.get(i - 1), jobs.get(i));
+        assertThat(gap).as("%s: gap %d, at most 20 s and one dwell", interval, i).isBetween(Duration.ofSeconds(20), Duration.ofSeconds(20).plus(interval));
+        assertThat(gap).as("%s: gap %d, under the receivers' 30 s", interval, i).isLessThan(Duration.ofSeconds(30));
+      }
+      Instant lastDwell = START.plus(interval.multipliedBy(length.dividedBy(interval)));
+      assertThat(Duration.between(jobs.getLast(), lastDwell)).as("%s: none missing at the end", interval).isLessThan(Duration.ofSeconds(20));
+    }
   }
 
   @Test

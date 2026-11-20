@@ -279,7 +279,7 @@ public final class Mapper {
     putNumber(ext, "wrapVelocity", r.wrapVelocity());
     putNumber(ext, "snr", r.snr() == null ? null : r.snr().doubleValue());
     if (r.classification() != null) {
-      ext.put("classification", JsonString.of(Classes.name(r.classification())));
+      ext.put("classification", JsonString.of(Classes.name(r.classification(), f.header().version())));
     }
     putNumber(ext, "classProbability", r.classificationProbability() == null ? null : r.classificationProbability().doubleValue());
     Double slant = r.slantRangeError();

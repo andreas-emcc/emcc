@@ -771,6 +771,46 @@ class LinksTest {
     }
   }
 
+  @Test
+  void m91_anOutLinkWritesEdition3WhenNoneIsChosen_edition4WithJobId0WithoutADwell_aBadOneIsNamed() throws Exception {
+    try (var peer = new DatagramSocket(0, InetAddress.getLoopbackAddress())) {
+      peer.setSoTimeout(5_000);
+      String out = "{\"name\":\"sim-out\",\"mode\":\"udp\",\"direction\":\"out\",\"host\":\"127.0.0.1\",\"port\":" + peer.getLocalPort();
+      useLinks(out + "}");
+      waitUntil(() -> ctx.effectiveStatus().detail().contains("sim-out [out udp to 127.0.0.1:" + peer.getLocalPort() + "]: up"));
+      ChannelId channel = ctx.channels().offered().getFirst().id();
+      var area = new Geometry.ArcBand(Position.of(18.3, 57.4), 20_000, 150_000, 45, 135);
+      List<ChannelItem.Detection> one = List.of(detection(Geodesy.direct(Position.of(18.3, 57.4), 90, 40_000), SecurityLabel.of("NATO", "UNCLASSIFIED")));
+      Instant time = Instant.parse("2026-11-07T10:00:00Z");
+
+      // Each sensor's first report: the mission, the job and the dwell, one datagram each (oneSegmentPerPacket, its default).
+      ctx.channels().deliver(channel, new ChannelItem.SensorReport(UUID.randomUUID(), Position.of(18.3, 57.4, 8_000.0), time, area, one));
+      ctx.runUntilIdle();
+      var edition3 = new ArrayList<PacketHeader>();
+      for (int i = 0; i < 3; i++) {
+        edition3.add(Decoder.decode(datagram(peer)).packet().header());
+      }
+      assertThat(edition3).extracting(PacketHeader::version).as("no edition chosen: Edition 3 (owner, 2026-11-20)").containsOnly("30");
+      assertThat(edition3.getLast().jobId()).isPositive();
+      assertThat(edition3).extracting(PacketHeader::jobId).as("the job in every packet, as before M9.1").containsOnly(edition3.getLast().jobId());
+
+      useLinks(out + ",\"edition\":\"edition-4\"}");
+      ctx.channels().deliver(channel, new ChannelItem.SensorReport(UUID.randomUUID(), Position.of(18.3, 57.4, 8_000.0), time.plusSeconds(1), area, one));
+      ctx.runUntilIdle();
+      var edition4 = new ArrayList<PacketHeader>();
+      for (int i = 0; i < 3; i++) {
+        edition4.add(Decoder.decode(datagram(peer)).packet().header());
+      }
+      assertThat(edition4).extracting(PacketHeader::version).containsOnly("41");
+      assertThat(edition4.getLast().jobId()).isPositive();
+      assertThat(edition4).extracting(PacketHeader::jobId).as("AEDP 3.1.10: the mission's and the job's packets 0")
+          .containsExactly(0L, 0L, edition4.getLast().jobId());
+
+      useLinks(out + ",\"edition\":\"edition-5\"}");
+      assertThat(ctx.effectiveStatus().detail()).contains("edition is edition-3 or edition-4");
+    }
+  }
+
   /** The next datagram {@code peer} receives, waiting while the worker runs. */
   byte[] datagram(DatagramSocket peer) throws Exception {
     var packet = new DatagramPacket(new byte[65_535], 65_535);

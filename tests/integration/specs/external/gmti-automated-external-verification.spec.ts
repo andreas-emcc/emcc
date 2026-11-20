@@ -5,7 +5,7 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createSocket } from 'node:dgram';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Browser, type TestInfo } from '@playwright/test';
 import { direct } from '../../lib/geodesy.mjs';
 import { createLayer, createSymbol, LiveClient } from '../../lib/live.mjs';
 import { withM0, type LonLat } from '../../lib/m0';
@@ -36,6 +36,13 @@ import { freeUdpPort } from '../../lib/udp-peer.mjs';
 // and in each revisit the sensor at the platform and the reports at the tracks' positions. The
 // dissector decodes SA angles as sign and magnitude, so negative latitudes come out wrong: every
 // position here is in Sweden (north and east), latitude ≠ longitude.
+//
+// M9.1 (owner, 2026-11-20): two runs, one per edition of the out link's setting `edition`
+// (FORMAT-RULES G18). Edition 3, the default, with the link set up without the setting: P1 "30",
+// every packet with the job's P10. Edition 4, set on the link: P1 "41", P10 0 in the mission's and
+// the job's own packets (oneSegmentPerPacket), the job's in the dwells'. gmti out sends the job
+// definition with the first dwell 20 s after the last one (G7, owner ADQ B), so two are at most
+// 20 s plus one revisit apart.
 
 test.describe.configure({ timeout: 240_000 });
 
@@ -45,8 +52,16 @@ const PLATFORM: LonLat = [15.5, 58.5];
 const KM = 1000;
 const MISSION = 'ITA-GMTI-EXT';
 const REVISIT_S = 5;
-/** Long enough for two job definitions (at least every 30 s) and seven revisits. */
+/** Long enough for two job definitions (at least every 20 s, with the next dwell) and seven revisits. */
 const LISTEN_MS = 40_000;
+/** gmti out's job definition: with the first dwell 20 s after the last one (G7), so at most a revisit later. */
+const JOB_EVERY_MS = 20_000 + REVISIT_S * 1000;
+/** The out link's setting `edition` (M9.1), and what the dissector prints for P1 (spaces made one). */
+const EDITIONS = [
+  { name: 'Edition 3, the default (the link set up without the setting)', setting: undefined, version: 'Edition: 3 Amendment: 0', jobIdOnlyWithADwell: false },
+  { name: 'Edition 4 (edition-4)', setting: 'edition-4', version: 'Edition: 4 Amendment: 1', jobIdOnlyWithADwell: true },
+] as const;
+type EditionCase = (typeof EDITIONS)[number];
 /** SA32 and BA32 steps are below 1e-7°; the sensor detects all at the true positions. */
 const SAME_PLACE = 1e-6;
 /** Sweden, roughly: north and east, where the dissector decodes positions right. */
@@ -192,9 +207,15 @@ function inSweden([lon, lat]: LonLat): boolean {
   return lon > SWEDEN.west && lon < SWEDEN.east && lat > SWEDEN.south && lat < SWEDEN.north;
 }
 
-test('GMTI-automated-external-verification: emc2\'s GMTI out over UDP, decoded by the owner\'s dissector, keeps its format and business rules and says what the simulation sent', async ({ browser }, testInfo) => {
-  test.skip(process.platform !== 'win32', 'the dissector is a Windows PowerShell script');
-  test.skip(DISSECTOR === '' || !existsSync(DISSECTOR), `optional: set EMC2_GMTI_DISSECTOR to the dissector's path${DISSECTOR === '' ? '' : ` (${DISSECTOR} does not exist)`}`);
+for (const edition of EDITIONS) {
+  test(`GMTI-automated-external-verification, ${edition.name}: emc2's GMTI out over UDP, decoded by the owner's dissector, keeps its format and business rules and says what the simulation sent`, async ({ browser }, testInfo) => {
+    test.skip(process.platform !== 'win32', 'the dissector is a Windows PowerShell script');
+    test.skip(DISSECTOR === '' || !existsSync(DISSECTOR), `optional: set EMC2_GMTI_DISSECTOR to the dissector's path${DISSECTOR === '' ? '' : ` (${DISSECTOR} does not exist)`}`);
+    await verify(edition, browser, testInfo);
+  });
+}
+
+async function verify(edition: EditionCase, browser: Browser, testInfo: TestInfo) {
   await withM0(testInfo, browser, async ({ server }) => {
     const all = await LiveClient.open(server.baseUrl);
     await all.subscribe({ workspaces: ['*'] });
@@ -218,8 +239,9 @@ test('GMTI-automated-external-verification: emc2\'s GMTI out over UDP, decoded b
     try {
       const url = `${server.baseUrl}/api/settings/plugins/gmti`;
       const values = (await (await fetch(url)).json()).values;
-      const put = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...values, links: [{ name: 'dissector', mode: 'udp', direction: 'out', host: '127.0.0.1', port: tap.port }] }) });
+      const put = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...values, links: [{ name: 'dissector', mode: 'udp', direction: 'out', host: '127.0.0.1', port: tap.port, ...(edition.setting === undefined ? {} : { edition: edition.setting }) }] }) });
       expect(put.status, `gmti settings: ${await put.clone().text()}`).toBe(200);
+      testInfo.annotations.push({ type: 'the out link', description: JSON.stringify((await (await fetch(url)).json()).values.links) });
 
       const layer = createLayer('Ground truth', { workspace: SIMULATION, drawOrder: 1 });
       await applied(all, layer);
@@ -232,7 +254,15 @@ test('GMTI-automated-external-verification: emc2\'s GMTI out over UDP, decoded b
       const platform = track(layer.entityId, 'Hawk 1', PLATFORM, { direction: 45, speed: 120 });
       await applied(all, platform);
       await expect.poll(async () => (await simulator(server, '/sensors')).channels.map((c: { id: string }) => c.id), { message: 'gmti\'s out channel' }).toEqual(['gmti/dissector']);
-      await simulator(server, '/sensors', { platform: platform.entityId, create: true, revisitSeconds: REVISIT_S, detectAll: true, mission: MISSION, outputs: ['gmti/dissector'] });
+      // From M7/M8 a new ground radar's defaults (the Medium wedge: 40° dwells of 50 km, one a second,
+      // Random) give several dwells a revisit and a job area away from the platform. This test's
+      // checks (one dwell a revisit, D3 0 and D4 set, both reports in it, a bounding area holding the
+      // platform) need M5's single look: the whole ring out to 150 km in one dwell, once a revisit.
+      await simulator(server, '/sensors', {
+        platform: platform.entityId, create: true, revisitSeconds: REVISIT_S, detectAll: true, mission: MISSION, outputs: ['gmti/dissector'],
+        startBearing: 0, endBearing: 360, maxRange: 150 * KM, searchWidth: 360, dwellDepth: 150 * KM, dwellInterval: REVISIT_S,
+      });
+      testInfo.annotations.push({ type: 'the sensor', description: JSON.stringify((await simulator(server, '/sensors')).sensors) });
       // The dissector logs this line just before it binds its socket; a report sent earlier is lost.
       await expect.poll(() => existsSync(log) && readFileSync(log, 'utf8').includes('Starting UDP listener on:'), { timeout: 30_000, message: 'the dissector listens' }).toBe(true);
       await new Promise((resolve) => setTimeout(resolve, 2_000));
@@ -257,7 +287,9 @@ test('GMTI-automated-external-verification: emc2\'s GMTI out over UDP, decoded b
     expect(tap.packets.filter((p) => p.types[0] === 1).length, 'reports came').toBeGreaterThanOrEqual(LISTEN_MS / 1000 / REVISIT_S - 1);
     const jobTimes = tap.packets.filter((p) => p.types.includes(5)).map((p) => p.at);
     expect(jobTimes.length, 'the run is long enough to see the job definition sent again').toBeGreaterThanOrEqual(2);
-    for (let i = 1; i < jobTimes.length; i++) expect(jobTimes[i] - jobTimes[i - 1], 'job definitions at least every 30 s').toBeLessThanOrEqual(30_500);
+    const jobGaps = jobTimes.slice(1).map((t, i) => t - jobTimes[i]);
+    testInfo.annotations.push({ type: 'job definitions apart (ms)', description: jobGaps.join(', ') });
+    for (const gap of jobGaps) expect(gap, 'job definitions at least every 20 s plus one revisit (G7, M9.1)').toBeLessThanOrEqual(JOB_EVERY_MS + 500);
 
     // The dissector's own format and business rules.
     const { packets, severities } = readLog(log);
@@ -274,15 +306,17 @@ test('GMTI-automated-external-verification: emc2\'s GMTI out over UDP, decoded b
       .toEqual({ mission: sentOf(1), job: sentOf(5), dwell: sentOf(2) });
 
     // What it decoded is what the simulation sent.
-    const jobId = packets[0].header['Job Id'];
+    const jobId = packets.find((p) => p.segment === 'Dwell Segment')?.header['Job Id'];
     expect(Number(jobId), 'a job id (a dwell needs one)').toBeGreaterThan(0);
     for (const [i, { header, segment }] of packets.entries()) {
+      // Edition 4: P10 0 in a packet without a dwell (G18); Edition 3 keeps the job's there too.
+      const job = edition.jobIdOnlyWithADwell && segment !== 'Dwell Segment' ? '0' : jobId;
       expect({
-        version: header['VersionID'], nationality: header['Nationality'], classification: header['Classification'],
+        version: header['VersionID']?.replace(/\s+/g, ' '), nationality: header['Nationality'], classification: header['Classification'],
         exercise: header['Excercise Indicator'], platform: header['platform Id']?.trim(), job: header['Job Id'],
       }, `packet ${i} (${segment}): the header`).toEqual({
-        version: 'Edition: 4   Amendment: 1', nationality: 'XN', classification: 'UNCLASSIFIED (Integer value 5)',
-        exercise: 'Operation, Simulated Data (Integer value: 1)', platform: 'Hawk 1', job: jobId,
+        version: edition.version, nationality: 'XN', classification: 'UNCLASSIFIED (Integer value 5)',
+        exercise: 'Operation, Simulated Data (Integer value: 1)', platform: 'Hawk 1', job,
       });
     }
     for (const mission of packets.filter((p) => p.segment === 'Mission Segment')) {
@@ -321,4 +355,4 @@ test('GMTI-automated-external-verification: emc2\'s GMTI out over UDP, decoded b
     }
     testInfo.annotations.push({ type: 'decoded', description: `${tap.packets.length} packets, ${packets.length} decoded, ${revisits.length} revisits` });
   });
-});
+}

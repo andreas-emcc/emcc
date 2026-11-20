@@ -371,6 +371,26 @@ class MapperTest {
   }
 
   @Test
+  void m91_edition3sTaggingDeviceIs143_editionAs142_everyOtherClassTheSame() {
+    assertThat(Classes.name(143, "30")).as("Edition 3's table prints it as 143").isEqualTo("tagging device, simulated (143)");
+    assertThat(Classes.name(143, "21")).as("and so do the older ones").isEqualTo("tagging device, simulated (143)");
+    assertThat(Classes.name(143, "41")).as("Edition A reserves 143").isEqualTo("reserved (143)");
+    assertThat(Classes.name(142, "41")).isEqualTo("tagging device, simulated (142)");
+    for (int value : new int[] {0, 2, 13, 14, 129, 138, 141, 142, 144, 254, 255}) {
+      assertThat(Classes.name(value, "30")).as("class %d", value).isEqualTo(Classes.name(value, "41"));
+    }
+
+    for (String version : new String[] {"30", "41"}) {
+      var collected = new ReceiverTest.Sink();
+      new Receiver(1_000, TimeMode.AS_RECORDED).packet(ReceiverTest.packet(ReceiverTest.header(version, 1, 7), ReceiverTest.mission(ReceiverTest.DAY),
+          ReceiverTest.dwell(1_000).report(TargetReport.at(56.0, 15.9).classification(143).build()).build()), now, collected);
+      JsonObject ext = Mapper.detection(PLACEMENT, collected.detections.getFirst()).extensions().get("gmti");
+      assertThat(ext.getString("classification")).as("P1 %s", version)
+          .isEqualTo(version.equals("30") ? "tagging device, simulated (143)" : "reserved (143)");
+    }
+  }
+
+  @Test
   void anEmptyPlatformIdHasAName() {
     var h = new PacketHeader("41", "XN", 5, "XN", 0, 0, "", 1, 7);
     receiver.packet(ReceiverTest.packet(h, ReceiverTest.mission(ReceiverTest.DAY), ReceiverTest.dwell(1_000).build()), now, sink);

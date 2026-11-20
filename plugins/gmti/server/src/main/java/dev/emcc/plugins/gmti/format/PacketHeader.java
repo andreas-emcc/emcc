@@ -6,7 +6,8 @@ import java.util.Objects;
  * The packet header, 32 bytes (AEDP 3.1, Table 3-1). The packet size {@code P2} is not kept: the
  * decoder checks it and the encoder writes it.
  *
- * @param version {@code P1}, two characters as received: "41" is Edition A Version 1, "30" and "21" older
+ * @param version {@code P1}, two characters as received: "41" is Edition A Version 1 (STANAG 4607 Edition 4), "30"
+ *     Edition 3, "21" Edition 2 Amendment 1 ({@link Edition})
  * @param nationality {@code P3}, a digraph, e.g. "XN" for NATO
  * @param classification {@code P4}: 1 top secret … 5 unclassified (Table 3-2); other values as received
  * @param classificationSystem {@code P5}: the scheme of {@code P4}, e.g. "XN"; empty when none
@@ -14,7 +15,8 @@ import java.util.Objects;
  * @param exercise {@code P7}: 0 to 2 operation, 128 to 130 exercise (Table 3-5)
  * @param platformId {@code P8}, without padding
  * @param missionId {@code P9}, unsigned
- * @param jobId {@code P10}, unsigned; 0 when the packet has no dwell or HRR segment
+ * @param jobId {@code P10}, unsigned. Edition 4: 0 exactly when the packet has no dwell, HRR or range-Doppler segment;
+ *     Edition 3: 0 means no task, and a packet without a dwell may also carry one
  */
 public record PacketHeader(
     String version,
@@ -26,9 +28,6 @@ public record PacketHeader(
     String platformId,
     long missionId,
     long jobId) {
-
-  /** The version this plugin writes (Edition A Version 1). */
-  public static final String VERSION = "41";
 
   public PacketHeader {
     Objects.requireNonNull(version, "version");
@@ -45,5 +44,10 @@ public record PacketHeader(
   /** Whether {@code P7} says the packet belongs to an exercise (128 to 130). */
   public boolean isExercise() {
     return exercise >= 128 && exercise <= 130;
+  }
+
+  /** This header with {@code P10} as given. */
+  public PacketHeader withJobId(long id) {
+    return new PacketHeader(version, nationality, classification, classificationSystem, securityCode, exercise, platformId, missionId, id);
   }
 }

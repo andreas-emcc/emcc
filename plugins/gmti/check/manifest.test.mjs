@@ -74,7 +74,7 @@ const UDP = { property: 'mode', in: ['udp'] };
 const IN = { property: 'direction', in: ['in'] };
 const OUT = { property: 'direction', in: ['out'] };
 const SHOWN_WHEN = {
-  name: undefined, mode: undefined, direction: undefined, host: PEER, port: PEER, listen: LISTEN,
+  name: undefined, mode: undefined, direction: undefined, edition: OUT, host: PEER, port: PEER, listen: LISTEN,
   multicastGroup: UDP, multicastInterface: UDP, idleSeconds: undefined, enabled: undefined,
   targetLayer: IN, label: undefined, platformSymbol: IN, platformIdentity: IN, maxReportsPerDwell: IN, time: IN,
   classification: IN, classificationNames: IN, coverage: IN,
@@ -334,7 +334,8 @@ test('T-204: the hints pass the SDK\'s check; a link\'s form in Connection, Pict
   const links = manifest.settings.properties.links;
   assert.deepEqual(formSections(links.items).map((s) => [s.label, s.folded]),
     [[null, false], ['Connection', false], ['Picture', false], ['Classification', false], ['Advanced', true]]);
-  assert.deepEqual(formSections(links.items)[0].properties, ['name', 'mode', 'direction', 'enabled'], 'the free fields, unheaded');
+  assert.deepEqual(formSections(links.items)[0].properties, ['name', 'mode', 'direction', 'edition', 'enabled'],
+    'the free fields, unheaded; the edition (M9.1) beside the direction it is shown for');
   const grouped = formSections(links.items).flatMap((s) => s.properties);
   assert.deepEqual([...grouped].sort(), Object.keys(links.items.properties).sort(), 'every field of a link in one section');
   assert.deepEqual(itemWords(links), { noun: 'link', add: 'Add link', remove: 'Delete link?', fresh: 'New link' });
@@ -357,4 +358,17 @@ test('T-204: the hints pass the SDK\'s check; a link\'s form in Connection, Pict
   assert.ok(hints.every((h) => h.length <= 80));
   assert.equal(links.items.properties.idleSeconds['x-emc2'].unit, 's');
   assert.equal(fieldWidth(links.items.properties.nationality), 'short');
+});
+
+// M9.1 (owner, 2026-11-20): an out link chooses the STANAG 4607 edition it writes, Edition 3 when nobody has chosen.
+test('M9.1: an out link\'s edition is edition-3 or edition-4, edition-3 by default, shown for out links only', () => {
+  const validate = manifestValidator();
+  assert.ok(validate(manifest), JSON.stringify(validate.errors, null, 1));
+  const edition = manifest.settings.properties.links.items.properties.edition;
+  assert.deepEqual(edition.enum, ['edition-3', 'edition-4']);
+  assert.equal(edition.default, 'edition-3', 'the owner\'s default: Edition 3, version "30"');
+  assert.deepEqual(edition['x-emc2'].visibleWhen, OUT);
+  assert.ok(edition['x-emc2'].hint.length <= 80);
+  assert.match(edition.description, /"30"/);
+  assert.match(edition.description, /"41"/);
 });

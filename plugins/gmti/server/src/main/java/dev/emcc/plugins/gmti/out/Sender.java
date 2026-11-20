@@ -1,6 +1,7 @@
 package dev.emcc.plugins.gmti.out;
 
 import dev.emcc.plugins.gmti.format.Dwell;
+import dev.emcc.plugins.gmti.format.Edition;
 import dev.emcc.plugins.gmti.format.Encoder;
 import dev.emcc.plugins.gmti.format.JobDefinition;
 import dev.emcc.plugins.gmti.format.Mission;
@@ -37,12 +38,13 @@ import org.jspecify.annotations.Nullable;
 /**
  * What an {@code out} link makes of each {@link ChannelItem.SensorReport} (brief section 3, "Out"; reference
  * 4.3): its packets, each with the packet header and a mission segment, the job definition before the
- * sensor's first dwell and at least every 30 s, and the dwell in segments of at most {@code
+ * sensor's first dwell and at least every 20 s, and the dwell in segments of at most {@code
  * maxReportsPerSegment} reports, packed into packets that fit the link ({@code 65 535} bytes over
  * TCP, one datagram over UDP). With the link's {@code oneSegmentPerPacket} (T-159; on by default,
  * owner MY) each of these segments goes in a packet of its own instead, in the same order: the
- * mission once per report, the job when due, then each dwell segment. Pure; it lives in the link's
- * worker.
+ * mission once per report, the job when due, then each dwell segment. The link's {@code edition} (M9.1) sets
+ * {@code P1}, "30" or "41", and in Edition 4 a packet without a dwell has {@code P10} 0. Pure; it lives in the
+ * link's worker.
  *
  * <p>The sensor (CR-0033, owner JW): {@code P8} from its name (the ACA's R2), its values in the
  * format's units ({@link SensorFields}); what a field cannot hold is "no statement" or left out, and
@@ -68,8 +70,11 @@ public final class Sender {
   /** {@code M1}'s length in characters. */
   static final int MISSION_PLAN = 12;
 
-  /** The job definition is sent again after this long (AEDP 3.7). */
-  public static final Duration JOB_EVERY = Duration.ofSeconds(30);
+  /**
+   * The job definition is sent again with the first dwell this long after the last one: 20 s, so that with a dwell's interval and
+   * a receiver's lag no gap reaches AEDP 3.7's 30 s (M9.1, owner ADQ B; at 30 s they arrived 30.006 s to 43 s apart).
+   */
+  public static final Duration JOB_EVERY = Duration.ofSeconds(20);
 
   /**
    * How deep beyond its near edge a dwell's area goes out, in metres: twice {@code D26}'s 255.99 km
@@ -90,15 +95,24 @@ public final class Sender {
    * @param names the policy's classifications for {@code P4} 1 to 5
    * @param oneSegmentPerPacket each segment in a packet of its own, with its own packet header (T-159, owner MV A and MY;
    *     criterion 22); {@code false}: one packet per sensor report, more only when it does not fit
+   * @param edition the STANAG 4607 edition the packets follow: {@code P1}, and {@code P10} in a packet without a dwell (M9.1)
    */
   public record Settings(
       String nationality, boolean exercise, int maxReportsPerSegment, int maxPacket, SecurityLabel linkLabel, ClassificationLimit highest,
-      List<String> names, boolean oneSegmentPerPacket) {
+      List<String> names, boolean oneSegmentPerPacket, Edition edition) {
     public Settings {
       names = List.copyOf(names);
+      Objects.requireNonNull(edition, "edition");
     }
 
-    /** One packet per sensor report, as before T-159. */
+    /** Edition 3, the link's default (owner, 2026-11-20). */
+    public Settings(
+        String nationality, boolean exercise, int maxReportsPerSegment, int maxPacket, SecurityLabel linkLabel, ClassificationLimit highest,
+        List<String> names, boolean oneSegmentPerPacket) {
+      this(nationality, exercise, maxReportsPerSegment, maxPacket, linkLabel, highest, names, oneSegmentPerPacket, Edition.EDITION_3);
+    }
+
+    /** One packet per sensor report, as before T-159, in Edition 3. */
     public Settings(
         String nationality, boolean exercise, int maxReportsPerSegment, int maxPacket, SecurityLabel linkLabel, ClassificationLimit highest,
         List<String> names) {
@@ -215,7 +229,7 @@ public final class Sender {
     String plan = mission == null ? "" : basic(mission);
     boolean missionCut = plan.length() > MISSION_PLAN && !s.missionCut;
     s.missionCut |= missionCut;
-    var header = new PacketHeader(PacketHeader.VERSION, settings.nationality(), p4, settings.nationality(), 0, settings.exercise() ? 129 : 1,
+    var header = new PacketHeader(settings.edition().version(), settings.nationality(), p4, settings.nationality(), 0, settings.exercise() ? 129 : 1,
         s.platformId, mission == null ? missionId : missionId(mission), s.jobId);
 
     long millis = Duration.between(midnight, item.time()).toMillis();
@@ -246,7 +260,7 @@ public final class Sender {
     var lead = new ArrayList<Segment>();
     lead.add(Mission.on(day, 255, cut(plan, MISSION_PLAN), "emcc"));
     // The job definition: before the sensor's first dwell, with the next dwell when its job area changes (AEDP 3.7: the actual
-    // area whenever it differs; T-168), and at least every 30 s
+    // area whenever it differs; T-168), and at least every 20 s (JOB_EVERY)
     Geometry.Polygon jobArea = item.sensor() == null ? null : item.sensor().jobArea();
     if (s.lastJob == null || !item.time().isBefore(s.lastJob.plus(JOB_EVERY)) || !Objects.equals(jobArea, s.jobArea)) {
       s.lastJob = item.time();
@@ -336,13 +350,15 @@ public final class Sender {
 
   /**
    * Packs the segments into packets of at most {@code maxPacket} bytes; each packet has the mission segment, the first the job too.
-   * With one segment per packet (T-159), each segment goes alone in that order, under the same header ({@code P2} each packet's size).
+   * With one segment per packet (T-159), each segment goes alone in that order, under the same header ({@code P2} each packet's size),
+   * but in Edition 4 the mission's and the job's packets, which hold no dwell, have {@code P10} 0 (M9.1; AEDP 3.1.10).
    */
   private List<byte[]> packets(PacketHeader header, List<Segment> lead, List<Dwell> segments) {
     var packets = new ArrayList<byte[]>();
     if (settings.oneSegmentPerPacket()) {
+      PacketHeader withoutDwell = settings.edition().jobIdOnlyWithADwell() ? header.withJobId(0) : header;
       for (Segment s : lead) {
-        packets.add(Encoder.packet(header, List.of(s)));
+        packets.add(Encoder.packet(withoutDwell, List.of(s)));
       }
       for (Dwell d : segments) {
         packets.add(Encoder.packet(header, List.of(d)));

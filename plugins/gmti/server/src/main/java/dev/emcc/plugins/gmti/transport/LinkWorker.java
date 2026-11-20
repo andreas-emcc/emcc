@@ -327,7 +327,7 @@ public final class LinkWorker implements Handler<TransportMsg> {
     ClassificationLimit highest = s.highestClassification() != null ? s.highestClassification() : policysHighest(label);
     int maxPacket = r.link.mode() == Link.Mode.UDP ? UdpLinkTask.MAX_PAYLOAD : dev.emcc.plugins.gmti.format.Decoder.MAX_PACKET;
     return new Sender.Settings(s.nationality(), s.exercise(), s.maxReportsPerSegment(), maxPacket, label, highest, s.classificationNames(),
-        s.oneSegmentPerPacket());
+        s.oneSegmentPerPacket(), s.edition());
   }
 
   /** The highest classification of the label's policy (brief section 5's default), else the label's own. */
@@ -444,7 +444,7 @@ public final class LinkWorker implements Handler<TransportMsg> {
 
     @Override
     public void version(String version) {
-      context.log().info("{}: packets of version {} are read as Edition A, by their existence masks", r.link.name(), version);
+      context.log().info("{}: packets of version {} are read by their existence masks, as Editions 3 and 4 are", r.link.name(), version);
     }
   }
 

@@ -4,7 +4,7 @@ Kept by PCA-gmti (owner's request, 2026-11-07). It lists the rules of STANAG 460
 
 - **For designers** (PDA, CDA, PCA-simulator, PCA-map-view-2d, the ITA, the ESA): check a design against the "Keep" lines; quote a rule by its number (G1 …) in a brief, a CR or a review. Numbers are never reused.
 - **For the UDA:** the last section lists what operators and admins see, by rule.
-- **Sources:** AEDP-4607 Edition A Version 1 and its guide AEDP-4607.1 (read in the owner's folder, never copied; cited as "AEDP 3.4.6" and "Guide G.7.3"). The fields and their encodings are in the ACA's reference [`gmti-4607.md`](../../docs/architecture/gmti-4607.md); this file does not repeat them. Where this file and the standard differ, the standard wins.
+- **Sources:** AEDP-4607 Edition A Version 1 and its guide AEDP-4607.1, and for M9.1 STANAG 4607 Edition 3 (read in the owner's folders, never copied; cited as "AEDP 3.4.6" and "Guide G.7.3"). The fields and their encodings are in the ACA's reference [`gmti-4607.md`](../../docs/architecture/gmti-4607.md); this file does not repeat them. Where this file and the standard differ, the standard wins.
 - **State:** `gmti` as on `integration/sdk-v1.4` `2132fca2`, with CR-0033's `ChannelItem.Sensor` (owner JW), CR-0034's mission (owner KF; G6) and G12's cut (KA), plus, on `pca-gmti/plugin`, CR-0035's depth and circle (owner KL, KM and KQ; G12).
 
 ## Why GMTI is not a generic in or out
@@ -75,7 +75,7 @@ STANAG 4607 does not report objects. It reports what one radar saw in one look, 
   - with no mission, `M1` is spaces and `P9` the second of the day the link started, so a receiver sees each restart of the link as a new mission.
 - Keep: the mission in the dwell (CR-0034), generic, not narrowed to `M1`'s 12 characters.
 
-**G7. A job is one area and one mode, and its definition is resent every 30 s.**
+**G7. A job is one area and one mode, and its definition is resent at least every 30 s (gmti out: every 20 s).**
 - 4607 (AEDP 3.7):
   - a job definition comes before its job's first dwell and repeats at least every 30 s;
   - one job has one radar mode;
@@ -88,7 +88,7 @@ STANAG 4607 does not report objects. It reports what one radar saw in one look, 
   - there is one coverage per platform, so interleaved jobs share it, and one dwell area per dwell (M8, G12). Job ids may churn: simulator set B starts a new job before nearly every dwell.
 - Out:
   - one job per sensor, with ids from 1, and `J14` 1 (MTI);
-  - the definition goes before the sensor's first dwell, then whenever 30 s of dwell time have passed;
+  - the definition goes before the sensor's first dwell, then with the first dwell once 20 s of dwell time have passed (M9.1, owner ADQ B: at 30 s, joined to the next dwell, it reached receivers 30.006 s and more apart, over the standard's 30 s);
   - the bounding area is the sensor's job area (T-168): a convex four-corner area as its corners, A its first and then clockwise (owner, 2026-11-10: the standard's order wins over a counter-clockwise ring), any other as its box, counted `not held: J6` once per sensor; without one, the box round the dwell area. A changed job area sends the job definition again with the next dwell;
   - the nominal values come from the sensor: `J15`, `J21`, `J22`, `J24` and `J25` (G10). The platform's own errors (`J16`–`J20`), `J23` and `J26` are "no statement".
 
@@ -166,12 +166,12 @@ STANAG 4607 does not report objects. It reports what one radar saw in one look, 
   - the measurement errors, a truth tag and the radar cross section.
   
   Radial speed is not the target's speed: a vehicle crossing the beam shows about 0.
-- Classes: 0 to 127 are live targets, 128 to 255 simulated ones. 1 and 129 are tracked vehicles, 2 and 130 wheeled (AEDP Table 3-11; the brief had these two swapped, and the standard wins).
+- Classes: 0 to 127 are live targets, 128 to 255 simulated ones. 1 and 129 are tracked vehicles, 2 and 130 wheeled (AEDP Table 3-11; the brief had these two swapped, and the standard wins). Edition A added 14 to 18 and 144 to 148 and moved the simulated tagging device from 143, where Edition 3 prints it, to 142; every other value means the same in both (G18).
 - In:
   - the position is a `Point`, longitude first;
   - the other fields go into `extensions.gmti`, as the declared fields of the field set `gmti.report`. They are measurements, not editable by others. From SDK 1.5.0 the data type `gmti.detection` names the set, so the store adds it too (CR-0038);
   - none of `gmti.detection`, `gmti.platform` and `gmti.dwell-area` is made by hand (`manual: false`): a detection exists only in its dwell, a platform and its areas only as a sensor's (G1);
-  - the class picks the APP-6 symbol (README, "Symbols").
+  - the class picks the APP-6 symbol (README, "Symbols"); its name follows the packet's edition, so 143 is the tagging device in Edition 3 and older and reserved in Edition A (M9.1).
 - Out:
   - full-precision positions, with the height when the content has an altitude;
   - the radial speed when the track has a speed and a direction: its part along the line from the sensor;
@@ -219,10 +219,10 @@ STANAG 4607 does not report objects. It reports what one radar saw in one look, 
 - Out, `oneSegmentPerPacket` (T-159; owner MV A, on by default from MY): each segment in a packet of its own, under the same header with its own `P2`, for receivers that read only a packet's first segment. The guide's minimum receiver needs no more (G.7.3). "In" reads both forms alike.
 - Keep: connection tasks for TCP client, TCP server and UDP with multicast (ADR-0036), with hosts from settings only (ADR-0030).
 
-**G18. `gmti` reads every edition and writes "41".**
-- 4607: the edition is in `P1`. "41" is Edition A; every one of the owner's recordings is "21" or "30".
-- In: every edition is parsed by the existence mask alone, and a version other than "41" is logged once per link. Real senders break the format's conditions (report errors without the sensor errors), and the mask wins.
-- Out: "41".
+**G18. `gmti` reads every edition and writes Edition 3 or Edition 4, as each out link chooses.**
+- 4607: the edition is in `P1`. "30" is STANAG 4607 Edition 3 (2010); "41" is AEDP-4607 Edition A Version 1, which STANAG 4607 Edition 4 (2024) adopts; every one of the owner's recordings is "21" or "30". The two editions lay out every field alike: the same sizes, encodings and existence-mask bits. They differ in some values' meanings and in a few rules for senders: in Edition A, `P10` is 0 in a packet without a dwell, HRR or range-Doppler segment (Edition 3 allows a job there too, as the AFSERS recordings send it); `P6`'s bits are NATO's releasability markings instead of national handling codes; `D32.10` gains classes (G13); a radar mode change needs a new job; `T4` is the dwell's centre instead of its start; `H9`'s sign and `H24` bit 0 change.
+- In: every edition is parsed by the existence mask alone, and a version other than "30" and "41" is logged once per link. Real senders break the format's conditions (report errors without the sensor errors), and the mask wins. Of the values whose meaning changed, only the class name `D32.10` 143 depends on the edition (G13); `P6` is kept as a number, and test and status and HRR segments are skipped.
+- Out: the link setting `edition` (M9.1; owner, 2026-11-20): `edition-3`, the default, writes "30" with the job's `P10` in every packet, as before M9.1; `edition-4` writes "41" with `P10` 0 in the mission's and the job's packets when `oneSegmentPerPacket` puts them apart (AEDP 3.1.10). Nothing else gmti writes differs: `P6` 0, `M3` 255, `J2` 255, `J14` 1 and the classes 129 to 137 and 255 mean the same in both, and an empty dwell sets no report bits.
 
 **G19. Coordinates are latitude first, with longitude from 0 to 360° east.**
 - 4607:
@@ -296,6 +296,8 @@ STANAG 4607 does not report objects. It reports what one radar saw in one look, 
 - 2026-11-10: G1, G7, G11 and G12 follow T-168, T-169 and T-151 (owner OU A, PI A; CR-0039, CR-0040): out takes ground radars only; the job's bounding area from the sensor's job area, clockwise, or its box (owner, in PCA-gmti's session); `D2` to `D4` from the report's sequence; in draws a revisit's dwells together; detections are a sensor report type.
 - 2026-11-12: G5, G7 and G12 follow M7's T-181, T-182 and T-185 (owner QL C, QM A, QR A): the dwell area at 2 px; the dwell areas' and the coverage's colours from the admin's settings, by default the identity's; the pairing on by default.
 - 2026-11-16: G4, G7 and G12 (the owner, after M8 RC1): every dwell its own area again, in place of one per revisit (VD C, 2026-11-14), whose band grew with each dwell of a pass; the dwell areas full until 5 s, gone at 15 s, and `gmti.dwell-area` expires at 15 s.
+- 2026-11-20: G7, out (M9.1, owner ADQ B): the job definition with the first dwell 20 s after the last one, in place of 30 s, so that no gap reaches the receivers' 30 s.
+- 2026-11-20: G13 and G18 (M9.1; owner, 2026-11-20): an out link's `edition`, Edition 3 ("30") by default or Edition 4 ("41", `P10` 0 without a dwell); in, the class 143 by the packet's edition and no log line for "30". From the owner's comparison of Edition 3 with Edition 4.
 - 2026-11-13: G7 and G12 follow M8's T-195 and T-189 (owner TP A, A, SU A, SV A): every dwell its own area, gone by its fade and expiry, not by a later dwell, revisit or job end, and without a name (owner); `gmti.dwell-area` expires at 100 s; the default colours fixed, `#7EF26A` and `#BDCF3D`.
 - 2026-11-12: G4 and G12 follow SDK 1.7.0 (CR-0042 option A; T-192, owner TA A, FA A, FB A, FC A): the fades in steps `detectionFade` and `dwellAreaFade`, and the dwell areas' own data type `gmti.dwell-area` (owner, 2026-11-12, for the brief's `gmti.dwellArea`).
 - 2026-11-12: G12, out (T-193, owner TB A): an `ArcBand` goes by its own shape wherever its centre lies, its cut measured from that centre; before, one not centred within 1 m of the platform was measured from the platform.

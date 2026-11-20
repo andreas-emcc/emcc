@@ -4,6 +4,7 @@
     { "why": "a tcp-client in link needs only the peer", "link": { "name": "vista", "mode": "tcp-client", "direction": "in", "host": "127.0.0.1", "port": 8113 } },
     { "why": "a link of the default mode and direction needs only the peer", "link": { "name": "vista", "host": "127.0.0.1", "port": 8113 } },
     { "why": "a tcp-client out link needs only the peer", "link": { "name": "vista-out", "mode": "tcp-client", "direction": "out", "host": "127.0.0.1", "port": 8114 } },
+    { "why": "an out link may name its STANAG 4607 edition (M9.1)", "link": { "name": "vista-out", "mode": "tcp-client", "direction": "out", "host": "127.0.0.1", "port": 8114, "edition": "edition-4" } },
     { "why": "a udp in link needs only the listen port", "link": { "name": "rc1", "mode": "udp", "direction": "in", "listen": { "port": 46002 } } },
     { "why": "a udp link of the default direction needs only the listen port", "link": { "name": "rc1", "mode": "udp", "listen": { "port": 46002 } } },
     { "why": "a udp out link needs only the peer", "link": { "name": "out", "mode": "udp", "direction": "out", "host": "127.0.0.1", "port": 46001 } },

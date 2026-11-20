@@ -1,6 +1,7 @@
 package dev.emcc.plugins.gmti.in;
 
 import dev.emcc.plugins.gmti.format.Dwell;
+import dev.emcc.plugins.gmti.format.Edition;
 import dev.emcc.plugins.gmti.format.FreeText;
 import dev.emcc.plugins.gmti.format.JobDefinition;
 import dev.emcc.plugins.gmti.format.Mission;
@@ -93,7 +94,7 @@ public final class Receiver {
     /** A free text segment (logged at debug, brief section 2). */
     void freeText(String platformId, FreeText text);
 
-    /** A version ({@code P1}) the link sees for the first time, other than "41" (logged once per link). */
+    /** A version ({@code P1}) the link sees for the first time, other than "30" and "41", the two gmti writes (logged once per link). */
     void version(String version);
   }
 
@@ -225,7 +226,7 @@ public final class Receiver {
   /** One packet, its segments in order. */
   public void packet(Packet packet, Instant now, Sink sink) {
     PacketHeader h = packet.header();
-    if (!PacketHeader.VERSION.equals(h.version()) && versions.add(h.version())) {
+    if (!Edition.written(h.version()) && versions.add(h.version())) {
       sink.version(h.version());
     }
     if (packet.valuesOutOfRange() > 0) {
