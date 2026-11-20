@@ -1,6 +1,6 @@
 # ADR-0048: GMTI (STANAG 4607) in and out, and Ground truth and Sensor outputs
 
-- Status: Accepted (owner, GR, 2026-11-05; its decision points approved with the M5 plan, GQ)
+- Status: Accepted (owner, GR, 2026-11-05; its decision points approved with the M5 plan, GQ). **Point 1 amended in place by the owner on 2026-11-20** (M9.1; without a CR, owner AEC A): an out link writes Edition 3 ("30", the default) or Edition 4 ("41"), as its setting `edition` names
 - Date: 2026-11-05
 - Deciders: Owner (advised by the ACA; T-141, GG; the M5 plan's Q2 and Q6, `docs/architecture/m5-plan.md`; the test data, owner 2026-11-05)
 - Extends: ADR-0037 (links and output channels) and ADR-0040 (the simulator)
@@ -24,6 +24,15 @@ Today an output channel (ADR-0037 point 4) does not say what kind of data it tak
 1. **The edition:** STANAG 4607 Edition 4, written in **AEDP-4607 Edition A, Version 1** (February 2024), with its implementation guide **AEDP-4607.1 Edition A, Version 1** (owner, Q2).
    - Both are public documents from NATO's NSDD, in a local folder of the owner's.
    - Agents read them there. They are never copied into the repository, and the brief cites their sections.
+
+   **Amended by the owner on 2026-11-20** (M9.1, decided in PCA-gmti's session and released; written here without a CR, because the decision is already the owner's: AEC A, 2026-11-20; board M9-R30; in place, no new ADR):
+   - **What changed:** the text above has `gmti` write Edition 4 (AEDP-4607 Edition A, Version 1) only. An out link now writes the edition its setting `edition` names:
+     - `edition-3`: `P1` "30", STANAG 4607 Edition 3 (2010). It is the default, also for links set up before M9.1;
+     - `edition-4`: `P1` "41", AEDP-4607 Edition A, Version 1, with `P10` 0 in the packets that hold only the mission or the job definition, which happens when the link's `oneSegmentPerPacket` puts them in packets of their own (AEDP 3.1.10). Edition 3 keeps the job's `P10` in every packet.
+   - **Why Edition 3 is the default:** the receivers in use expect it.
+   - **In:** a link still reads every version by the existence mask, and logs a version other than "30" and "41".
+   - **The job definition** goes out at least every 20 s, inside the standard's 30 s (owner, ADQ B).
+   - **What stays:** AEDP-4607 Edition A is the format the reference describes, and AEDP-4607.1 stays the implementation guide for both editions. The two editions lay out every field alike, and the guide's Annex M.2 records what changed from Edition 3. The owner's copy of Edition 3 is outside the repository and is never copied. The details are in the reference (`docs/architecture/gmti-4607.md`, sections 1.2, 3.6, 4.1 and 4.3) and in `plugins/gmti/FORMAT-RULES.md` (G7 and G18).
 2. **The `gmti` plugin** is an in/out plugin built by the playbook. Its links (ADR-0037) run on connection tasks (ADR-0036), as a TCP client, a TCP server or UDP.
 3. **In:** a link writes into its target layer:
    - **the sensor platform** as a symbol at the platform's reported position, updated with each dwell. Its symbol and identity are set per link;

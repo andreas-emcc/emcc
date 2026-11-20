@@ -2,7 +2,7 @@
 
 **A command and control picture, built by AI agents.** Website: [www.emcc.dev](https://www.emcc.dev)
 
-emcc is a web-based mock-up of a military command and control (C2) system. It shows units, tactical graphics and tracks on a map that every user shares live, and it exchanges objects with other systems. Humans as architects set the goals and made every decision. Claude Code agents wrote almost all of the code, the tests and the documents.
+emcc is a web-based proof of concept of a military command and control (C2) system. It shows units, tactical graphics and tracks on a map that every user shares live, and it exchanges objects with other systems. Humans as architects set the goals and made every decision. Claude Code agents wrote almost all of the code, the tests and the documents.
 
 > **emcc is a demonstration.** It is not an operational system, it does not protect classified information, and it is not certified for any use. It is not affiliated with or endorsed by NATO, any armed force or any company. Standards are named only to say what emcc reads and writes.
 

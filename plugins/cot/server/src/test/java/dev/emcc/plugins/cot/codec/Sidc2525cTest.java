@@ -271,4 +271,16 @@ class Sidc2525cTest {
     assertThat(Sidc2525c.toSidc2525c(c2)).isEqualTo("SFG*U-----*****");
     assertThat(Sidc2525c.toSidc2525c(Sidc2525c.toApp6d(Sidc2525c.toSidc2525c(c2)))).isEqualTo("SFG*------*****");
   }
+
+  /** ITA finding 1 (2026-11-20): a 2525C code has no edition, so the version digits of the sender's symbol cannot come back. Everything else does. */
+  @Test
+  void theVersionDigitsOfTheSendersSymbolAreNotInA2525CCodeAndComeBackAsTheTables() {
+    String app6d = "10031000001211000000"; // friend, present, land unit, infantry
+    String app6e = "13031000001211000000";
+    String code = Sidc2525c.toSidc2525c(app6d);
+    assertThat(code).isEqualTo("SFG*UCI---*****");
+    assertThat(Sidc2525c.toSidc2525c(app6e)).as("the edition is not in the code").isEqualTo(code);
+    assertThat(Sidc2525c.toApp6d(code)).as("the table's version, the rest as sent").isEqualTo("11031000001211000000");
+    assertThat(Sidc2525c.toApp6d(code).substring(2)).isEqualTo(app6d.substring(2)).isEqualTo(app6e.substring(2));
+  }
 }

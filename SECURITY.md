@@ -1,6 +1,6 @@
 # Security policy
 
-emcc is a mock-up of a command and control system, made to show what AI agents can build. It is not made or tested for operational use, and it holds no real data. Run it on networks and with data you trust.
+emcc is a proof of concept of a command and control system, made to show what AI agents can build. It is not made or tested for operational use, and it holds no real data. Run it on networks and with data you trust.
 
 ## Supported versions
 

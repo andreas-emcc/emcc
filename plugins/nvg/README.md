@@ -15,7 +15,7 @@ NVG 2.0.x in and out (ADR-0055; brief `docs/plugins/briefs/nvg.md`), built by PC
 
   | NVG | emcc |
   |---|---|
-  | `point` | `core.symbol` |
+  | `point` | `core.symbol`; its `speed` (km/h) and `course` are the symbol's `modifiers.speed` (m/s) and `modifiers.direction`. The text amplifiers are not sent (known limits) |
   | `text` | `core.text`; its CSS `fill` is the text's colour, `style.strokeColor` (owner, 2026-11-12), and its other CSS, its `stroke` included, is kept |
   | `multipoint`, and `polyline`, `polygon`, `arrow` with a tactical graphic's code | `core.multipoint`, the points in the order sent |
   | the other shapes | `core.shape` |
@@ -74,6 +74,7 @@ The form (SDK 1.8.0 part D, T-204) lists the links by name, with their kind and 
 
 ## Known limits
 
+- **A symbol's or graphic's text amplifiers are not sent:** `symbol.modifiers`' texts (unique designation, higher formation, quantity, staff comments, additional information and the others) are not written to NVG, so a copy made over NVG, by another emcc included, has none (ITA mass test, 2026-11-20, finding 2; owner, 2026-11-21). Only speed and direction go. Where NVG carries them is its `modifiers` attribute, whose format is a spec check (point 3). An imported `modifiers` text is kept and written back as it came, but not read into the amplifiers.
 - A consumer sends `input_response` answers only, no `select_response`.
 - A document's `Schema` and the attributes of other namespaces on items are not kept. Content of an item's `metadata` other than its label is written back inside its `extension`.
 - A polygon's closing point is not written (NVG lists the points once).
@@ -88,7 +89,7 @@ The specification is not public (ADR-0055). These choices stand until a check ag
    - the scheme names `app6d:` and `app6e:` (owner, Q3; `app06:` read too);
    - a code under any of the three schemes is read by its version digits (NV3);
    - a vessel goes out as APP-6D sea surface `100<identity>3000001400000000` (N7).
-3. **The `modifiers` format:** kept as text and written back.
+3. **The `modifiers` format:** kept as text and written back. Until it is checked, the text amplifiers are neither read from it nor written to it (known limits).
 4. **CSS:** which properties NVG defines. Dashes and dots are told apart by the first mark (3 or less: dots). A text's colour is read from its `fill`, as in SVG (owner, 2026-11-12).
 5. **Tactical graphics:** their point order, kept as sent (N6).
 6. **Geometry:**

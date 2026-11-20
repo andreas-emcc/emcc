@@ -9,7 +9,7 @@ Product name: **emcc**, always lower case. English. No owner name, no contact ad
 - **Top menu:** Workspaces, Standards, Ideas, Parts, AI agents, Status, and "GitHub ↗" to https://github.com/andreas-emcc/emcc, the menu's only outside link (owner, 2026-11-20).
 - **Title:** emcc. Extensible Modular Command and Control – a lightweight C2 (and simulation) system. (Owner, 2026-11-19; before: "A command and control picture for the browser.")
 - **Line:** A shared live map for units, tactical graphics and tracks, with links to other systems and a simulator; extend the functionality with plugins. (Owner, 2026-11-19: "and extend the functionality with plugins" for "and a plugin for everything".)
-- **Mock-up tag:** Mock-up · demonstration system
+- **Tag:** Proof of concept · demonstration system (owner, 2026-11-21: "change the words mockup to proof of concept"; before: "Mock-up · demonstration system").
 - **One line on how it was built:** Built by Claude Code agents, with humans as architects making every decision (owner, 2026-11-19; before: "with one human making every decision"). (No "in 41 days": the owner, 2026-11-12, found it boastful and it dates quickly.)
 - **Source button:** "Source code on GitHub", a link to https://github.com/andreas-emcc/emcc under the Built line (owner, 2026-11-20: GitHub also in the top menu, the hero and the footer; text only, no logo).
 - **Picture:** `view-light.jpg` / `view-dark.jpg` (by the reader's light or dark). Caption: The View workspace of the M8 release, with a made-up exercise on Natural Earth's map of Gotland. Every unit, name and position is fictional.
