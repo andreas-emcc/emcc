@@ -67,7 +67,7 @@ export function fullRunReason(path, pomOnlyAddsModules) {
   if (path.startsWith('model/')) return 'model/';
   if (path.startsWith('tools/')) return 'tools/';
   if (!path.includes('/')) return 'a file at the repository root';
-  if (path.startsWith('tests/integration/') && !path.startsWith('tests/integration/specs/') && !path.startsWith('tests/integration/fixtures/')) {
+  if (path.startsWith('tests/integration/') && !path.startsWith('tests/integration/specs/') && !path.startsWith('tests/integration/fixtures/') && !isMassTest(path)) {
     return 'the test runner or shared test code (tests/integration/ outside specs/ and fixtures/)';
   }
   return null;
@@ -80,6 +80,14 @@ export function fullRunReason(path, pomOnlyAddsModules) {
  */
 function isDocumentation(path) {
   return path.endsWith('.md') || path.startsWith('docs/') || path.startsWith('documents/');
+}
+
+/**
+ * The multi-instance mass test (tests/integration/mass/): never part of a quick or full run, it has its own command
+ * and the owner approves each run, so a change to it needs no run (MCA, 2026-11-21, owner AEE A).
+ */
+function isMassTest(path) {
+  return path.startsWith('tests/integration/mass/');
 }
 
 /** Every spec file of the normal runs (not performance), relative to specs/, with its areas. */
@@ -115,12 +123,15 @@ export function areaProblems(specs = specAreas()) {
 /**
  * Decides the run for a list of changed paths (repository-relative, forward slashes; `deleted`
  * lists those the branch removes). Resolves with
- * { mode: 'quick' | 'full', reasons: [path, decision][], files: [spec files relative to specs/] }.
+ * { mode: 'quick' | 'full', reasons: [path, decision][], files: [spec files relative to specs/], needsRun }.
+ * needsRun is false when every path is documentation or the mass test: such a branch needs no ITA run
+ * (agents/mca.md; the mass test, owner AEE A), and the quick run's files are only what it would run if asked.
  */
 export function selectRun(paths, { pomOnlyAddsModules = false, addedModules = [], deleted = new Set(), specs = specAreas() } = {}) {
   const reasons = [];
   const chosen = new Set(specs.filter((s) => s.areas.includes('@always')).map((s) => s.file));
   let full = false;
+  let needsRun = false;
   const byPlugin = (id) => specs.filter((s) => s.areas.includes(`@plugin-${id}`)).map((s) => s.file);
   const choosePlugin = (path, id) => {
     const files = byPlugin(id);
@@ -132,6 +143,11 @@ export function selectRun(paths, { pomOnlyAddsModules = false, addedModules = []
       reasons.push([path, 'documentation: no tests']);
       continue;
     }
+    if (isMassTest(path)) {
+      reasons.push([path, 'the mass test: no tests (its own command, run when the owner approves)']);
+      continue;
+    }
+    needsRun = true;
     const fullReason = fullRunReason(path, pomOnlyAddsModules);
     if (fullReason) {
       full = true;
@@ -170,7 +186,7 @@ export function selectRun(paths, { pomOnlyAddsModules = false, addedModules = []
     full = true;
     reasons.push([path, 'FULL: not covered by the quick run mapping']);
   }
-  return { mode: full ? 'full' : 'quick', reasons, files: full ? [] : [...chosen].sort() };
+  return { mode: full ? 'full' : 'quick', reasons, files: full ? [] : [...chosen].sort(), needsRun };
 }
 
 function git(args) {
@@ -211,6 +227,7 @@ export function selectForBranch(base, head = 'HEAD') {
 export function describe(selection) {
   const lines = [`Changes ${selection.range ?? ''}: ${selection.reasons.length} path(s)`];
   for (const [path, reason] of selection.reasons) lines.push(`  ${path}  →  ${reason}`);
+  if (selection.needsRun === false) lines.push('Decision: NO ITA run needed (only documentation or the mass test); if one is asked for, the quick run below.');
   if (selection.mode === 'full') lines.push('Decision: FULL run (a path above needs it).');
   else {
     lines.push(`Decision: QUICK run, ${selection.files.length} spec file(s), without the tests tagged ${FULL_ONLY}:`);

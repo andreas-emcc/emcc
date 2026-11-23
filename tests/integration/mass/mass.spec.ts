@@ -13,7 +13,7 @@ import { createLayer } from '../lib/live.mjs';
 import { root } from '../lib/server.mjs';
 import { freeUdp, getJson, postJson, putSettings, sampleLoad, startInstance, TAK_CREDENTIAL, takCredentialsMissing, type Instance } from './instances';
 import { COT_LABEL, graphics, HIGHEST, symbols, type Item, type LonLat } from './known-set';
-import { newReport, writeReport, type Mismatch, type Propagation, type Report, type Row } from './report';
+import { newReport, stats, writeReport, type Mismatch, type Propagation, type Report, type Row } from './report';
 
 const P = {
   instances: 2,
@@ -138,6 +138,9 @@ const cotCarries = (item: Item) => item.kind === 'symbol';
 
 /** APP-6B identity letter to APP-6D's identity digit. */
 const IDENTITY_6B: Record<string, string> = { P: '0', U: '1', A: '2', F: '3', N: '4', S: '5', H: '6', J: '6', K: '6' };
+/** The text amplifiers nvg documents as not sent (main 0c5c02e0; the fix is an M10 item). */
+const NVG_NOT_SENT = ['uniqueDesignation', 'higherFormation', 'quantity', 'staffComments', 'additionalInformation'];
+const nvgNowSends = new Set<string>();
 const COT_MODIFIERS = ['uniqueDesignation', 'higherFormation', 'quantity', 'staffComments', 'additionalInformation', 'direction', 'speed'];
 
 function compare(link: Link, item: Item, copy: any): Mismatch[] {
@@ -154,7 +157,15 @@ function compare(link: Link, item: Item, copy: any): Mismatch[] {
     if (src.label.categories) check('label categories', JSON.stringify(copy.label?.categories ?? null) === JSON.stringify(src.label.categories), src.label.categories, copy.label?.categories);
     if (src.symbol) {
       check('symbol', copy.symbol?.standard === src.symbol.standard && copy.symbol?.sidc === src.symbol.sidc, { standard: src.symbol.standard, sidc: src.symbol.sidc }, { standard: copy.symbol?.standard, sidc: copy.symbol?.sidc });
-      for (const [k, v] of Object.entries(src.symbol.modifiers ?? {})) check(`modifier ${k}`, copy.symbol?.modifiers?.[k] === v, v, copy.symbol?.modifiers?.[k]);
+      for (const [k, v] of Object.entries(src.symbol.modifiers ?? {})) {
+        const g = copy.symbol?.modifiers?.[k];
+        // Documented as not sent until M10 (nvg readme, main 0c5c02e0): expected missing, and noted if they arrive.
+        if (NVG_NOT_SENT.includes(k)) {
+          if (g !== undefined) nvgNowSends.add(k);
+          continue;
+        }
+        check(`modifier ${k}`, g === v, v, g);
+      }
     }
   } else {
     check('label', copy.label?.classification === COT_LABEL.classification, `the link's ${COT_LABEL.classification}`, copy.label?.classification);
@@ -164,7 +175,9 @@ function compare(link: Link, item: Item, copy: any): Mismatch[] {
       const identity = IDENTITY_6B[s.sidc[1]];
       check('symbol (APP-6B to APP-6D: standard and identity)', got.standard === 'APP-6D' && String(got.sidc ?? '')[3] === identity, { standard: 'APP-6D', identity }, { standard: got.standard, sidc: got.sidc });
     } else {
-      const expected = s.standard === 'APP-6E' ? `10${s.sidc.slice(2)}` : s.sidc;
+      // cot's round trip goes through 2525C, which has no edition: the code comes back as version 11 (PCA-cot,
+      // main 12a63a3b; the owner wants no edition element, AEH B).
+      const expected = `11${s.sidc.slice(2)}`;
       check('symbol', got.standard === 'APP-6D' && got.sidc === expected, { standard: 'APP-6D', sidc: expected }, { standard: got.standard, sidc: got.sidc });
     }
     for (const k of COT_MODIFIERS) {
@@ -349,6 +362,13 @@ test('the multi-instance mass test (mass/PLAN.md)', async ({}, testInfo) => {
       }
     };
     if (P.phases.includes(1)) checkEchoes('phase 1');
+    if (useNvg) {
+      report.notes.push(
+        nvgNowSends.size === 0
+          ? `nvg: the text amplifiers (${NVG_NOT_SENT.join(', ')}) did not arrive, as documented until M10`
+          : `nvg now sends ${[...nvgNowSends].join(', ')}, documented as not sent: the mass test's expectation needs updating`,
+      );
+    }
 
     // ---- Phase 2: moves in every instance; every change arrives, the last position wins, no loops. ----
     if (P.phases.includes(2)) {
@@ -537,6 +557,7 @@ test('the multi-instance mass test (mass/PLAN.md)', async ({}, testInfo) => {
       const simStart = Date.now();
       for (const s of senders) await postJson(`${s.baseUrl}/api/plugins/simulator/routes/start`, {});
       await sleep(P.duration * 1000);
+      const pausedAt = Date.now();
       for (const s of senders) await postJson(`${s.baseUrl}/api/plugins/simulator/routes/pause`, {});
       await sleep(Math.max(10, NVG_INTERVAL_S * 2 + 2) * 1000);
 
@@ -568,6 +589,25 @@ test('the multi-instance mass test (mass/PLAN.md)', async ({}, testInfo) => {
             }
             const last = s.picture.objects.get(t.runner.id)?.geometry;
             if (last && !sameGeometry(last, copy.geometry)) prop.lastPositionWrong.push(`${s.name}-Runner (${offMetres(last, copy.geometry)} m off)`);
+            // Where the copy stopped, against the sender's positions before and after the pause (the readme: while every
+            // route is paused nothing is sent, so the pause's own saved update may never reach the outputs).
+            const before = path.filter((x) => x.at < pausedAt);
+            const after = path.filter((x) => x.at >= pausedAt);
+            const copyAt = copy.geometry.coordinates as number[];
+            const k = path.findIndex((x) => near(x.p, copyAt, 1e-6));
+            const lastArrival = r.picture.arrivals.filter((a) => a.event.entityId === copy.id).at(-1)?.at;
+            const steps = before.slice(1).map((x, i) => offMetres({ type: 'Point', coordinates: before[i].p }, { type: 'Point', coordinates: x.p }));
+            report.phase3[`ground truth ${link} ${s.name} → ${r.name}`] = {
+              senderPositions: path.length,
+              senderPositionsAfterPause: after.length,
+              copyIsSendersPosition: k < 0 ? 'none of them' : `${k + 1} of ${path.length}${k < before.length ? ' (before the pause)' : ' (after the pause)'}`,
+              copyIsLastBeforePause: before.length > 0 && near(before[before.length - 1].p, copyAt, 1e-6),
+              metresFromSendersLast: last ? offMetres(last, copy.geometry) : null,
+              metresFromLastBeforePause: before.length > 0 ? offMetres({ type: 'Point', coordinates: before[before.length - 1].p }, copy.geometry) : null,
+              medianStepMetres: stats(steps).median,
+              lastSenderTickBeforePauseMs: before.length > 0 ? pausedAt - before[before.length - 1].at : null,
+              copyLastArrivalAfterPauseMs: lastArrival === undefined ? null : lastArrival - pausedAt,
+            };
             report.propagation.push(prop);
             const what = `phase 3, ${link} ${s.name} → ${r.name}`;
             if (prop.seen === 0) report.problems.push(`${what}: no position of ${s.name}-Runner arrived`);

@@ -75,13 +75,14 @@ T-063 (`agents/ita.md`, "Quick and full runs"; which run a merge needs: `agents/
    - `server/`, except a `server/pom.xml` diff that only adds `<module>../plugins/<id>/server</module>` lines;
    - `web/` (the shell, the web SDK, anything else there);
    - `model/`, `tools/`, any file at the repository root (`package.json` and `package-lock.json` included);
-   - `tests/integration/` outside `specs/` and `fixtures/` (the runner, `lib/`, the configuration, the lock file), a file in `specs/` that is not a spec file, a fixture that is not in the mapping;
+   - `tests/integration/` outside `specs/`, `fixtures/` and `mass/` (the runner, `lib/`, the configuration, the lock file), a file in `specs/` that is not a spec file, a fixture that is not in the mapping;
    - **any path the mapping below does not cover** (for example `spikes/`).
-3. **Otherwise the quick run:** the `@always` spec files, plus what each path selects, without the tests tagged `@full`:
+3. **Otherwise the quick run:** the `@always` spec files, plus what each path selects, without the tests tagged `@full`. When every path is documentation or the mass test, the branch needs **no run** (`needsRun: false`, and `--explain` says so):
 
 | Changed path | Selects |
 |---|---|
 | `*.md` anywhere, and any file in `docs/` or `documents/` | nothing more (other files of `agents/` or `.claude/` are not covered: full run) |
+| `tests/integration/mass/…` (the mass test) | nothing more: never part of a run, its own command (owner AEE A) |
 | `plugins/<id>/…` | the spec files with the area `@plugin-<id>` (none: only the `@always` files, which load every plugin) |
 | `plugins/_template/…` | nothing more (the template is never assembled) |
 | `server/pom.xml`, only `<module>` lines of plugins added | the area `@plugin-<id>` of each |

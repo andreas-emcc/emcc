@@ -60,8 +60,21 @@ test('plugins, server/pom.xml module lines, spec files, fixtures and documentati
   expect(selectRun(['tests/integration/fixtures/plugins/ita-listener/src/ListenerPlugin.java']).files).toContain('tak/listener.spec.ts');
   expect(selectRun(['tests/integration/fixtures/data/m0/journal.jsonl']).files).toContain('live/persistence.spec.ts');
   for (const doc of ['docs/status.md', 'docs/test-reports/x.md', 'server/README.md', 'web/shell/README.md', 'agents/ita.md', '.claude/agents/x.md', 'requirements.md', 'documents/design/src/x.svg']) {
-    expect(selectRun([doc]), doc).toMatchObject({ mode: 'quick', files: always() });
+    expect(selectRun([doc]), doc).toMatchObject({ mode: 'quick', files: always(), needsRun: false });
   }
+  expect(selectRun(['plugins/cot/plugin.json']).needsRun).toBe(true);
+});
+
+test('a change only to the mass test, its reports and the handover needs no run (owner AEE A)', () => {
+  const mass = ['tests/integration/mass/mass.spec.ts', 'tests/integration/mass/run.mjs', 'tests/integration/mass/playwright.config.ts', 'docs/test-reports/2026-11-20-mass-test.md', 'docs/handover/ita.md'];
+  const selection = selectRun(mass);
+  expect(selection).toMatchObject({ mode: 'quick', files: always(), needsRun: false });
+  expect(selection.reasons[0][1]).toMatch(/^the mass test: no tests/);
+  // With shared test code beside it, the full run as before.
+  expect(selectRun([...mass, 'tests/integration/lib/server.mjs'])).toMatchObject({ mode: 'full', needsRun: true });
+  // ita/mass-test as merged (eb0c35d9): its changes since its base, main 15440ece.
+  const merged = selectForBranch('15440ece', '89afe346');
+  expect(merged.needsRun, JSON.stringify(merged.reasons)).toBe(false);
 });
 
 test('real past merges get the run they should (git history of main)', () => {
