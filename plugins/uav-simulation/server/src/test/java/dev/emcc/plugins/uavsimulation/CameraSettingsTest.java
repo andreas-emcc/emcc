@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.emcc.plugins.uavsimulation.pose.Frame;
 import dev.emcc.plugins.uavsimulation.pose.Pointing;
+import dev.emcc.plugins.uavsimulation.pose.Sway;
+import dev.emcc.sdk.json.JsonBoolean;
 import dev.emcc.sdk.json.JsonObject;
 import dev.emcc.sdk.model.Position;
 import dev.emcc.sdk.testkit.TestJson;
@@ -39,7 +41,20 @@ class CameraSettingsTest {
       "frameRate; 31; 30",
       "frameRate; 24.5; 24",
       "height; 9.9; 10",
-      "height; 20000.1; 20000"})
+      "height; 20000.1; 20000",
+      "swayAmplitude; -0.1; 0",
+      "swayAmplitude; 5.1; 5",
+      "swayMinFrequency; 0.09; 0.1",
+      "swayMaxFrequency; 10.1; 10",
+      "swayJoltsPerMinute; -1; 0",
+      "swayJoltsPerMinute; 60.1; 60",
+      "swayJoltStrength; -0.1; 0",
+      "swayJoltStrength; 10.1; 10",
+      "swayJoltDecay; 0.04; 0.05",
+      "swayJoltDecay; 5.1; 5",
+      "swaySeed; -1; 0",
+      "swaySeed; 2147483648; 2147483647",
+      "swaySeed; 1.5; 2"})
   void limits(String field, String outside, String inside) throws CameraSettings.Invalid {
     assertThatThrownBy(() -> parse("{\"" + field + "\": " + outside + "}"))
         .isInstanceOfSatisfying(CameraSettings.Invalid.class, e -> assertThat(e.field).isEqualTo(field));
@@ -71,6 +86,52 @@ class CameraSettingsTest {
   void equalSweepBearings() {
     assertField("{\"sectorStart\": 45, \"sectorEnd\": 45}", "sectorEnd");
     assertField("{\"sectorStart\": 0, \"sectorEnd\": 360}", "sectorEnd");
+  }
+
+  @Test
+  @DisplayName("Criterion 24 (V3): the sway is off by default with its default values; on, off and its values are kept; the highest frequency not below the lowest")
+  void sway() throws CameraSettings.Invalid {
+    CameraSettings d = CameraSettings.DEFAULTS;
+    assertThat(d.sway()).isFalse();
+    assertThat(d.swaySettings()).isEqualTo(new Sway.Settings(0.3, 0.5, 3, 2, 0.5, 0.5, 1));
+    assertThat(d.json().get("sway")).isEqualTo(JsonBoolean.FALSE);
+    CameraSettings on = parse("{\"sway\": true, \"swayAmplitude\": 0.8, \"swayMinFrequency\": 1, \"swayMaxFrequency\": 1, \"swayJoltsPerMinute\": 2,"
+        + " \"swayJoltStrength\": 2.5, \"swayJoltDecay\": 1.2, \"swaySeed\": 99}");
+    assertThat(on.sway()).isTrue();
+    assertThat(on.swaySettings()).isEqualTo(new Sway.Settings(0.8, 1, 1, 2, 2.5, 1.2, 99));
+    assertThat(CameraSettings.parse(on.json(), CameraSettings.DEFAULTS)).isEqualTo(on);
+    CameraSettings off = CameraSettings.parse((JsonObject) TestJson.parse("{\"sway\": false}"), on);
+    assertThat(off.sway()).isFalse();
+    assertThat(off.swaySettings()).as("the values stay while it is off").isEqualTo(on.swaySettings());
+    assertField("{\"sway\": \"yes\"}", "sway");
+    assertField("{\"swayMinFrequency\": 2, \"swayMaxFrequency\": 1}", "swayMaxFrequency");
+    assertField("{\"swayMinFrequency\": 4}", "swayMinFrequency");
+    assertField("{\"swayAmplitude\": \"0.3\"}", "swayAmplitude");
+  }
+
+  @Test
+  @DisplayName("Criterion 20 (V2, CR-0055): the overlay is off by default; on and off are kept; a value that is not a boolean is refused")
+  void overlay() throws CameraSettings.Invalid {
+    assertThat(CameraSettings.DEFAULTS.overlay()).isFalse();
+    assertThat(CameraSettings.DEFAULTS.json().get("overlay")).isEqualTo(JsonBoolean.FALSE);
+    CameraSettings on = parse("{\"overlay\": true}");
+    assertThat(on.overlay()).isTrue();
+    assertThat(on.json().get("overlay")).isEqualTo(JsonBoolean.TRUE);
+    assertThat(CameraSettings.parse(on.json(), CameraSettings.DEFAULTS)).isEqualTo(on);
+    assertThat(CameraSettings.parse((JsonObject) TestJson.parse("{\"azimuth\": 10}"), on).overlay()).as("absent keeps it").isTrue();
+    assertThat(CameraSettings.parse((JsonObject) TestJson.parse("{\"overlay\": false}"), on).overlay()).isFalse();
+    assertField("{\"overlay\": \"yes\"}", "overlay");
+    assertField("{\"overlay\": 1}", "overlay");
+    assertField("{\"overlay\": null}", "overlay");
+  }
+
+  @Test
+  @DisplayName("Criterion 23: a camera stored before M9.2 reads as without the sway, with the default values")
+  void storedBeforeTheSway() throws CameraSettings.Invalid {
+    CameraSettings old = parse("{\"mode\": \"fixed\", \"azimuth\": 90, \"depression\": 15, \"frameSize\": \"1280x720\", \"frameRate\": 25}");
+    assertThat(old.sway()).isFalse();
+    assertThat(old.swaySettings()).isEqualTo(CameraSettings.SWAY_DEFAULTS);
+    assertThat(old.overlay()).as("a camera stored before M9.2 has no overlay").isFalse();
   }
 
   private static void assertField(String json, String field) {

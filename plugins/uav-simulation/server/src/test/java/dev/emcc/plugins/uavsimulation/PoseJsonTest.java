@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import dev.emcc.plugins.uavsimulation.pose.Aim;
 import dev.emcc.plugins.uavsimulation.pose.Frame;
 import dev.emcc.plugins.uavsimulation.pose.Pose;
+import dev.emcc.sdk.json.JsonBoolean;
 import dev.emcc.sdk.json.JsonObject;
 import dev.emcc.sdk.model.Position;
 import dev.emcc.sdk.model.SecurityLabel;
@@ -26,7 +27,7 @@ class PoseJsonTest {
   @Test
   @DisplayName("Section 4: the brief's example payload, field by field; the label is not in it")
   void theBriefsExample() {
-    JsonObject json = PoseJson.of(pose("Hawk 1", "RECCE NORTH", Instant.parse("2026-11-16T10:15:30.040Z")));
+    JsonObject json = PoseJson.of(pose("Hawk 1", "RECCE NORTH", Instant.parse("2026-11-16T10:15:30.040Z")), false);
     JsonObject example = (JsonObject) TestJson.parse("""
         {
           "camera": "0193a1f2-7c4e-7d10-9a3b-2f6e8c1d4b57",
@@ -35,17 +36,26 @@ class PoseJsonTest {
           "pointing": { "azimuth": 90, "depression": 30, "roll": 0 },
           "fieldOfView": { "horizontal": 20, "vertical": 11.33 },
           "frame": { "width": 1280, "height": 720, "rate": 25 },
-          "mission": "RECCE NORTH"
+          "mission": "RECCE NORTH",
+          "overlay": false
         }""");
     assertThat(TestJson.normalize(json)).isEqualTo(TestJson.normalize(example));
   }
 
   @Test
+  @DisplayName("Criterion 21 (CR-0055): overlay is in every pose, true or false")
+  void overlay() {
+    Pose p = pose(null, "", Instant.parse("2026-11-16T10:15:30Z"));
+    assertThat(PoseJson.of(p, true).get("overlay")).isEqualTo(JsonBoolean.TRUE);
+    assertThat(PoseJson.of(p, false).get("overlay")).isEqualTo(JsonBoolean.FALSE);
+  }
+
+  @Test
   @DisplayName("Section 4: the time has milliseconds always; the name and the Mission are absent when empty")
   void timeAndAbsentFields() {
-    JsonObject json = PoseJson.of(pose(null, "", Instant.parse("2026-11-16T10:15:30.123456Z")));
+    JsonObject json = PoseJson.of(pose(null, "", Instant.parse("2026-11-16T10:15:30.123456Z")), false);
     assertThat(json.getString("time")).isEqualTo("2026-11-16T10:15:30.123Z");
-    assertThat(PoseJson.of(pose(null, "", Instant.parse("2026-11-16T10:15:30Z"))).getString("time")).isEqualTo("2026-11-16T10:15:30.000Z");
+    assertThat(PoseJson.of(pose(null, "", Instant.parse("2026-11-16T10:15:30Z")), false).getString("time")).isEqualTo("2026-11-16T10:15:30.000Z");
     assertThat(json.has("mission")).isFalse();
     assertThat(json.getObject("platform").has("name")).isFalse();
     assertThat(json.has("label")).isFalse();

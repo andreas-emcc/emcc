@@ -31,6 +31,18 @@ public sealed interface TaskItem extends Message, Coalescing {
   }
 
   /**
+   * The link's settings changed only in what a running picture may change (its name, sampling,
+   * haze, the degraded camera; {@link OutLink#withLookOf}): used from the next frame, with the same
+   * transport stream and encoder (owner, M9.2).
+   */
+  record Look(OutLink link) implements TaskItem {
+    @Override
+    public Object coalesceKey() {
+      return "look";
+    }
+  }
+
+  /**
    * The encoder the task writes its pictures to from now on (part U: the worker starts it and posts
    * it here, CR-0050 point 1.7), or none while the worker waits to start one again: then the task
    * renders nothing ({@code no encoder}). The transport stream goes on.
@@ -47,8 +59,9 @@ public sealed interface TaskItem extends Message, Coalescing {
    *
    * @param classification ST 0102's classification, 1 to 5
    * @param platformName tag 10: the pose's platform name, else the link's name
+   * @param overlay whether the pose asks for the data overlay (CR-0055, function 27)
    */
-  record Frame(Pose pose, int classification, String platformName) implements TaskItem {
+  record Frame(Pose pose, int classification, String platformName, boolean overlay) implements TaskItem {
     @Override
     public Object coalesceKey() {
       return "pose:" + pose.camera();
@@ -71,8 +84,8 @@ public sealed interface TaskItem extends Message, Coalescing {
     }
   }
 
-  /** The imagery set the link uses from now on (B3); its tiles follow. */
-  record UseSet(ImagerySet set) implements TaskItem {
+  /** The imagery set the link uses from now on (B3), its tiles following; {@code null}: none, the folders are read again (F1). */
+  record UseSet(@Nullable ImagerySet set) implements TaskItem {
     @Override
     public Object coalesceKey() {
       return "set";

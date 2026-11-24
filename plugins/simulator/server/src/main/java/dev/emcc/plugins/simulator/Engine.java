@@ -86,7 +86,7 @@ import org.jspecify.annotations.Nullable;
  *
  * <p><b>Outputs.</b> While the simulation runs, each tick sends every visible track of the
  * simulation to the chosen output channels, with an expiry {@code outputStaleSeconds} after the tick
- * (A21; {@link Outputs}).
+ * (A21; {@link Outputs}). A pause or a reset sends its tracks' last state once (ITA, mass test 2).
  *
  * <p><b>Saving</b> (ADR-0041): a saving moment makes the next tick write every track as a saved
  * update and the documents with that tick's state (A12, A22; {@link SavedState}). When the worker
@@ -303,6 +303,8 @@ final class Engine implements Handler<EngineMsg> {
   private final Set<UUID> showOnPut = new HashSet<>();
   /** The highest number given to "<route name>-<n>" since the start, as names in flight are not in the picture yet. */
   private final Map<String, Integer> lastNumbers = new HashMap<>();
+  /** Tracks a pause or a reset placed: each goes to the outputs once when its saved update is written (ITA, mass test 2). */
+  private final Set<UUID> lastDue = new LinkedHashSet<>();
   /** The content each track was given at this tick, for the outputs. */
   private final Map<UUID, MapObjectContent> fresh = new HashMap<>();
   private final Outputs outputs = new Outputs(ChannelKind.GROUND_TRUTH);
@@ -507,6 +509,7 @@ final class Engine implements Handler<EngineMsg> {
       if (route.state != RunState.PAUSED && !route.runnable()) {
         // A route that becomes invalid while it runs pauses, its objects in place (function 9b).
         pause(route, now);
+        tracksOf(route).forEach(t -> lastDue.add(t.id));
       }
     }
     if (!restored) {
@@ -819,6 +822,7 @@ final class Engine implements Handler<EngineMsg> {
     }
     Instant now = clock.instant();
     for (Route route : one == null ? List.copyOf(routes.values()) : List.of(one)) {
+      boolean paused = route.state == RunState.PAUSED;
       switch (action) {
         case START -> start(route, now);
         case PAUSE -> pause(route, now);
@@ -827,9 +831,13 @@ final class Engine implements Handler<EngineMsg> {
           sensors.clearDrawn(one == null ? null : tracksOf(route).stream().map(t -> t.id).collect(java.util.stream.Collectors.toSet())); // function 43
         }
       }
+      if (action == Action.RESET || action == Action.PAUSE && !paused) {
+        tracksOf(route).forEach(t -> lastDue.add(t.id)); // where it stops goes out once (ITA, mass test 2)
+      }
     }
     saveDue = true; // before a route runs, at a pause and at a reset (ADR-0041 point 4)
     writeTracks(ctx, now, false);
+    sendLast(now);
     report();
     respond(request, 200, one == null ? routesJson() : json(one));
   }
@@ -1296,6 +1304,7 @@ final class Engine implements Handler<EngineMsg> {
       saveDocuments(now, ctx);
     }
     sendOutputs(now);
+    sendLast(now);
     // The sensors look at this tick's positions; their platforms' relations go with the next writes (function 30).
     sensors.tick(now, running(), view, context.channels(), staleSeconds);
     writeRelations(ctx);
@@ -1393,6 +1402,33 @@ final class Engine implements Handler<EngineMsg> {
       if (!hidden) {
         outputs.sendUpdate(channels, object.id(), expiring(content, expires));
       }
+    }
+  }
+
+  /**
+   * A paused or reset track's last state, sent once when its saved update is written (ITA, mass
+   * test 2): the stop position with speed 0, or the start, so a receiver does not keep the last
+   * tick's position, up to a step short, until it goes stale. Then nothing more is sent while paused
+   * (A8). A track still to be written waits; one that runs again, is hidden or is gone is dropped.
+   */
+  private void sendLast(Instant now) {
+    if (lastDue.isEmpty()) {
+      return;
+    }
+    Instant expires = now.plusSeconds(staleSeconds);
+    var channels = context.channels();
+    for (UUID id : List.copyOf(lastDue)) {
+      Track track = tracks.get(id);
+      MapObject object = picture.object(id);
+      Route route = track == null ? null : routes.get(track.route);
+      if (track != null && object != null && route != null && track.placeDue) {
+        continue; // its write is in flight; it goes when written
+      }
+      lastDue.remove(id);
+      if (track == null || object == null || route == null || route.state != RunState.PAUSED || track.hidden || !outputs.any() || running()) {
+        continue; // while the simulation runs, every tick sends every track
+      }
+      outputs.sendUpdate(channels, id, expiring(fresh.getOrDefault(id, object.content()), expires));
     }
   }
 

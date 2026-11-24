@@ -4,6 +4,7 @@ import dev.emcc.plugins.uavsimulation.pose.Aim;
 import dev.emcc.plugins.uavsimulation.pose.Fix;
 import dev.emcc.plugins.uavsimulation.pose.Platform;
 import dev.emcc.plugins.uavsimulation.pose.Pose;
+import dev.emcc.plugins.uavsimulation.pose.Sway;
 import dev.emcc.sdk.Cancellable;
 import dev.emcc.sdk.PluginContext;
 import dev.emcc.sdk.PluginState;
@@ -93,7 +94,10 @@ final class CameraWorker implements Handler<CameraMsg> {
     CameraSettings settings;
     @Nullable Cancellable timer;
     Instant startedAt = Instant.EPOCH;
+    /** The previous frame's aim without the sway, so Track an object's kept aim does not wander. */
     @Nullable Aim last;
+    /** The micro sway while the camera runs with it on (M10 plan point 8), else {@code null}. */
+    @Nullable Sway sway;
     /** The latest pose's payload (Q4 A); the label goes beside it, as it will go with the channel item. */
     @Nullable JsonObject pose;
     @Nullable String poseClassification;
@@ -351,11 +355,13 @@ final class CameraWorker implements Handler<CameraMsg> {
       Platform t = copy.platform(c.settings.target());
       target = t == null ? null : t.fix();
     }
-    Pose.Computed computed = Pose.at(c.id.toString(), setup, platform, target, now, Duration.between(c.startedAt, now), c.last);
+    Duration sinceStart = Duration.between(c.startedAt, now);
+    Pose.Computed computed = Pose.at(c.id.toString(), setup, platform, target, now, sinceStart, c.last);
     c.last = computed.pose().aim();
-    JsonObject payload = PoseJson.of(computed.pose());
+    Pose pose = c.sway == null ? computed.pose() : computed.pose().swayed(c.sway.at(sinceStart.toNanos() / 1e9));
+    JsonObject payload = PoseJson.of(pose, c.settings.overlay()); // CR-0055: a change reaches the next pose
     c.pose = payload;
-    c.poseClassification = computed.pose().label().classification();
+    c.poseClassification = pose.label().classification();
     if (computed.targetGone() != c.targetGone) {
       c.targetGone = computed.targetGone();
       status();
@@ -365,7 +371,7 @@ final class CameraWorker implements Handler<CameraMsg> {
     if (computed.held()) {
       thisMinute.held++;
     }
-    send(c, computed.pose(), payload);
+    send(c, pose, payload);
   }
 
   /**
@@ -443,6 +449,7 @@ final class CameraWorker implements Handler<CameraMsg> {
     c.refused = false;
     c.refusalLogged = false;
     c.notSent = null;
+    c.sway = sway(c);
     c.timer = context.timers().every(c.settings.frame().period(), ctx.self(), new CameraMsg.Tick(c.id));
   }
 
@@ -451,6 +458,12 @@ final class CameraWorker implements Handler<CameraMsg> {
       c.timer.cancel();
       c.timer = null;
     }
+    c.sway = null;
+  }
+
+  /** The camera's micro sway from its settings, or {@code null} when it is off. */
+  private static @Nullable Sway sway(Camera c) {
+    return c.settings.sway() ? new Sway(c.settings.swaySettings()) : null;
   }
 
   // ---------------------------------------------------------------- the endpoints
@@ -512,7 +525,12 @@ final class CameraWorker implements Handler<CameraMsg> {
     if (outputRefused(request, settings, null)) {
       return;
     }
-    Camera c = new Camera(UUID.randomUUID(), platform, copy.platform(platform).name(), settings);
+    UUID id = UUID.randomUUID();
+    if (!body.has("swaySeed")) {
+      // brief section 5: a new camera's sway gets a seed of its own, here from its random id
+      settings = settings.withSeed(Math.floorMod(id.getLeastSignificantBits(), CameraSettings.MAX_SEED + 1));
+    }
+    Camera c = new Camera(id, platform, copy.platform(platform).name(), settings);
     c.outputName = outputNameOf(settings.output());
     cameras.put(c.id, c);
     save(c, ctx);
@@ -564,6 +582,7 @@ final class CameraWorker implements Handler<CameraMsg> {
       return;
     }
     boolean newRate = settings.frame().rate() != c.settings.frame().rate();
+    boolean newSway = settings.sway() != c.settings.sway() || !settings.swaySettings().equals(c.settings.swaySettings());
     if (!Objects.equals(settings.output(), c.settings.output())) {
       c.closed = false;
       c.notSent = null;
@@ -582,6 +601,8 @@ final class CameraWorker implements Handler<CameraMsg> {
       run(c, ctx);
       c.startedAt = started;
       c.last = last;
+    } else if (c.running() && newSway) {
+      c.sway = sway(c); // from the next pose (M10 plan point 8); its time still counts from the start
     }
     save(c, ctx);
     status();

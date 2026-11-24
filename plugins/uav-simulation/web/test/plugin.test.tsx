@@ -24,6 +24,9 @@ const OTHER = '0193a1f2-7c4e-7d10-9a3b-2f6e8c1d4b58';
 const SETTINGS: Settings = {
   mode: 'fixed', point: null, pointHeight: 0, target: null, azimuth: 0, depression: 30, sectorStart: 315, sectorEnd: 45, sweepRate: 10,
   horizontalFov: 20, frameSize: '1280x720', frameRate: 25, height: 1000, mission: '', output: null,
+  sway: false, swayAmplitude: 0.3, swayMinFrequency: 0.5, swayMaxFrequency: 3, swayJoltsPerMinute: 2, swayJoltStrength: 0.5, swayJoltDecay: 0.5,
+  swaySeed: 1,
+  overlay: false,
 };
 
 function camera(id: string, patch: Partial<CameraInfo> = {}): CameraInfo {
@@ -216,6 +219,81 @@ describe('the panel and the action (criteria 14 and 15)', () => {
     // A new value clears the server's message, which was for the old one.
     fireEvent.change(within(form).getByLabelText('Horizontal field of view (°)'), { target: { value: '40' } });
     expect(within(form).queryByText('0.1° to 120°')).toBeNull();
+  });
+
+  it("criterion 26: shows the micro sway's fields only while it is on, and saves them with it", async () => {
+    const base = createFakeContext({ pluginId: manifest.id }).serverBase;
+    const calls = fakeServer(base, [camera('c1')]);
+    await shown();
+    const form = await openForm();
+    const box = within(form).getByLabelText<HTMLInputElement>('Micro sway');
+    expect(box.checked).toBe(false);
+    expect(within(form).queryByLabelText('Sway amplitude (°)')).toBeNull();
+    fireEvent.click(box);
+    expect(within(form).getByLabelText<HTMLInputElement>('Sway amplitude (°)').value).toBe('0.3');
+    for (const label of ['Sway lowest frequency (Hz)', 'Sway highest frequency (Hz)', 'Jolts a minute', 'Jolt strength (°)', 'Jolt decay (s)', 'Sway seed']) {
+      expect(within(form).getByLabelText(label)).toBeDefined();
+    }
+    fireEvent.change(within(form).getByLabelText('Sway amplitude (°)'), { target: { value: '0,8' } });
+    fireEvent.change(within(form).getByLabelText('Sway seed'), { target: { value: '42' } });
+    fireEvent.click(within(form).getByRole('button', { name: 'Save' }));
+    await waitFor(() => {
+      expect(calls.find((c) => c.method === 'POST')?.body).toMatchObject({
+        sway: true, swayAmplitude: 0.8, swayMinFrequency: 0.5, swayMaxFrequency: 3, swayJoltsPerMinute: 2, swayJoltStrength: 0.5, swayJoltDecay: 0.5, swaySeed: 42,
+      });
+    });
+  });
+
+  it('saves the sway off without its values, which the server keeps', async () => {
+    const base = createFakeContext({ pluginId: manifest.id }).serverBase;
+    const calls = fakeServer(base, [camera('c1', { settings: { ...SETTINGS, sway: true, swayAmplitude: 1.2 } })]);
+    await shown();
+    const form = await openForm();
+    expect(within(form).getByLabelText<HTMLInputElement>('Sway amplitude (°)').value).toBe('1.2');
+    fireEvent.click(within(form).getByLabelText('Micro sway'));
+    expect(within(form).queryByLabelText('Sway amplitude (°)')).toBeNull();
+    fireEvent.click(within(form).getByRole('button', { name: 'Save' }));
+    await waitFor(() => { expect(calls.find((c) => c.method === 'POST')?.body).toMatchObject({ sway: false }); });
+    expect(calls.find((c) => c.method === 'POST')?.body).not.toHaveProperty('swayAmplitude');
+  });
+
+  it('criterion 26: shows the sway read only without edit', async () => {
+    fakeServer(createFakeContext({ pluginId: manifest.id }).serverBase, [camera('c1', { settings: { ...SETTINGS, sway: true } })]);
+    await shown([VIEW, RUN]);
+    const form = await openForm();
+    expect(within(form).getByLabelText<HTMLInputElement>('Micro sway').disabled).toBe(true);
+    expect(within(form).getByLabelText<HTMLInputElement>('Jolt decay (s)').readOnly).toBe(true);
+  });
+
+  it("criterion 22 (CR-0055): the overlay's checkbox is off for a new camera and saves the setting", async () => {
+    const base = createFakeContext({ pluginId: manifest.id }).serverBase;
+    const calls = fakeServer(base, [camera('c1')]);
+    await shown();
+    const form = await openForm();
+    const box = within(form).getByLabelText<HTMLInputElement>("Burn the camera's data into the video");
+    expect(box.checked).toBe(false);
+    expect(box.disabled).toBe(false);
+    fireEvent.click(box);
+    fireEvent.click(within(form).getByRole('button', { name: 'Save' }));
+    await waitFor(() => { expect(calls.find((c) => c.method === 'POST')?.body).toMatchObject({ overlay: true }); });
+  });
+
+  it("criterion 22 (CR-0055): switched off, the overlay saves false; read only without edit", async () => {
+    const base = createFakeContext({ pluginId: manifest.id }).serverBase;
+    const calls = fakeServer(base, [camera('c1', { settings: { ...SETTINGS, overlay: true } })]);
+    await shown();
+    const form = await openForm();
+    const box = within(form).getByLabelText<HTMLInputElement>("Burn the camera's data into the video");
+    expect(box.checked).toBe(true);
+    fireEvent.click(box);
+    fireEvent.click(within(form).getByRole('button', { name: 'Save' }));
+    await waitFor(() => { expect(calls.find((c) => c.method === 'POST')?.body).toMatchObject({ overlay: false }); });
+    cleanup();
+    fakeServer(createFakeContext({ pluginId: manifest.id }).serverBase, [camera('c1', { settings: { ...SETTINGS, overlay: true } })]);
+    await shown([VIEW, RUN]);
+    const readOnly = within(await openForm()).getByLabelText<HTMLInputElement>("Burn the camera's data into the video");
+    expect(readOnly.checked).toBe(true);
+    expect(readOnly.disabled).toBe(true);
   });
 
   it('asks before Remove, naming the camera', async () => {

@@ -18,8 +18,9 @@ import org.jspecify.annotations.Nullable;
  *       sampled from the imagery, {@code bilinear} or {@code nearest}: the set's where it has a
  *       tile, else the WMS tiles' (brief section 10.5 point 17); the chroma once per 2 × 2 block, at
  *       its centre;
- *   <li>haze grows with distance (25 km to its most, 60 %, as S10's), and the sky lies above the
- *       horizon (a pixel whose grid round it is not all ground).
+ *   <li>haze grows with distance (25 km to its most, 60 %, as S10's), or, for the degraded camera
+ *       (F4), a grey haze of {@link Options#greyHaze()} × (1 − e^(−d / 4 km)); the sky lies above
+ *       the horizon (a pixel whose grid round it is not all ground).
  * </ol>
  *
  * No occlusion test, a static scene (ADR-0058 point 5). Where no imagery covers a ground point it is
@@ -46,10 +47,35 @@ public final class Renderer {
   static final int SKY_CB = cb(170, 190, 210);
   static final int SKY_CR = cr(170, 190, 210);
 
+  /** The degraded camera's haze (F4): its distance scale, metres; at this distance it is 63 % of its strength. */
+  public static final double GREY_HAZE_METRES = 4_000;
+
+  /** The degraded camera's haze, RGB 180, 183, 186: a light grey, a little cool. */
+  static final int GREY_Y = luma(180, 183, 186);
+  static final int GREY_CB = cb(180, 183, 186);
+  static final int GREY_CR = cr(180, 183, 186);
+
   private static final int SEARCH_STEPS = 8;
 
-  /** How a link draws (section 10.2 point 4: {@code sampling}, {@code haze}). */
-  public record Options(boolean bilinear, boolean haze) {}
+  /**
+   * How a link draws (section 10.2 point 4: {@code sampling}, {@code haze}).
+   *
+   * @param greyHaze the degraded camera's haze (F4, ADR-0066), 0 to 1: above 0 it replaces {@code
+   *     haze} with a grey one of this strength, {@code greyHaze × (1 − e^(−d / 4 km))} at distance d,
+   *     and the sky goes the same share towards the grey
+   */
+  public record Options(boolean bilinear, boolean haze, double greyHaze) {
+    public Options {
+      if (!(greyHaze >= 0 && greyHaze <= 1)) {
+        throw new IllegalArgumentException("the grey haze is 0 to 1: " + greyHaze);
+      }
+    }
+
+    /** Without the degraded camera's haze. */
+    public Options(boolean bilinear, boolean haze) {
+      this(bilinear, haze, 0);
+    }
+  }
 
   private final int width;
   private final int height;
@@ -60,6 +86,8 @@ public final class Renderer {
   private final double[] wx;
   private final double[] wy;
   private final float[] gd;
+  /** The grey haze's share at each grid point (F4): worked out 1 in 64 pixels, interpolated as the distance is. */
+  private final float[] ga;
   private final boolean[] down;
   private final float[] colF;
   private final float[] rowF;
@@ -83,6 +111,7 @@ public final class Renderer {
     wx = new double[gw * gh];
     wy = new double[gw * gh];
     gd = new float[gw * gh];
+    ga = new float[gw * gh];
     down = new boolean[gw * gh];
     // where each pixel's centre lies in its grid cell (pixel x is in cell x / STEP), and each chroma
     // sample's (the centre of its 2 × 2 pixels; sample x is in cell 2x / STEP)
@@ -130,6 +159,14 @@ public final class Renderer {
     if (pose.width() != width || pose.height() != height) {
       throw new IllegalArgumentException("this renderer draws " + width + " × " + height + ", the pose " + pose.width() + " × " + pose.height());
     }
+    return draw(pose, terrain, fallback, imagery, wms, options, out);
+  }
+
+  /**
+   * Renders a pose's field of view into a picture of this renderer's size, whatever the pose's frame
+   * size: the degraded camera draws at a lower resolution ({@link Degrader}).
+   */
+  int draw(Pose pose, Terrain terrain, GroundFallback fallback, @Nullable Imagery imagery, @Nullable Imagery wms, Options options, byte[] out) {
     if (out.length != pictureBytes()) {
       throw new IllegalArgumentException("an I420 picture of " + width + " × " + height + " is " + pictureBytes() + " bytes: " + out.length);
     }
@@ -137,7 +174,7 @@ public final class Renderer {
     LocalFrame frame = new LocalFrame(p.lon(), p.lat(), p.height());
     Camera camera = new Camera(pose);
     double flat = fallback.height();
-    grid(frame, camera, terrain, flat, imagery, wms);
+    grid(frame, camera, terrain, flat, imagery, wms, options.greyHaze());
     int missing = luma(imagery, wms, options, out);
     chroma(imagery, wms, options, out);
     return missing;
@@ -149,7 +186,7 @@ public final class Renderer {
     return Double.isNaN(h) ? flat : h;
   }
 
-  private void grid(LocalFrame frame, Camera camera, Terrain terrain, double flat, @Nullable Imagery imagery, @Nullable Imagery wms) {
+  private void grid(LocalFrame frame, Camera camera, Terrain terrain, double flat, @Nullable Imagery imagery, @Nullable Imagery wms, double greyHaze) {
     double[] d = new double[3];
     double[] geo = new double[3];
     double[] xy = new double[2];
@@ -168,6 +205,7 @@ public final class Renderer {
         }
         down[k] = true;
         gd[k] = (float) (t * norm);
+        ga[k] = greyHaze > 0 ? (float) (greyHaze * -Math.expm1(-t * norm / GREY_HAZE_METRES)) : 0;
         if (imagery != null || wms != null) {
           frame.toGeodetic(t * d[0], t * d[1], t * d[2], geo);
         }
@@ -238,7 +276,9 @@ public final class Renderer {
   private int luma(@Nullable Imagery imagery, @Nullable Imagery wms, Options options, byte[] out) {
     int missing = 0;
     boolean bilinear = options.bilinear();
-    boolean haze = options.haze();
+    boolean grey = options.greyHaze() > 0;
+    boolean haze = options.haze() && !grey;
+    byte sky = (byte) (grey ? blend(SKY_Y, GREY_Y, options.greyHaze()) : SKY_Y);
     for (int gj = 0; gj < gh - 1; gj++) {
       for (int gi = 0; gi < gw - 1; gi++) {
         int k00 = gj * gw + gi;
@@ -249,7 +289,7 @@ public final class Renderer {
         int y0 = gj * STEP;
         if (!(down[k00] && down[k01] && down[k10] && down[k11])) {
           for (int y = y0; y < y0 + STEP; y++) {
-            java.util.Arrays.fill(out, y * width + x0, y * width + x0 + STEP, (byte) SKY_Y);
+            java.util.Arrays.fill(out, y * width + x0, y * width + x0 + STEP, sky);
           }
           continue;
         }
@@ -292,6 +332,8 @@ public final class Renderer {
           double rSpan = r01 + (r11 - r01) * fy - rLeft;
           float dLeft = gd[k00] + (gd[k10] - gd[k00]) * fy;
           float dSpan = gd[k01] + (gd[k11] - gd[k01]) * fy - dLeft;
+          float aLeft = ga[k00] + (ga[k10] - ga[k00]) * fy;
+          float aSpan = ga[k01] + (ga[k11] - ga[k01]) * fy - aLeft;
           for (int x = x0; x < x0 + STEP; x++) {
             float fx = colF[x];
             int v;
@@ -315,6 +357,9 @@ public final class Renderer {
             if (haze) {
               float a = Math.min((dLeft + dSpan * fx) / (float) HAZE_METRES, (float) HAZE_MAX);
               v = (int) (v * (1 - a) + SKY_Y * a + 0.5f);
+            } else if (grey) {
+              float a = aLeft + aSpan * fx;
+              v = (int) (v * (1 - a) + GREY_Y * a + 0.5f);
             }
             out[line + x] = (byte) v;
           }
@@ -331,6 +376,10 @@ public final class Renderer {
     int crAt = cbAt + cw * ch;
     int block = STEP / 2;
     boolean colour = imagery != null && imagery.colour() || wms != null && wms.colour();
+    boolean grey = options.greyHaze() > 0;
+    boolean haze = options.haze() && !grey;
+    byte skyCb = (byte) (grey ? blend(SKY_CB, GREY_CB, options.greyHaze()) : SKY_CB);
+    byte skyCr = (byte) (grey ? blend(SKY_CR, GREY_CR, options.greyHaze()) : SKY_CR);
     for (int gj = 0; gj < gh - 1; gj++) {
       for (int gi = 0; gi < gw - 1; gi++) {
         int k00 = gj * gw + gi;
@@ -355,8 +404,8 @@ public final class Renderer {
           for (int x = x0; x < x0 + block; x++) {
             int i = y * cw + x;
             if (sky) {
-              out[cbAt + i] = (byte) SKY_CB;
-              out[crAt + i] = (byte) SKY_CR;
+              out[cbAt + i] = skyCb;
+              out[crAt + i] = skyCr;
               continue;
             }
             float fx = ccolF[x];
@@ -381,11 +430,15 @@ public final class Renderer {
                 cr = wms.cr();
               }
             }
-            if (options.haze()) {
+            if (haze) {
               float dist = (gd[k00] * (1 - fx) + gd[k01] * fx) * (1 - fy) + (gd[k10] * (1 - fx) + gd[k11] * fx) * fy;
               float a = Math.min(dist / (float) HAZE_METRES, (float) HAZE_MAX);
               cb = (int) (cb * (1 - a) + SKY_CB * a + 0.5f);
               cr = (int) (cr * (1 - a) + SKY_CR * a + 0.5f);
+            } else if (grey) {
+              float a = (ga[k00] * (1 - fx) + ga[k01] * fx) * (1 - fy) + (ga[k10] * (1 - fx) + ga[k11] * fx) * fy;
+              cb = (int) (cb * (1 - a) + GREY_CB * a + 0.5f);
+              cr = (int) (cr * (1 - a) + GREY_CR * a + 0.5f);
             }
             out[cbAt + i] = (byte) cb;
             out[crAt + i] = (byte) cr;
@@ -438,6 +491,11 @@ public final class Renderer {
 
   /** The point the frame's centre looks at: longitude, latitude, its ground height (m HAE) and the slant range (m). */
   public record FrameCentre(double lon, double lat, double height, double slantRange) {}
+
+  /** {@code a} moved a share {@code s} of the way to {@code b}, rounded. */
+  private static int blend(int a, int b, double s) {
+    return (int) Math.round(a + (b - a) * s);
+  }
 
   static int luma(int r, int g, int b) {
     return 16 + (int) Math.round(219 * (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255);

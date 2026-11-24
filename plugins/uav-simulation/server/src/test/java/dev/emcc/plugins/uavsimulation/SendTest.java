@@ -143,6 +143,103 @@ class SendTest {
   }
 
   @Test
+  @DisplayName("Criteria 23 and 24 (V3): with the sway on, a still platform's poses sway in azimuth, depression and roll, frame to frame, and pass fmv's schema; the platform's angles do not; switched off, the next pose is exact")
+  void sway() {
+    Rig rig = rig();
+    UUID track = rig.track(rig.layer, AT, 45.0, null, "Hawk 1");
+    UUID id = rig.camera(track, "\"azimuth\": 90, \"output\": \"fmv/out-a\", \"sway\": true, \"swayAmplitude\": 0.5, \"swayJoltsPerMinute\": 0, \"swaySeed\": 77");
+    assertThat(rig.camera(id).getObject("settings").getNumber("swaySeed").longValueExact()).as("a seed given is kept").isEqualTo(77);
+    assertThat(rig.camera(id).getObject("settings").get("sway")).isEqualTo(JsonBoolean.TRUE);
+    Rig.answer(rig.post("/cameras/" + id + "/start", "{}"), 200);
+    rig.ctx.advance(Duration.ofSeconds(2));
+    List<DeclaredItem> items = sent(rig);
+    assertThat(items).hasSize(50);
+    java.util.Set<Double> azimuths = new java.util.HashSet<>();
+    for (DeclaredItem item : items) {
+      JsonObject p = item.payload();
+      assertThat(num(p, "pointing", "azimuth")).isCloseTo(90, within(0.5 + 1e-9));
+      assertThat(num(p, "pointing", "depression")).isCloseTo(30, within(0.5 + 1e-9));
+      assertThat(num(p, "pointing", "roll")).isCloseTo(0, within(0.5 + 1e-9));
+      assertThat(num(p, "platform", "heading")).isEqualTo(45);
+      assertThat(num(p, "platform", "pitch")).isZero();
+      assertThat(num(p, "platform", "roll")).isZero();
+      azimuths.add(num(p, "pointing", "azimuth"));
+    }
+    assertThat(azimuths).as("it sways").hasSizeGreaterThan(40);
+    assertThat(rig.camera(id).get("notSent")).as("every swayed pose passes fmv's schema").isEqualTo(JsonNull.INSTANCE);
+    assertThat(rig.camera(id).getNumber("sent").longValueExact()).isEqualTo(50);
+
+    Rig.answer(rig.post("/cameras/" + id, "{\"sway\": false}"), 200);
+    rig.ctx.advance(Duration.ofMillis(40));
+    JsonObject still = sent(rig).getLast().payload();
+    assertThat(num(still, "pointing", "azimuth")).isEqualTo(90);
+    assertThat(num(still, "pointing", "depression")).isEqualTo(30);
+    assertThat(num(still, "pointing", "roll")).isZero();
+
+    Rig.answer(rig.post("/cameras/" + id, "{\"sway\": true}"), 200);
+    rig.ctx.advance(Duration.ofMillis(80));
+    assertThat(num(sent(rig).getLast().payload(), "pointing", "azimuth")).as("on again from the next pose, while it runs").isNotEqualTo(90);
+    assertThat(rig.camera(id).getString("state")).isEqualTo("running");
+  }
+
+  @Test
+  @DisplayName("Criterion 21 (V2, CR-0055): every pose carries overlay as the camera's setting; a change while it runs reaches the next pose without a restart")
+  void overlay() {
+    Rig rig = rig();
+    UUID id = rig.camera(rig.track(rig.layer, AT, 45.0, null, "Hawk 1"), "\"output\": \"fmv/out-a\"");
+    Rig.answer(rig.post("/cameras/" + id + "/start", "{}"), 200);
+    rig.ctx.advance(Duration.ofMillis(1020));
+    List<DeclaredItem> off = sent(rig);
+    assertThat(off).hasSize(25);
+    for (DeclaredItem item : off) {
+      assertThat(item.payload().get("overlay")).isEqualTo(JsonBoolean.FALSE);
+    }
+    Rig.answer(rig.post("/cameras/" + id, "{\"overlay\": true}"), 200);
+    rig.ctx.advance(Duration.ofMillis(20));
+    assertThat(sent(rig)).as("the next pose comes on the running timer's beat, 20 ms after the change, not 40 ms as after a restart").hasSize(26);
+    assertThat(sent(rig).getLast().payload().get("overlay")).isEqualTo(JsonBoolean.TRUE);
+    rig.ctx.advance(Duration.ofMillis(960));
+    for (DeclaredItem item : sent(rig).subList(25, sent(rig).size())) {
+      assertThat(item.payload().get("overlay")).isEqualTo(JsonBoolean.TRUE);
+    }
+    assertThat(rig.camera(id).getString("state")).isEqualTo("running");
+    assertThat(rig.camera(id).get("notSent")).as("fmv's schema takes it").isEqualTo(JsonNull.INSTANCE);
+    assertThat(rig.camera(id).getNumber("sent").longValueExact()).isEqualTo(50);
+  }
+
+  @Test
+  @DisplayName("Criterion 25: with the platform held still (function 5: no update for over 1.5 s), the pointing still sways")
+  void swayWhileHeld() {
+    Rig rig = rig();
+    UUID track = rig.track(rig.layer, AT, 90.0, 50.0, "Hawk 1");
+    UUID id = rig.camera(track, "\"azimuth\": 90, \"output\": \"fmv/out-a\", \"sway\": true, \"swayAmplitude\": 0.5");
+    Rig.answer(rig.post("/cameras/" + id + "/start", "{}"), 200);
+    rig.ctx.advance(Duration.ofSeconds(4));
+    List<DeclaredItem> items = sent(rig);
+    List<DeclaredItem> held = items.subList(items.size() - 25, items.size()); // the last second, long after 1.5 s
+    JsonValue position = held.getFirst().payload().getObject("platform").get("position");
+    java.util.Set<Double> azimuths = new java.util.HashSet<>();
+    for (DeclaredItem item : held) {
+      assertThat(item.payload().getObject("platform").get("position")).as("held").isEqualTo(position);
+      azimuths.add(num(item.payload(), "pointing", "azimuth"));
+    }
+    assertThat(azimuths).as("it sways on").hasSizeGreaterThan(20);
+  }
+
+  @Test
+  @DisplayName("Criterion 23 (brief section 5): a new camera's sway is off, with a seed of its own")
+  void newCameraSeed() {
+    Rig rig = rig();
+    JsonObject a = rig.camera(rig.camera(rig.track(AT), "")).getObject("settings");
+    JsonObject b = rig.camera(rig.camera(rig.track(Position.of(17.4, 62.5, 500)), "")).getObject("settings");
+    assertThat(a.get("sway")).isEqualTo(JsonBoolean.FALSE);
+    long seedA = a.getNumber("swaySeed").longValueExact();
+    long seedB = b.getNumber("swaySeed").longValueExact();
+    assertThat(seedA).isBetween(0L, (long) Integer.MAX_VALUE);
+    assertThat(seedB).isBetween(0L, (long) Integer.MAX_VALUE).isNotEqualTo(seedA);
+  }
+
+  @Test
   @DisplayName("C3: a camera without an output runs and computes its poses, and sends nothing")
   void noOutput() {
     Rig rig = rig();
@@ -394,7 +491,7 @@ class SendTest {
   }
 
   @Test
-  @DisplayName("C7: the copied schema is fmv's, once fmv's manifest declares camera-pose")
+  @DisplayName("C7, criterion 21: the copied schema is fmv's, once fmv's manifest declares camera-pose")
   void schemaIsFmvs() throws IOException {
     Path manifest = Manifest.pluginFolder().getParent().resolve("fmv").resolve("plugin.json");
     assumeTrue(Files.isRegularFile(manifest), "no fmv plugin here");

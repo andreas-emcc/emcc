@@ -74,6 +74,30 @@ class PoseTest {
   }
 
   @Test
+  @DisplayName("Criterion 24: the sway moves the camera's azimuth, depression and roll only: wrapped, held at ±90° and wrapped to ±180°")
+  void swayed() {
+    Pose p = pose(FIXED, platform(Position.of(17.3, 62.4, 500), 45.0, null), 40);
+    assertThat(p.swayed(Sway.Offsets.NONE)).isSameAs(p);
+    Pose s = p.swayed(new Sway.Offsets(0.25, -0.5, 0.1));
+    assertThat(s.aim().azimuth()).isCloseTo(90.25, within(1e-12));
+    assertThat(s.aim().depression()).isCloseTo(29.5, within(1e-12));
+    assertThat(s.cameraRoll()).isCloseTo(0.1, within(1e-12));
+    assertThat(s.heading()).isEqualTo(45);
+    assertThat(s.pitch()).isZero();
+    assertThat(s.roll()).isZero();
+    assertThat(s.position()).isEqualTo(p.position());
+    assertThat(s.time()).isEqualTo(p.time());
+    assertThat(s.label()).isEqualTo(p.label());
+
+    Pose north = pose(new Pose.Setup(new Pointing.FixedAngles(359.9, 90), 20, Frame.DEFAULT, 1000, ""), platform(Position.of(17.3, 62.4, 500), 0.0, null), 0);
+    Pose over = north.swayed(new Sway.Offsets(0.3, 0.4, -180.5));
+    assertThat(over.aim().azimuth()).isCloseTo(0.2, within(1e-9));
+    assertThat(over.aim().depression()).isEqualTo(90);
+    assertThat(over.cameraRoll()).isCloseTo(179.5, within(1e-9));
+    assertThat(north.swayed(new Sway.Offsets(-0.2, 0, 0)).aim().azimuth()).isCloseTo(359.7, within(1e-9));
+  }
+
+  @Test
   @DisplayName("Criterion 11: the pose's position is the platform's, extrapolated to the frame time, then held")
   void extrapolatedPosition() {
     Platform moving = platform(Position.of(17.3, 62.4, 500), 90.0, 50.0);

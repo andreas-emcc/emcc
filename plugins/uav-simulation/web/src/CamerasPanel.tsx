@@ -5,7 +5,7 @@
 // Output lists the channels that take the pose (function 9); one taken by another camera is shown as
 // taken (U10), and a chosen one that is gone stays, as missing (C1, C4).
 import { useEffect, useState } from 'react';
-import { Button, ConfirmDialog, Notice, Select, TextField } from '@emc2/plugin-sdk';
+import { Button, Checkbox, ConfirmDialog, Notice, Select, TextField } from '@emc2/plugin-sdk';
 import type { Uuid } from '@emc2/plugin-sdk';
 import { cameraName, FRAME_SIZES, linkMark, linkNotice, MODE_LABELS, outputLabel, STATE_LABELS, useCameras } from './cameras.ts';
 import type { CameraInfo, CamerasModel, Failure, Mode, OutputInfo, Settings } from './cameras.ts';
@@ -28,7 +28,21 @@ interface NumberField {
   readonly label: string;
 }
 
-type NumberKey = 'pointLon' | 'pointLat' | 'pointHeight' | 'azimuth' | 'depression' | 'sectorStart' | 'sectorEnd' | 'sweepRate' | 'horizontalFov' | 'frameRate' | 'height';
+type NumberKey =
+  | 'pointLon'
+  | 'pointLat'
+  | 'pointHeight'
+  | 'azimuth'
+  | 'depression'
+  | 'sectorStart'
+  | 'sectorEnd'
+  | 'sweepRate'
+  | 'horizontalFov'
+  | 'frameRate'
+  | 'height'
+  | SwayKey;
+
+type SwayKey = 'swayAmplitude' | 'swayMinFrequency' | 'swayMaxFrequency' | 'swayJoltsPerMinute' | 'swayJoltStrength' | 'swayJoltDecay' | 'swaySeed';
 
 /** Only the chosen mode's fields (brief function 11, as visibleWhen does in a settings form). */
 const MODE_FIELDS: Readonly<Record<Mode, readonly NumberField[]>> = {
@@ -56,6 +70,17 @@ const COMMON_FIELDS: readonly NumberField[] = [
   { key: 'height', label: 'Height where the platform has none (m)' },
 ];
 
+/** The micro sway's fields (M9.2's V3), shown while it is on. */
+const SWAY_FIELDS: readonly NumberField[] = [
+  { key: 'swayAmplitude', label: 'Sway amplitude (°)' },
+  { key: 'swayMinFrequency', label: 'Sway lowest frequency (Hz)' },
+  { key: 'swayMaxFrequency', label: 'Sway highest frequency (Hz)' },
+  { key: 'swayJoltsPerMinute', label: 'Jolts a minute' },
+  { key: 'swayJoltStrength', label: 'Jolt strength (°)' },
+  { key: 'swayJoltDecay', label: 'Jolt decay (s)' },
+  { key: 'swaySeed', label: 'Sway seed' },
+];
+
 type Draft = Readonly<Record<NumberKey, string>>;
 
 /**
@@ -80,6 +105,13 @@ function draftOf(s: Settings): Draft {
     horizontalFov: String(s.horizontalFov),
     frameRate: String(s.frameRate),
     height: String(s.height),
+    swayAmplitude: String(s.swayAmplitude),
+    swayMinFrequency: String(s.swayMinFrequency),
+    swayMaxFrequency: String(s.swayMaxFrequency),
+    swayJoltsPerMinute: String(s.swayJoltsPerMinute),
+    swayJoltStrength: String(s.swayJoltStrength),
+    swayJoltDecay: String(s.swayJoltDecay),
+    swaySeed: String(s.swaySeed),
   };
 }
 
@@ -197,10 +229,13 @@ function CameraForm(props: {
   const [mission, setMission] = useState(camera.settings.mission);
   const [target, setTarget] = useState<Uuid | null>(camera.settings.target);
   const [output, setOutput] = useState<string>(camera.settings.output ?? NONE);
+  const [sway, setSway] = useState(camera.settings.sway);
+  const [overlay, setOverlay] = useState(camera.settings.overlay);
   const [typing, setTyping] = useState<Partial<Record<NumberKey, string>>>({});
   const [removing, setRemoving] = useState(false);
   const readOnly = !rights.edit;
   const fields = [...MODE_FIELDS[mode], ...COMMON_FIELDS];
+  const swayFields = sway ? SWAY_FIELDS : [];
   const one = props.selection.length === 1 ? props.selection[0] : undefined;
   const selectable = one !== undefined && one !== camera.platform;
 
@@ -210,18 +245,40 @@ function CameraForm(props: {
   const missionError = errorAt('mission');
   const outputError = errorAt('output');
 
+  const numberField = (f: NumberField) => {
+    const error = errorAt(f.key) ?? (f.key === 'pointLon' ? errorAt(serverField(f.key)) : undefined);
+    return (
+      <TextField
+        key={f.key}
+        label={f.label}
+        value={draft[f.key]}
+        inputMode="decimal"
+        autoComplete="off"
+        spellCheck={false}
+        data
+        readOnly={readOnly}
+        onChange={(v) => {
+          setDraft({ ...draft, [f.key]: v });
+          // The server's message was for the value it saw; a new value clears it.
+          if (props.failure?.field === serverField(f.key)) model.dismissFailure();
+        }}
+        {...(error === undefined ? {} : { error })}
+      />
+    );
+  };
+
   const save = (): void => {
     const wrong: Partial<Record<NumberKey, string>> = {};
     const values: Partial<Record<NumberKey, number>> = {};
-    for (const f of fields) {
+    for (const f of [...fields, ...swayFields]) {
       const n = number(draft[f.key]);
       if (n === null) wrong[f.key] = 'Type a number';
       else values[f.key] = n;
     }
     setTyping(wrong);
     if (Object.keys(wrong).length > 0) return;
-    const patch: Record<string, unknown> = { mode, frameSize, mission, output: output === NONE ? null : output };
-    for (const f of fields) {
+    const patch: Record<string, unknown> = { mode, frameSize, mission, output: output === NONE ? null : output, overlay, sway };
+    for (const f of [...fields, ...swayFields]) {
       if (f.key !== 'pointLon' && f.key !== 'pointLat') patch[f.key] = values[f.key];
     }
     if (mode === 'trackPoint') patch['point'] = [values.pointLon, values.pointLat];
@@ -268,27 +325,7 @@ function CameraForm(props: {
           )}
         </div>
       ) : null}
-      {fields.map((f) => {
-        const error = errorAt(f.key) ?? (f.key === 'pointLon' ? errorAt(serverField(f.key)) : undefined);
-        return (
-          <TextField
-            key={f.key}
-            label={f.label}
-            value={draft[f.key]}
-            inputMode="decimal"
-            autoComplete="off"
-            spellCheck={false}
-            data
-            readOnly={readOnly}
-            onChange={(v) => {
-              setDraft({ ...draft, [f.key]: v });
-              // The server's message was for the value it saw; a new value clears it.
-              if (props.failure?.field === serverField(f.key)) model.dismissFailure();
-            }}
-            {...(error === undefined ? {} : { error })}
-          />
-        );
-      })}
+      {fields.map((f) => numberField(f))}
       <Select label="Frame size" value={frameSize} options={SIZE_OPTIONS} disabled={readOnly} onChange={setFrameSize} />
       <TextField
         label="Mission"
@@ -312,6 +349,25 @@ function CameraForm(props: {
         }}
       />
       {outputError === undefined ? null : <Notice severity="error">{outputError}</Notice>}
+      <Checkbox
+        label="Burn the camera's data into the video"
+        checked={overlay}
+        disabled={readOnly}
+        onChange={(v) => {
+          setOverlay(v);
+          if (props.failure?.field === 'overlay') model.dismissFailure();
+        }}
+      />
+      <Checkbox
+        label="Micro sway"
+        checked={sway}
+        disabled={readOnly}
+        onChange={(v) => {
+          setSway(v);
+          if (props.failure?.field === 'sway') model.dismissFailure();
+        }}
+      />
+      {swayFields.map((f) => numberField(f))}
       {output === camera.settings.output && linkNotice(camera) !== null ? <Notice severity="warning">{linkNotice(camera)}</Notice> : null}
       {props.outputs.length === 0 && camera.settings.output === null ? (
         <p className="uav-simulation-muted">No output takes camera poses. An admin adds an output link to fmv.</p>

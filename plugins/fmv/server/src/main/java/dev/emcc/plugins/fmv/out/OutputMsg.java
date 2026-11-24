@@ -32,12 +32,16 @@ public sealed interface OutputMsg extends Message {
   /** ECore's news of a link's encoder (part U), of the encoder the link started as its {@code generation}th. */
   record Encoder(String link, int generation, ConversionEvent event) implements OutputMsg {}
 
-  /** A folder's answer for a link: {@code folder} is {@code terrain} or {@code imagery}. */
-  record Folder(String link, String folder, FolderResult result) implements OutputMsg {}
+  /**
+   * A folder's answer for a link: {@code folder} is {@code terrain} or {@code imagery}; {@code readers}
+   * is the generation of the link's readers that asked, so that an answer to readers since replaced is
+   * dropped (F1).
+   */
+  record Folder(String link, String folder, FolderResult result, int readers) implements OutputMsg {}
 
-  /** The compute task's totals, once a second. */
-  record Rendered(String link, long rendered, long late, long encoderDropped, long encoded, long muxed, long noImagery, double renderMs)
-      implements OutputMsg {}
+  /** The compute task's totals, once a second; the bit errors' events and the blocks they damaged (F5). */
+  record Rendered(String link, long rendered, long late, long encoderDropped, long encoded, long muxed, long noImagery, double renderMs,
+      long bitErrorEvents, long bitErrorBlocks) implements OutputMsg {}
 
   /** The sender's totals, once a second: datagrams and bytes sent, and datagrams dropped for want of room. */
   record Sent(String link, long datagrams, long bytes, long dropped) implements OutputMsg {}

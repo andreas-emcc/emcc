@@ -45,7 +45,7 @@ class OutputsTest {
   }
 
   @Test
-  @DisplayName("Criteria 13 and 16: while running, every track goes out each tick with an expiry after the tick; after a pause, nothing")
+  @DisplayName("Criteria 13 and 16: while running, every track goes out each tick with an expiry after the tick; after a pause, its stop once, then nothing")
   void sendsWhileRunning() {
     UUID moving = rig.symbol(TWO_LEGS.getFirst());
     UUID standing = rig.symbol(Position.of(17.0, 58.0)); // on no route: sent too (function 3)
@@ -70,7 +70,97 @@ class OutputsTest {
     int paused = rig.sentToTak().size();
     rig.seconds(3);
     assertThat(rig.sentToTak()).hasSize(paused);
-    assertThat(rig.ctx.pluginStatus().detail()).contains("outputs 1 chosen, sent 6,");
+    assertThat(rig.ctx.pluginStatus().detail()).contains("outputs 1 chosen, sent 7,"); // 3 ticks of 2, and the pause's stop
+  }
+
+  @Test
+  @DisplayName("ITA mass test 2: a pause between ticks sends where the track stopped, speed 0, once; the receiver no longer keeps the last tick's position")
+  void aPauseSendsWhereItStopped() {
+    UUID moving = rig.symbol(TWO_LEGS.getFirst());
+    rig.symbol(Position.of(17.0, 58.0)); // standing, on no route
+    UUID route = rig.route(TWO_LEGS, Rig.single(moving, STEADY));
+    rig.started();
+    rig.chooseTak();
+    rig.control(route, "start");
+    rig.seconds(3);
+    var lastTick = updatesSince(0).stream().filter(u -> u.id().equals(moving)).toList().getLast().content().geometry();
+    rig.ctx.advance(Duration.ofMillis(400)); // between two ticks
+    int before = rig.sentToTak().size();
+    rig.control(route, "pause");
+    List<ChannelItem.Update> sent = updatesSince(before);
+    assertThat(sent).as("only the paused route's track, not the standing symbol").extracting(ChannelItem.Update::id).containsExactly(moving);
+    ChannelItem.Update stop = sent.getFirst();
+    assertThat(stop.content().geometry()).isEqualTo(rig.object(moving).content().geometry()).isNotEqualTo(lastTick);
+    assertThat(stop.content().symbol().modifiers().speed()).isZero();
+    assertThat(stop.content().time().expires()).isEqualTo(rig.ctx.clock().plusSeconds(5));
+    int paused = rig.sentToTak().size();
+    rig.seconds(3);
+    rig.control(route, "pause"); // already paused: nothing new
+    assertThat(rig.sentToTak()).as("nothing more while paused (A8)").hasSize(paused);
+  }
+
+  @Test
+  @DisplayName("ITA mass test 2: a reset sends the start once, also after a pause; starting again sends with the ticks as before")
+  void aResetSendsTheStart() {
+    UUID moving = rig.symbol(TWO_LEGS.getFirst());
+    UUID route = rig.route(TWO_LEGS, Rig.single(moving, STEADY));
+    rig.started();
+    rig.chooseTak();
+    rig.control(route, "start");
+    rig.seconds(3);
+    rig.control(route, "pause");
+    int before = rig.sentToTak().size();
+    rig.control(route, "reset");
+    List<ChannelItem.Update> sent = updatesSince(before);
+    assertThat(sent).extracting(ChannelItem.Update::id).containsExactly(moving);
+    assertThat(sent.getFirst().content().geometry()).isEqualTo(rig.object(moving).content().geometry());
+    assertThat(rig.position(moving)).isEqualTo(TWO_LEGS.getFirst());
+    int reset = rig.sentToTak().size();
+    rig.seconds(2);
+    assertThat(rig.sentToTak()).hasSize(reset);
+    rig.control(route, "start");
+    rig.seconds(1);
+    assertThat(updatesSince(reset)).extracting(ChannelItem.Update::id).contains(moving);
+  }
+
+  @Test
+  @DisplayName("ITA mass test 2 and function 9b: a route made invalid while it runs pauses and sends where it stopped once")
+  void anInvalidRouteSendsWhereItStopped() {
+    UUID moving = rig.symbol(TWO_LEGS.getFirst());
+    UUID route = rig.route(TWO_LEGS, Rig.single(moving, STEADY));
+    rig.started();
+    rig.chooseTak();
+    rig.control(route, "start");
+    rig.seconds(2);
+    int before = rig.sentToTak().size();
+    rig.editRoute(route, TWO_LEGS, "{\"points\": [{\"speed\": 2500}, {\"speed\": 100}, {\"speed\": 100}], \"groups\": [{\"kind\": \"single\", \"objects\": [{\"id\": \"" + moving + "\"}]}]}");
+    rig.seconds(1);
+    List<ChannelItem.Update> sent = updatesSince(before);
+    assertThat(sent).extracting(ChannelItem.Update::id).containsExactly(moving);
+    assertThat(sent.getFirst().content().symbol().modifiers().speed()).isZero();
+    assertThat(sent.getFirst().content().geometry()).isEqualTo(rig.object(moving).content().geometry());
+    int paused = rig.sentToTak().size();
+    rig.seconds(3);
+    assertThat(rig.sentToTak()).hasSize(paused);
+  }
+
+  @Test
+  @DisplayName("ITA mass test 2: one route paused while another runs goes with the ticks, not twice")
+  void onePausedWhileAnotherRuns() {
+    UUID a = rig.symbol(TWO_LEGS.getFirst());
+    UUID b = rig.symbol(TWO_LEGS.getFirst());
+    UUID first = rig.route(TWO_LEGS, Rig.single(a, STEADY));
+    rig.route(TWO_LEGS, Rig.single(b, STEADY));
+    rig.started();
+    rig.chooseTak();
+    rig.control("start");
+    rig.seconds(2);
+    int before = rig.sentToTak().size();
+    rig.control(first, "pause");
+    rig.seconds(1);
+    List<ChannelItem.Update> sent = updatesSince(before);
+    assertThat(sent).extracting(ChannelItem.Update::id).containsExactlyInAnyOrder(a, b);
+    assertThat(sent.stream().filter(u -> u.id().equals(a)).findFirst().orElseThrow().content().symbol().modifiers().speed()).isZero();
   }
 
   @Test

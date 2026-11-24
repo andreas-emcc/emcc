@@ -19,7 +19,7 @@ import org.jspecify.annotations.Nullable;
  * @param pitch the platform's pitch: 0, the simulator flies level
  * @param roll the platform's roll: 0
  * @param aim the camera's azimuth relative to the heading and its depression
- * @param cameraRoll the camera's roll: 0
+ * @param cameraRoll the camera's roll: 0, or the micro sway's roll ({@link #swayed})
  * @param horizontalFov the horizontal field of view, degrees
  * @param verticalFov the vertical field of view, degrees, from the frame
  * @param frame the frame's size and rate
@@ -51,6 +51,23 @@ public record Pose(
     Objects.requireNonNull(frame, "frame");
     Objects.requireNonNull(mission, "mission");
     Objects.requireNonNull(label, "label");
+  }
+
+  /**
+   * This pose with the micro sway's offsets on the camera's angles (M10 plan point 8): the yaw on the
+   * azimuth (wrapped to 0 to below 360), the pitch on the depression (held at −90 and 90) and the roll
+   * on the camera's roll (wrapped to −180 to 180). The platform's angles stay as they are. {@code fmv}
+   * writes ST 0601's sensor angles from these, so its metadata carries the sway (owner AEY A).
+   */
+  public Pose swayed(Sway.Offsets sway) {
+    if (sway.equals(Sway.Offsets.NONE)) {
+      return this;
+    }
+    Aim moved = new Aim(Angles.azimuth(aim.azimuth() + sway.yaw()), Math.max(-90, Math.min(90, aim.depression() + sway.pitch())));
+    double r = cameraRoll + sway.roll();
+    double wrapped = r - 360 * Math.floor((r + 180) / 360);
+    return new Pose(cameraId, time, position, heading, pitch, roll, moved, wrapped == -180 ? 180 : wrapped + 0.0, horizontalFov, verticalFov, frame,
+        platformName, mission, label);
   }
 
   /**

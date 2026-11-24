@@ -10,6 +10,8 @@
   - ADR-0058 point 1 (owner, 2026-11-15): **the four pointing modes** in the first version (track a point, track an object, fixed angles, sweep), the field of view, the frame size and rate, and a height of the camera's own where the route gives none.
   - ABP A (2026-11-17): **an output link that is not sending or degraded keeps the plugin's status OK**; the status text only counts it, and the camera keeps sending (functions 9 and 10).
 - **Assumptions U1 to U10** (end of this brief) are the PDA's, for the owner's approval.
+- **Updated 2026-11-23 for M9.2 (CR-0055, approved by the owner ADC A, 2026-11-19; pulled ahead from M10, owner AFH A and AFI, 2026-11-23): the camera's Overlay setting and the pose's `overlay`** (functions 4, 11 and 13, sections 4 and 5, criteria 20 to 22). A checkbox per camera, off by default, asks `fmv` to burn the camera's data into the video (`fmv`'s brief, 10.5 function 27). **As built** (V2: `pca-uav-simulation/m9.2-overlay` `c1909617`, in `main` with `integration/m9.2-overlay` `8975c672`; owner AGC A): the checkbox "Burn the camera's data into the video", `overlay`; a camera stored before M9.2 reads as without it; a change reaches the next pose without a restart.
+- **Updated 2026-11-23 for M9.2 (V3; ADR-0066 point 3, accepted by the owner, AFL A; M10's plan point 8; owner Q7 A, AEY: per camera; pulled ahead, AFH A and AFI): micro sway** (function 14, sections 4 and 5, criteria 23 to 26), **off by default for every camera**: the checkbox Micro sway, `sway` (owner AFQ, in PCA-uav-simulation's session, refining AFM). Small irregular offsets to the camera's angles in every pose, so the KLV, the picture and the overlay move with them. The settings, defaults and limits below are as PCA-uav-simulation built them (`pca-uav-simulation/m9.2-camera` `c058452a`); the formula is in its README.
 - **Read first:** ADR-0059 (the plugin; accepted, YK A), ADR-0058 (the simulated camera; points 1, 2, 5 and 6 as ADR-0059 leaves them), ADR-0064 (compute tasks: `fmv`'s, not this plugin's), spike S10 (`spikes/s10-uav-fmv/README.md`: the camera, its gimbal and its ST 0601 angles), the `simulator` brief (functions 1 to 3, 14, 16, 18, 27 to 29: the workspace, the tracks, their moves, the outputs and the radar this plugin sits beside), the `fmv` brief (the input link that brings the camera back into View).
 - **Read also:** ADR-0024 (persistence), ADR-0037 (output channels), ADR-0039 (workspaces), ADR-0041 (pause and saving), ADR-0019 (geodesy).
 - **Built against SDK 1.9.0 part P** (`sdkVersion` `^1.9.0`): a declared channel kind (D8, CR-0048 point 4: `DeclaredItem`, `Channels.send` with it, `ChannelInfo.takesDeclared`). Everything else is SDK 1.8.0: workers, timers, the store's subscriptions and queries with `inWorkspaces`, plugin documents, `channels().watch` and `send`, endpoints, `Geodesy`, status.
@@ -57,7 +59,8 @@ Simulates **a camera on a simulated track**, as a UAV's sensor, so that emcc can
    - **the field of view:** horizontal, as set; the **vertical follows from the frame** (ADR-0058 point 1): `2 · atan(tan(h / 2) · height / width)`;
    - **the frame:** its size and rate, and the frame's time (UTC, ECore's clock);
    - **the names and the label:** the platform's name (ST 0601's platform designation, `fmv`'s), the camera's Mission (section 5) and the platform's security label (ST 0102 and the release limit, `fmv`'s; ADR-0058 point 2);
-   - **the camera's id**, so that `fmv` keeps the newest pose per camera (`COALESCE_BY_KEY`, ADR-0059 point 7).
+   - **the camera's id**, so that `fmv` keeps the newest pose per camera (`COALESCE_BY_KEY`, ADR-0059 point 7);
+   - **the overlay switch** (CR-0055): the camera's Overlay setting (section 5), so that `fmv` burns the camera's data into the frames when it is on.
    - The pose's field names, types and JSON are section 4's.
 5. **Poses between the platform's updates** (ADR-0059 point 1): the simulator moves a track once a second; the camera needs a pose per frame. **`uav-simulation` extrapolates the platform** from its last update: along its `direction` at its `speed`, by the SDK's geodesy (`Geodesy`, the direct problem on WGS84, ADR-0019), for the time since that update.
    - **The update's time** is when it reached the worker, on ECore's clock. The object's own `time.observed`, which the simulator sets on every move, **the plugin does not use**: an object drawn by hand has none, and the two differ by a few milliseconds of delivery (PCA-uav-simulation's finding 3 and A2, 2026-11-16).
@@ -75,6 +78,16 @@ Simulates **a camera on a simulated track**, as a UAV's sensor, so that emcc can
 7. **The frame times** (ADR-0059 point 3): **one ECore timer per running camera** (`timers().every`), at the frame period (`1 / rate`, whole milliseconds; `Timers.MIN_PERIOD` is 10 ms). Each tick computes one pose at the tick's time and sends it (function 9).
    - **A late tick is never caught up:** its pose takes the tick's own time, so a slow server sends fewer poses, never old ones. `fmv` counts the frames it misses (ADR-0059 point 7).
    - The cost is small: at 25 frames a second, 25 extrapolations and sends per camera.
+
+**From M9.2** (numbered after function 13, placed here):
+
+14. **Micro sway** (M9.2, V3; ADR-0066 point 3): small irregular offsets to the camera's angles, added in the step that makes each pose (function 7), before it is sent:
+    - **yaw** to `pointing.azimuth`, modulo 360°; **pitch** to `pointing.depression`, kept within −90° to 90°; **roll** to `pointing.roll`, kept within −180° to 180°. So `fmv`'s ST 0601 tags 18 to 20, the frame centre, the picture and the overlay (CR-0055) include the sway, with no change in `fmv` and none to the pose's shape (owner: the KLV with the sway).
+    - **The motion,** per axis: three sine waves with random frequencies within the camera's range (a single frequency when the lowest equals the highest) and random phases, together at most the amplitude; and **jolts** at random times (a Poisson process), on average the set number a minute, each a step of the set strength in a direction drawn evenly over yaw, pitch and roll, that dies away with the set decay (to 1/e after it). Track an object's kept aim (U7) is the aim without the sway.
+    - **Repeatable:** from the camera's seed and the time since the camera started (as the sweep's phase, function 6), so the same seed after the same start gives the same sway. Computed in the worker's per-frame step, with no thread of its own (ADR-0004).
+    - **It runs on while the simulation is paused:** the camera does not know the simulator's state (U9), and a hovering camera sways too.
+    - **Off by default for every camera:** the checkbox Micro sway (`sway`, default off; owner AFQ, refining AFM), which keeps the sway's values while it is off; **a camera stored before M9.2 has no sway** either (ADR-0066 point 3). A user turns it on per camera in its form.
+    - **The exact formula** (the waves, the jolts' times and directions, how many ring at once) is PCA-uav-simulation's, in its README.
 
 ### Running
 
@@ -96,7 +109,7 @@ Simulates **a camera on a simulated track**, as a UAV's sensor, so that emcc can
 
 11. **The Cameras panel** (ADR-0059 point 4), in the Simulation workspace only (`workspaces: ["simulator.simulation"]`), default pane right, the SDK's `Video` icon. It needs `plugin.uav-simulation.view`, beside the workspace's own view permission (`plugin.simulator.view`).
     - **The list:** one row per camera, named by its platform's name ("(no name)" without one), with its state, its pointing mode and its output, and a Start or Stop button for users with `run`.
-    - **The form** (users with `plugin.uav-simulation.edit`; read only for the others): the platform (from "New camera"), the pointing mode with its fields (only those of the chosen mode, as `visibleWhen` does in a settings form), the field of view, the frame size and rate, the Height, the Mission and the output. **Save** and **Remove** (with a confirmation that names the camera).
+    - **The form** (users with `plugin.uav-simulation.edit`; read only for the others): the platform (from "New camera"), the pointing mode with its fields (only those of the chosen mode, as `visibleWhen` does in a settings form), the field of view, the frame size and rate, the Height, the Mission, the output, the checkbox **"Burn the camera's data into the video"** (the Overlay setting, CR-0055) and **the sway's settings** (function 14). **Save** and **Remove** (with a confirmation that names the camera).
     - **Units:** heights in metres, angles in degrees, the rate in degrees a second. The simulator's units are its own user setting (its function 8), which other plugins do not read.
     - **Live:** the panel reads the cameras from the GET endpoint and refreshes on its plugin topic, or every 2 s (the PCA chooses, and says so in its README).
 12. **"New camera"**, an object action on one `core.symbol` in Simulation, for users with `edit` (function 2).
@@ -104,6 +117,7 @@ Simulates **a camera on a simulated track**, as a UAV's sensor, so that emcc can
     - `GET` the cameras and the outputs on offer: `plugin.uav-simulation.view`;
     - `POST` create, change, remove: `plugin.uav-simulation.edit`; every value checked against section 5's limits, and the platform and the output against functions 2 and 9;
     - `POST` start, stop: `plugin.uav-simulation.run`.
+    - **The Overlay setting** (CR-0055): `GET /cameras` gives it in `settings.overlay`, and `POST /cameras/{id}` takes it.
     - A refused request answers with a message the panel shows at the field or at the top.
 
 ## 4. The pose and its channel kind (with D8)
@@ -127,12 +141,13 @@ Simulates **a camera on a simulated track**, as a UAV's sensor, so that emcc can
 | `platform.heading` | at least 0 and below 360, from true north | function 4 |
 | `platform.pitch`, `platform.roll` | −90 to 90 and −180 to 180; 0 from this plugin | function 4 |
 | `platform.name` | string, 1 to 256 characters (`properties.name`'s limit); absent without one | function 3 |
-| `pointing.azimuth` | at least 0 and below 360, relative to the heading, clockwise | function 6 |
-| `pointing.depression` | −90 to 90, **positive down** (ST 0601's tag 19 is positive up: `fmv` writes −`depression`, its brief's 10.1; PCA-uav-simulation's finding 7) | function 6 |
-| `pointing.roll` | −180 to 180; 0 from this plugin | function 4 |
+| `pointing.azimuth` | at least 0 and below 360, relative to the heading, clockwise | functions 6 and 14 (the sway) |
+| `pointing.depression` | −90 to 90, **positive down** (ST 0601's tag 19 is positive up: `fmv` writes −`depression`, its brief's 10.1; PCA-uav-simulation's finding 7) | functions 6 and 14 (the sway) |
+| `pointing.roll` | −180 to 180; 0 from this plugin, plus the sway | functions 4 and 14 |
 | `fieldOfView.horizontal`, `fieldOfView.vertical` | 0.1 to 120 and above 0 to 120; the vertical from the frame (function 4) | functions 4 and 5 (settings) |
 | `frame.width`, `frame.height`, `frame.rate` | integers: 640 × 360, 1280 × 720 or 1920 × 1080; 1 to 30 frames a second | section 5 |
 | `mission` | string, 1 to 64 characters; absent when empty | section 5 |
+| `overlay` | boolean; **this plugin sends it in every pose**, `true` or `false`. Optional in `fmv`'s schema, absent meaning `false` (CR-0055 point 2) | section 5 (Overlay) |
 
 ```json
 {
@@ -142,9 +157,12 @@ Simulates **a camera on a simulated track**, as a UAV's sensor, so that emcc can
   "pointing": { "azimuth": 90, "depression": 30, "roll": 0 },
   "fieldOfView": { "horizontal": 20, "vertical": 11.33 },
   "frame": { "width": 1280, "height": 720, "rate": 25 },
-  "mission": "RECCE NORTH"
+  "mission": "RECCE NORTH",
+  "overlay": false
 }
 ```
+
+**`overlay` came with CR-0055** (M9.2), a compatible change (an optional member): **`fmv`'s manifest gains it first**, since ECore refuses a pose with an unknown member at `send` (CR-0048 point 4.4); this plugin sends it after `fmv`, or in the same set.
 
 **What the link says back** to its senders (function 9) is the link's channel state (SDK 1.9.0 part U, `ChannelRef.state`), not this kind.
 
@@ -168,6 +186,16 @@ Simulates **a camera on a simulated track**, as a UAV's sensor, so that emcc can
 | Height (where the platform has no altitude) | 1 000 m | 10 to 20 000 m HAE |
 | Mission | empty (none) | 0 to 64 characters, any letters, as the simulator's radar (CR-0034); `fmv` fits it to ST 0601 |
 | Output | none (a camera sends nothing until one is chosen) | an output channel that takes the pose kind (function 9) |
+| Overlay: "Burn the camera's data into the video", `overlay` (CR-0055) | off; also for a camera stored before M9.2 | on or off; a change reaches the next pose, also while the camera runs, without a restart |
+| Micro sway, `sway` (function 14) | off (owner AFQ); also for a camera stored before M9.2 | on or off; the values below are kept while it is off |
+| Sway amplitude, `swayAmplitude` | 0.3° | 0° to 5° |
+| Sway frequencies, `swayMinFrequency` and `swayMaxFrequency` | 0.5 to 3 Hz | 0.1 to 10 Hz each; the highest not below the lowest, equal for one frequency |
+| Jolts a minute, `swayJoltsPerMinute` | 2 | 0 to 60 |
+| Jolt strength, `swayJoltStrength` | 0.5° | 0° to 10° |
+| Jolt decay, `swayJoltDecay` | 0.5 s | 0.05 to 5 s |
+| Sway seed, `swaySeed` | a camera's own, drawn from its id, unless the request gives one | 0 to 2 147 483 647 |
+
+**The sway's settings are as built** (`pca-uav-simulation/m9.2-camera` `c058452a`). They change from the next pose, like the others; the cameras' export (M10's plan point 13) carries them.
 
 **Admin settings:** none in M9. How many cameras render at once is `fmv`'s compute threads (ADR-0059 point 7, ADR-0064), and the conversion slots ECore's (`emc2.conversions.max`).
 
@@ -195,7 +223,7 @@ The panel shows only in Simulation, so it also needs the workspace's `plugin.sim
 
 ## 8. Acceptance criteria
 
-Criteria 1 to 13 and 19 run with the Java and web test kits (`FakePluginContext`, `FakeStore`, the fake channels and timers); 14 to 17 in the browser on port 18107; 18 end to end with `fmv`'s output link (F1).
+Criteria 1 to 13 and 19 run with the Java and web test kits (`FakePluginContext`, `FakeStore`, the fake channels and timers); 14 to 17 in the browser on port 18107; 18 end to end with `fmv`'s output link (F1). CR-0055's 20 and 21 run with the test kits, 22 in the browser. M9.2's 23 to 25 with the test kits, 26 in the browser.
 
 1. **The manifest:** id `uav-simulation`, the three permissions, the panel with `workspaces: ["simulator.simulation"]`, the object action, `sdkVersion` `^1.9.0`; no `connections`, `internet`, `compute`, data types or channels of its own.
 2. **New camera:** on one `core.symbol` in a Simulation layer it makes a camera on it; on an object in View, on a layer that is not Simulation's, or on two objects it is refused. A second "New camera" on the same track opens the first camera (U2). A track with a simulator radar takes a camera (Q6 A).
@@ -216,6 +244,13 @@ Criteria 1 to 13 and 19 run with the Java and web test kits (`FakePluginContext`
 17. **The status:** the monitor view lists the cameras and their states, and the poses sent per minute.
 18. **End to end (with F1; the ITA's T2):** a camera on a track flying a route over the Sundsvall data, fixed angles, through `fmv`'s output link to an `fmv` input link on loopback: View shows the camera symbol moving with the track and its field of view arc in the pose's direction, and the FMV window plays. Stopping the camera stops the video; stopping the link shows "Output missing".
 19. **The pose on the channel** (section 4; CR-0048 point 4): with `fmv`'s `camera-pose` schema declared to the fake channels, every sent item is a `DeclaredItem` of kind `fmv.camera-pose` with the camera's id as its `id` and the platform's label, and its payload passes the schema; criterion 7's camera gives `platform.heading` 45, `pointing.azimuth` 90, `pointing.depression` 30 and `fieldOfView.vertical` 11.33 (±0.01); an empty Mission leaves `mission` out. Only channels whose `takesDeclared("fmv.camera-pose")` is true are offered as outputs.
+20. **The Overlay setting** (CR-0055): a new camera has `overlay` `false`; a `POST` with `true` keeps it and the `GET` gives it in `settings.overlay`; a value that is not a boolean is refused; without `edit` the `POST` answers 403.
+21. **The overlay in the pose:** every pose carries `overlay`, `true` or `false`, as the camera's setting; a change while the camera runs reaches the next pose, and the camera does not restart; the tests' copy of `fmv`'s `camera-pose` schema (criterion 19) equals `fmv`'s manifest's.
+22. **In the browser:** the checkbox "Burn the camera's data into the video" is off for a new camera, saves the setting, and is read only without `edit`; switched while the camera runs, `fmv`'s window shows the overlay come and go (with `fmv`'s criterion 42; the ITA's check, as the MCA relayed it: about 1.8 s after Save).
+23. **The sway, repeatable** (V3): two cameras with the same seed and settings, started at the same time on the same platform, give the same pointing frame by frame; another seed gives another; a new camera, a camera stored before M9.2, and any camera with `sway` off send every pose as without sway; turning it off and on keeps the values.
+24. **The sway's size and limits:** with no jolts, over 60 s every offset is at most the amplitude; with jolts, their number over 10 minutes is near the rate (±50 %), and each falls to 1/e of its step after the decay; a depression of 89° stays within 90° and an azimuth near 0° wraps; every pose passes `fmv`'s schema; each setting just outside its limits is refused.
+25. **Paused:** with the platform held still (function 5), the pointing still sways.
+26. **In the browser and the video:** the sway's fields in the camera's form, read only without `edit`; through `fmv`, the picture and ST 0601's tags 18 and 19 move with the sway.
 
 ## 9. Out of scope (M9)
 

@@ -92,8 +92,9 @@ test('criterion 1: the link form has Connection, Video, Picture, Classification 
   assert.deepEqual(defaults, {
     enabled: true, direction: 'in', mode: 'udp', ttl: 1, cameraSymbol: '10030100001103002000', cameraIdentity: 'friend', fovColour: '#FFD400',
     classification: 'map', classificationNames: ['UNCLASSIFIED', 'RESTRICTED', 'CONFIDENTIAL', 'SECRET', 'COSMIC TOP SECRET'], time: 'received',
-    staleSeconds: 10, bitrate: 4, keyframeSeconds: 1, metadataEvery: 1, maxRate: 20, sampling: 'bilinear', haze: true, classifyingCountry: '//NATO',
-  }, 'the brief\'s defaults (section 5, F1, F4, F5; section 10.2, O1, O8, O9)');
+    staleSeconds: 10, bitrate: 4, keyframeSeconds: 1, metadataEvery: 1, maxRate: 20, sampling: 'bilinear', haze: true,
+    degraded: { enabled: false, haze: 50, noise: 30 }, bitErrors: { enabled: false, every: 15, jitter: 3, blocks: 3, seed: 1 }, classifyingCountry: '//NATO',
+  }, 'the brief\'s defaults (section 5, F1, F4, F5; section 10.2, O1, O8, O9; M9.2 F4 and F5, ADR-0066 points 1 and 2)');
 });
 
 test('criterion 24 and O1: an output link needs only a name, so a new one has no destination; a multicast one with a group needs its interface', () => {
@@ -106,6 +107,16 @@ test('criterion 24 and O1: an output link needs only a name, so a new one has no
   assert.ok(validate({ name: 'UAV North', direction: 'out', mode: 'multicast', group: '239.1.2.3', interface: 'eth0', port: 15200, ttl: 4 }));
   assert.ok(!validate({ name: 'UAV North', direction: 'out', ttl: 33 }) && !validate({ name: 'UAV North', direction: 'out', bitrate: 21 }));
   assert.ok(!validate({ name: 'UAV North', direction: 'out', classifyingCountry: 'NATO' }), '// and 1 to 4 letters');
+  // M9.2 F4: the degraded camera, haze and noise 0 to 100 %, nothing else in it
+  assert.ok(validate({ name: 'UAV North', direction: 'out', degraded: { enabled: true, haze: 80, noise: 0 } }));
+  assert.ok(!validate({ name: 'UAV North', direction: 'out', degraded: { enabled: true, haze: 101 } }), 'haze above 100 %');
+  assert.ok(!validate({ name: 'UAV North', direction: 'out', degraded: { enabled: true, blur: 2 } }), 'an unknown member');
+  // M9.2 F5: the bit errors
+  assert.ok(validate({ name: 'UAV North', direction: 'out', bitErrors: { enabled: true, every: 30, jitter: 5, blocks: 8, seed: 123 } }));
+  assert.ok(!validate({ name: 'UAV North', direction: 'out', bitErrors: { enabled: true, every: 1 } }), 'every below 2 s');
+  assert.ok(!validate({ name: 'UAV North', direction: 'out', bitErrors: { enabled: true, blocks: 2.5 } }), 'blocks a whole number');
+  assert.ok(!validate({ name: 'UAV North', direction: 'out', bitErrors: { enabled: true, packets: 3 } }), 'the packet version is gone');
+  assert.ok(!validate({ name: 'UAV North', direction: 'out', bitErrors: { enabled: true, seed: -1 } }), 'a seed below 0');
   const settings = manifest.settings.properties;
   assert.equal(settings.imageryFolder.default, '%emcc%/settings/imagery');
   assert.equal(settings.terrainFolder.default, '%emcc%/settings/terrain');
@@ -138,6 +149,10 @@ test('criterion 22: the manifest declares camera-pose; uav-simulation\'s example
   assert.ok(wrong({ platform: { ...pose.platform, position: [17.3, 62.4] } }) && wrong({ platform: { ...pose.platform, position: [200, 62.4, 0] } }));
   assert.ok(wrong({ pointing: { azimuth: 360, depression: 0, roll: 0 } }), 'azimuth below 360');
   assert.ok(wrong({ camera: 'not-a-uuid' }));
+  // CR-0055 point 2 (brief 10.1 point 1, M9.2): an optional boolean `overlay`, absent meaning false
+  assert.ok(validate({ ...pose, overlay: true }) && validate({ ...pose, overlay: false }), 'overlay true or false');
+  assert.ok(wrong({ overlay: 'yes' }) && wrong({ overlay: 1 }), 'overlay of another type');
+  assert.ok(!manifest.channelKinds[0].payload.required.includes('overlay'), 'overlay is optional');
 });
 
 test('criterion 19 and 10.2 point 8: internet with no default host (the WMS, owner AAA A), and connections both ways', () => {

@@ -3,8 +3,10 @@ package dev.emcc.plugins.uavsimulation;
 import dev.emcc.plugins.uavsimulation.pose.Frame;
 import dev.emcc.plugins.uavsimulation.pose.Pointing;
 import dev.emcc.plugins.uavsimulation.pose.Pose;
+import dev.emcc.plugins.uavsimulation.pose.Sway;
 import dev.emcc.sdk.channel.ChannelId;
 import dev.emcc.sdk.json.JsonArray;
+import dev.emcc.sdk.json.JsonBoolean;
 import dev.emcc.sdk.json.JsonNull;
 import dev.emcc.sdk.json.JsonNumber;
 import dev.emcc.sdk.json.JsonObject;
@@ -36,6 +38,9 @@ import org.jspecify.annotations.Nullable;
  * @param mission the Mission, empty for none
  * @param output the output channel the poses go to (brief function 9; C1), or {@code null} for none:
  *     kept by its id, also while it is missing
+ * @param sway the micro sway is on (M9.2's V3; M10 plan point 8), off by default
+ * @param swaySettings the micro sway's values, kept while it is off
+ * @param overlay {@code fmv} burns the camera's data into the video (CR-0055; M9.2's V2), off by default
  */
 record CameraSettings(
     Mode mode,
@@ -51,7 +56,10 @@ record CameraSettings(
     Frame frame,
     double height,
     String mission,
-    @Nullable ChannelId output) {
+    @Nullable ChannelId output,
+    boolean sway,
+    Sway.Settings swaySettings,
+    boolean overlay) {
 
   /** The pointing modes, by their JSON names. */
   enum Mode {
@@ -85,9 +93,25 @@ record CameraSettings(
   static final double MIN_HEIGHT = 10;
   static final double MAX_HEIGHT = 20_000;
   static final int MAX_MISSION = 64;
+  static final double MAX_SWAY_AMPLITUDE = 5;
+  static final double MIN_SWAY_FREQUENCY = 0.1;
+  static final double MAX_SWAY_FREQUENCY = 10;
+  static final double MAX_JOLTS_PER_MINUTE = 60;
+  static final double MAX_JOLT_STRENGTH = 10;
+  static final double MIN_JOLT_DECAY = 0.05;
+  static final double MAX_JOLT_DECAY = 5;
+  static final long MAX_SEED = Integer.MAX_VALUE;
 
-  /** Brief section 5's defaults: Fixed angles, ahead and 30° down, 20°, 1280 × 720 at 25, 1 000 m. */
-  static final CameraSettings DEFAULTS = new CameraSettings(Mode.FIXED, null, 0, null, 0, 30, 315, 45, 10, 20, Frame.DEFAULT, 1_000, "", null);
+  /**
+   * The micro sway's values a camera starts with (M9.2; brief function 14): with the sway switched on, a
+   * light sway of 0.3° from waves of 0.5 to 3 Hz, and 2 jolts a minute of 0.5° that are down to 1/e
+   * after 0.5 s. A new camera gets a seed of its own ({@link #withSeed}).
+   */
+  static final Sway.Settings SWAY_DEFAULTS = new Sway.Settings(0.3, 0.5, 3, 2, 0.5, 0.5, 1);
+
+  /** Brief section 5's defaults: Fixed angles, ahead and 30° down, 20°, 1280 × 720 at 25, 1 000 m, no sway, no overlay. */
+  static final CameraSettings DEFAULTS = new CameraSettings(Mode.FIXED, null, 0, null, 0, 30, 315, 45, 10, 20, Frame.DEFAULT, 1_000, "", null, false,
+      SWAY_DEFAULTS, false);
 
   /** A value outside its limits, or of the wrong type: the field's name and what it must be. */
   static final class Invalid extends Exception {
@@ -119,7 +143,15 @@ record CameraSettings(
       return this;
     }
     return new CameraSettings(mode, Position.of(at.longitude(), at.latitude()), pointHeight, target, azimuth, depression, sectorStart, sectorEnd,
-        sweepRate, horizontalFov, frame, height, mission, output);
+        sweepRate, horizontalFov, frame, height, mission, output, sway, swaySettings, overlay);
+  }
+
+  /** These settings with the sway's seed {@code seed}: a new camera's own, unless its request gave one (brief section 5). */
+  CameraSettings withSeed(long seed) {
+    Sway.Settings w = swaySettings;
+    return new CameraSettings(mode, point, pointHeight, target, azimuth, depression, sectorStart, sectorEnd, sweepRate, horizontalFov, frame, height, mission,
+        output, sway, new Sway.Settings(w.amplitude(), w.minFrequency(), w.maxFrequency(), w.joltsPerMinute(), w.joltStrength(), w.joltDecay(), seed),
+        overlay);
   }
 
   /** What the chosen mode still needs before the camera can start, or {@code null} when nothing (B4). */
@@ -184,8 +216,11 @@ record CameraSettings(
       throw new Invalid("mission", "at most 64 characters");
     }
     ChannelId output = output(body.get("output"), base.output);
+    boolean sway = flag(body, "sway", base.sway);
+    Sway.Settings swaySettings = swaySettings(body, base.swaySettings);
+    boolean overlay = flag(body, "overlay", base.overlay);
     return new CameraSettings(mode, point, pointHeight, target, azimuth, depression, sectorStart, sectorEnd, sweepRate, horizontalFov, frame, height, mission,
-        output);
+        output, sway, swaySettings, overlay);
   }
 
   /** The settings as JSON, the shape {@link #parse} reads. */
@@ -205,8 +240,48 @@ record CameraSettings(
         .put("frameRate", JsonNumber.of(frame.rate()))
         .put("height", JsonNumber.of(height))
         .put("mission", JsonString.of(mission))
-        .put("output", output == null ? JsonNull.INSTANCE : JsonString.of(output.toString()));
+        .put("output", output == null ? JsonNull.INSTANCE : JsonString.of(output.toString()))
+        .put("sway", JsonBoolean.of(sway))
+        .put("swayAmplitude", JsonNumber.of(swaySettings.amplitude()))
+        .put("swayMinFrequency", JsonNumber.of(swaySettings.minFrequency()))
+        .put("swayMaxFrequency", JsonNumber.of(swaySettings.maxFrequency()))
+        .put("swayJoltsPerMinute", JsonNumber.of(swaySettings.joltsPerMinute()))
+        .put("swayJoltStrength", JsonNumber.of(swaySettings.joltStrength()))
+        .put("swayJoltDecay", JsonNumber.of(swaySettings.joltDecay()))
+        .put("swaySeed", JsonNumber.of(swaySettings.seed()))
+        .put("overlay", JsonBoolean.of(overlay));
     return b.build();
+  }
+
+  /** A checkbox's value: {@code true} or {@code false}; absent keeps {@code base}. */
+  private static boolean flag(JsonObject body, String field, boolean base) throws Invalid {
+    JsonValue v = body.get(field);
+    if (v == null) {
+      return base;
+    }
+    if (v instanceof JsonBoolean b) {
+      return b.value();
+    }
+    throw new Invalid(field, "true or false");
+  }
+
+  /** The sway's values in {@code body}; an absent one keeps {@code base}'s. The highest frequency is not below the lowest. */
+  private static Sway.Settings swaySettings(JsonObject body, Sway.Settings base) throws Invalid {
+    double amplitude = number(body, "swayAmplitude", base.amplitude(), 0, MAX_SWAY_AMPLITUDE, "0° to 5°");
+    double min = number(body, "swayMinFrequency", base.minFrequency(), MIN_SWAY_FREQUENCY, MAX_SWAY_FREQUENCY, "0.1 to 10 Hz");
+    double max = number(body, "swayMaxFrequency", base.maxFrequency(), MIN_SWAY_FREQUENCY, MAX_SWAY_FREQUENCY, "0.1 to 10 Hz");
+    if (max < min) {
+      throw new Invalid(body.has("swayMaxFrequency") || !body.has("swayMinFrequency") ? "swayMaxFrequency" : "swayMinFrequency",
+          "the highest frequency must not be below the lowest");
+    }
+    double jolts = number(body, "swayJoltsPerMinute", base.joltsPerMinute(), 0, MAX_JOLTS_PER_MINUTE, "0 to 60 a minute");
+    double strength = number(body, "swayJoltStrength", base.joltStrength(), 0, MAX_JOLT_STRENGTH, "0° to 10°");
+    double decay = number(body, "swayJoltDecay", base.joltDecay(), MIN_JOLT_DECAY, MAX_JOLT_DECAY, "0.05 to 5 s");
+    double seed = number(body, "swaySeed", base.seed(), 0, MAX_SEED, "a whole number, 0 to 2 147 483 647");
+    if (seed != Math.rint(seed)) {
+      throw new Invalid("swaySeed", "a whole number, 0 to 2 147 483 647");
+    }
+    return new Sway.Settings(amplitude, min, max, jolts, strength, decay, (long) seed);
   }
 
   private static double number(JsonObject body, String field, double base, double min, double max, String limits) throws Invalid {

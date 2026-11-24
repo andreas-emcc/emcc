@@ -141,6 +141,10 @@ public final class OutputWorker implements Handler<OutputMsg> {
     boolean noEncoder;
     @Nullable TerrainReader<OutputMsg> terrain;
     @Nullable ImageryReader<OutputMsg> imagery;
+    /** Counts the readers made; a folder's answer to an older generation is dropped. */
+    int readers;
+    /** The times the folders were read again after a pause (F1). */
+    long rereads;
     @Nullable WmsView wmsView;
     boolean restarting;
     @Nullable Instant refusedAt;
@@ -261,13 +265,13 @@ public final class OutputWorker implements Handler<OutputMsg> {
       if (!out.link.equals(link)) {
         out.noEncoder = false; // a change of the link's own settings tries the encoder again (owner, 2026-11-17)
         renamed = !out.link.name().equals(link.name());
-        boolean other = !new OutLink(link.id(), out.link.name(), link.enabled(), link.destination(), link.highest(), link.bitrateMbps(), link.keyframeSeconds(),
-            link.metadataEvery(), link.maxRateMbps(), link.bilinear(), link.haze(), link.imagerySet(), link.classificationNames(), link.classifyingCountry())
-            .equals(out.link);
+        boolean other = !link.withLookOf(out.link).equals(out.link);
         out.link = link;
         if (other) {
           stopPipeline(out); // the next pose starts it with the new settings
           out.refusedAt = null;
+        } else {
+          post(out, new TaskItem.Look(link)); // the name or the look: from the next frame, the stream goes on (owner, M9.2)
         }
       }
       if (!link.enabled()) {
@@ -342,13 +346,18 @@ public final class OutputWorker implements Handler<OutputMsg> {
       return;
     }
     Pose pose;
+    boolean overlay;
     try {
       pose = PoseJson.read(item.payload());
+      overlay = PoseJson.overlay(item.payload());
     } catch (IllegalArgumentException e) {
       out.badPoses++;
       context.log().warn("{}: a pose is refused: {}", out.link.name(), e.getMessage());
       return;
     }
+    // a camera stopped and started again within the hold: the pipeline ran on, so the folders are read again (F1)
+    ComputeRef<TaskItem> taskBefore = out.task;
+    boolean resumed = taskBefore != null && Duration.between(out.lastPose, t).compareTo(pause(pose)) > 0;
     out.holder = item.id();
     out.lastPose = t;
     ClassificationLimit limit = limit(out.link);
@@ -381,6 +390,9 @@ public final class OutputWorker implements Handler<OutputMsg> {
         return;
       }
     }
+    if (resumed && out.task == taskBefore) {
+      reread(out); // a pipeline started anew just now has fresh readers already
+    }
     aim(out, pose);
     aimWms(out, pose);
     OutLink.Classification c = out.link.classification(item.label(), limit);
@@ -388,14 +400,23 @@ public final class OutputWorker implements Handler<OutputMsg> {
       out.unmapped++;
     }
     String platform = pose.platform().name() != null ? pose.platform().name() : out.link.name();
-    Objects.requireNonNull(out.task).post(new TaskItem.Frame(pose, c.value(), Objects.requireNonNull(platform)));
+    Objects.requireNonNull(out.task).post(new TaskItem.Frame(pose, c.value(), Objects.requireNonNull(platform), overlay));
     if (out.encoderWaiting) {
       say(out, "Waiting for a conversion slot", true); // ECore drops the pictures until Running (section 10.4)
     } else if (out.encoder == null) {
       say(out, "Encoder failed, started again after " + Conversions.RETRY_AFTER.toSeconds() + " s", true);
     } else {
-      say(out, "Rendering " + platform + " " + pose.width() + "×" + pose.height() + " " + pose.rate(), false);
+      say(out, "Rendering " + platform + " " + pose.width() + "×" + pose.height() + " " + pose.rate() + (out.link.degraded() != null ? ", degraded" : "")
+          + (overlay ? ", overlay" : ""), false); // the overlay last, as the brief's 10.7 point 22 writes it
     }
+  }
+
+  /**
+   * The gap in a camera's poses that counts as a stop and a new start (F1; owner, M9.2): more than two
+   * frame periods, and at least half a second, so that a late pose or two is no pause.
+   */
+  static Duration pause(Pose pose) {
+    return Duration.ofMillis(Math.max(500, 2000L / pose.rate()));
   }
 
   /** The link's release limit; absent, the classification of the server's default label (ADR-0037 point 8). */
@@ -511,12 +532,40 @@ public final class OutputWorker implements Handler<OutputMsg> {
     if (task == null || out.sender == null || out.frame == null) {
       return;
     }
-    String id = out.link.id();
     task.post(new TaskItem.Setup(out.frame, out.sender, out.link));
     task.post(new TaskItem.UseEncoder(out.encoder));
-    out.terrain = new TerrainReader<>(context.folders().folder("terrain"), Objects.requireNonNull(self), r -> new OutputMsg.Folder(id, "terrain", r), FOLDER_TIMEOUT);
-    out.imagery = new ImageryReader<>(context.folders().folder("imagery"), Objects.requireNonNull(self), r -> new OutputMsg.Folder(id, "imagery", r), FOLDER_TIMEOUT,
-        out.link.imagerySet());
+    readers(out);
+  }
+
+  /**
+   * The camera came back after a pause while the pipeline ran on (F1; the UDA's finding 2, owner ACW
+   * A; owner, M9.2: read the folders again): the task drops the terrain and imagery it holds, and
+   * fresh readers read the folders as at a start. The encoder and the stream go on.
+   */
+  private void reread(Out out) {
+    TerrainReader<OutputMsg> terrain = out.terrain;
+    if (terrain != null) {
+      for (CellKey key : terrain.wanted()) {
+        post(out, new TaskItem.DropCell(key));
+      }
+    }
+    post(out, new TaskItem.UseSet(null));
+    out.rereads++;
+    readers(out);
+  }
+
+  /** Fresh terrain and imagery readers, of a new generation, and a fresh WMS view. */
+  private void readers(Out out) {
+    ComputeRef<TaskItem> task = out.task;
+    if (task == null) {
+      return;
+    }
+    String id = out.link.id();
+    int generation = ++out.readers;
+    out.terrain = new TerrainReader<>(context.folders().folder("terrain"), Objects.requireNonNull(self), r -> new OutputMsg.Folder(id, "terrain", r, generation),
+        FOLDER_TIMEOUT);
+    out.imagery = new ImageryReader<>(context.folders().folder("imagery"), Objects.requireNonNull(self), r -> new OutputMsg.Folder(id, "imagery", r, generation),
+        FOLDER_TIMEOUT, out.link.imagerySet());
     out.imageryRefused.clear();
     WmsCache<OutputMsg> c = cache();
     WmsView old = out.wmsView;
@@ -659,8 +708,8 @@ public final class OutputWorker implements Handler<OutputMsg> {
 
   private void onFolder(OutputMsg.Folder m) {
     Out out = outs.get(m.link());
-    if (out == null) {
-      return;
+    if (out == null || m.readers() != out.readers) {
+      return; // readers since replaced asked: what they read may be the old files (F1)
     }
     if (m.folder().equals("terrain")) {
       TerrainReader<OutputMsg> terrain = out.terrain;
@@ -852,6 +901,8 @@ public final class OutputWorker implements Handler<OutputMsg> {
         appendNonZero(b, "late", out.rendered.late());
         appendNonZero(b, "encoder dropped", out.rendered.encoderDropped());
         appendNonZero(b, "no imagery", out.rendered.noImagery());
+        appendNonZero(b, "bit error events", out.rendered.bitErrorEvents());
+        appendNonZero(b, "bit error blocks", out.rendered.bitErrorBlocks());
       }
       if (out.sent != null) {
         appendNonZero(b, "send dropped", out.sent.dropped());
@@ -865,6 +916,7 @@ public final class OutputWorker implements Handler<OutputMsg> {
       if (out.wmsView != null) {
         appendNonZero(b, "wms over cap", out.wmsView.overCap());
       }
+      appendNonZero(b, "folders read again", out.rereads);
       appendNonZero(b, "terrain failed", out.terrainFailed);
       appendNonZero(b, "imagery failed", out.imageryFailed);
       ImagerySet set = out.imagery != null ? out.imagery.chosen() : null;

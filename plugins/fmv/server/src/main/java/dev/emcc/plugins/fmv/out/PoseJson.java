@@ -1,6 +1,7 @@
 package dev.emcc.plugins.fmv.out;
 
 import dev.emcc.sdk.json.JsonArray;
+import dev.emcc.sdk.json.JsonBoolean;
 import dev.emcc.sdk.json.JsonNumber;
 import dev.emcc.sdk.json.JsonObject;
 import dev.emcc.sdk.json.JsonString;
@@ -52,6 +53,23 @@ public final class PoseJson {
         whole(frame, "height"),
         whole(frame, "rate"),
         optionalText(payload, "mission"));
+  }
+
+  /**
+   * Whether a payload asks for the data overlay (CR-0055; brief 10.1 point 1, function 27): its
+   * {@code overlay}, absent meaning {@code false}.
+   *
+   * @throws IllegalArgumentException when it is there and not a boolean
+   */
+  public static boolean overlay(JsonObject payload) {
+    JsonValue v = payload.get("overlay");
+    if (v == null) {
+      return false;
+    }
+    if (!(v instanceof JsonBoolean b)) {
+      throw new IllegalArgumentException("overlay is true or false");
+    }
+    return b.value();
   }
 
   private static JsonObject object(JsonObject o, String key) {

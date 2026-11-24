@@ -278,7 +278,8 @@
                   "bitrate",
                   "keyframeSeconds",
                   "metadataEvery",
-                  "maxRate"
+                  "maxRate",
+                  "bitErrors"
                 ]
               },
               {
@@ -292,6 +293,7 @@
                   "fovColour",
                   "sampling",
                   "haze",
+                  "degraded",
                   "imagerySet"
                 ]
               },
@@ -767,6 +769,106 @@
                 }
               }
             },
+            "bitErrors": {
+              "title": "Bit errors",
+              "description": "out: a poor radio link, as a receiver shows it. Every so often a few runs of 16 × 16 blocks of the picture go wrong, as where a decoder lost part of a picture: they show the last picture from the wrong place and smear, or turn flat green, until the next keyframe. The blocks are drawn into the picture before it is encoded, so every player shows them; the stream and its KLV are never damaged. Off by default. A change applies from the next picture.",
+              "type": "object",
+              "additionalProperties": false,
+              "default": {
+                "enabled": false,
+                "every": 15,
+                "jitter": 3,
+                "blocks": 3,
+                "seed": 1
+              },
+              "x-emc2": {
+                "hint": "Wrong blocks until the next keyframe, every 15 ± 3 s by default",
+                "visibleWhen": {
+                  "property": "direction",
+                  "in": [
+                    "out"
+                  ]
+                }
+              },
+              "properties": {
+                "enabled": {
+                  "title": "Add bit errors",
+                  "description": "On: the picture gets bit errors as set below. Off: the picture as rendered.",
+                  "type": "boolean",
+                  "default": false
+                },
+                "every": {
+                  "title": "Every",
+                  "description": "The mean time between two error events, 2 to 600 s of the video's time.",
+                  "type": "number",
+                  "minimum": 2,
+                  "maximum": 600,
+                  "default": 15,
+                  "x-emc2": {
+                    "hint": "The mean time between two events",
+                    "unit": "s",
+                    "enabledWhen": {
+                      "property": "enabled",
+                      "in": [
+                        true
+                      ]
+                    }
+                  }
+                },
+                "jitter": {
+                  "title": "Give or take",
+                  "description": "How far an event may fall either side of the mean time, 0 to 60 s and less than Every.",
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 60,
+                  "default": 3,
+                  "x-emc2": {
+                    "hint": "Less than Every",
+                    "unit": "s",
+                    "enabledWhen": {
+                      "property": "enabled",
+                      "in": [
+                        true
+                      ]
+                    }
+                  }
+                },
+                "blocks": {
+                  "title": "Runs per event",
+                  "description": "How many runs of 16 × 16 blocks an event damages, 1 to 20: each from a random block on, along its row and into the next, like a lost slice.",
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 20,
+                  "default": 3,
+                  "x-emc2": {
+                    "hint": "Each a run of blocks along a row",
+                    "enabledWhen": {
+                      "property": "enabled",
+                      "in": [
+                        true
+                      ]
+                    }
+                  }
+                },
+                "seed": {
+                  "title": "Seed",
+                  "description": "The random generator's seed, 0 to 2147483647: the same seed gives the same events from the same start.",
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2147483647,
+                  "default": 1,
+                  "x-emc2": {
+                    "hint": "The same seed gives the same events",
+                    "enabledWhen": {
+                      "property": "enabled",
+                      "in": [
+                        true
+                      ]
+                    }
+                  }
+                }
+              }
+            },
             "sampling": {
               "title": "Sampling",
               "description": "out: how the picture samples the imagery. bilinear is smoother; nearest is faster.",
@@ -787,7 +889,7 @@
             },
             "haze": {
               "title": "Haze",
-              "description": "out: haze that grows with distance, to 60 % at 25 km.",
+              "description": "out: haze that grows with distance, to 60 % at 25 km. The degraded camera, while on, uses its own grey haze instead.",
               "type": "boolean",
               "default": true,
               "x-emc2": {
@@ -796,6 +898,70 @@
                   "in": [
                     "out"
                   ]
+                }
+              }
+            },
+            "degraded": {
+              "title": "Degraded camera",
+              "description": "out: the picture of a cheap sensor over a low-bitrate downlink: a grey haze that grows with distance, less contrast and colour, a softer picture drawn at half the resolution, and sensor noise. While it is on, its grey haze is used instead of Haze. A change applies from the next frame.",
+              "type": "object",
+              "additionalProperties": false,
+              "default": {
+                "enabled": false,
+                "haze": 50,
+                "noise": 30
+              },
+              "x-emc2": {
+                "hint": "A cheap sensor: grey haze, softer, less colour, noise",
+                "visibleWhen": {
+                  "property": "direction",
+                  "in": [
+                    "out"
+                  ]
+                }
+              },
+              "properties": {
+                "enabled": {
+                  "title": "Degrade the picture",
+                  "description": "On: the camera draws the degraded picture. Off: the picture as the settings above draw it.",
+                  "type": "boolean",
+                  "default": false
+                },
+                "haze": {
+                  "title": "Grey haze",
+                  "description": "The grey haze at its strongest, 0 to 100 %: at 4 km a pixel has about two thirds of it, and far away all of it. The sky goes the same share towards the grey.",
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100,
+                  "default": 50,
+                  "x-emc2": {
+                    "hint": "At 4 km about two thirds of it",
+                    "unit": "%",
+                    "enabledWhen": {
+                      "property": "enabled",
+                      "in": [
+                        true
+                      ]
+                    }
+                  }
+                },
+                "noise": {
+                  "title": "Sensor noise",
+                  "description": "The sensor noise, 0 to 100 %: at 100 % a pixel swings by up to 24 luma levels, new in every frame. More noise also costs the encoder more of its bit rate.",
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100,
+                  "default": 30,
+                  "x-emc2": {
+                    "hint": "New in every frame; more noise, blockier video",
+                    "unit": "%",
+                    "enabledWhen": {
+                      "property": "enabled",
+                      "in": [
+                        true
+                      ]
+                    }
+                  }
                 }
               }
             },
@@ -1285,6 +1451,9 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 64
+          },
+          "overlay": {
+            "type": "boolean"
           }
         }
       }

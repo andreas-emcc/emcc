@@ -1,6 +1,8 @@
 package dev.emcc.plugins.fmv.out;
 
 import dev.emcc.plugins.fmv.in.LabelRule;
+import dev.emcc.plugins.fmv.out.render.BitErrors;
+import dev.emcc.plugins.fmv.out.render.Degrader;
 import dev.emcc.sdk.ClassificationLimit;
 import dev.emcc.sdk.json.JsonArray;
 import dev.emcc.sdk.json.JsonBoolean;
@@ -30,6 +32,8 @@ import org.jspecify.annotations.Nullable;
  * @param maxRateMbps the pacing
  * @param bilinear {@code bilinear} or {@code nearest} sampling
  * @param haze whether the picture has haze
+ * @param degraded the degraded camera's settings (F4, ADR-0066), or {@code null}: off
+ * @param bitErrors the bit errors' settings (F5, ADR-0066 point 2, drawn: owner, M9.2), or {@code null}: off
  * @param imagerySet the imagery set's folder, or {@code null}: the first that covers the camera (B3)
  * @param classificationNames the names of ST 0102's classifications 1 to 5
  * @param classifyingCountry ST 0102's tag 3
@@ -46,6 +50,8 @@ public record OutLink(
     double maxRateMbps,
     boolean bilinear,
     boolean haze,
+    Degrader.@Nullable Settings degraded,
+    BitErrors.@Nullable Settings bitErrors,
     @Nullable String imagerySet,
     List<String> classificationNames,
     String classifyingCountry) {
@@ -129,11 +135,48 @@ public record OutLink(
           number(entry, "maxRate", 20, 1, 50),
           !"nearest".equals(sampling),
           !(entry.get("haze") instanceof JsonBoolean h) || h.value(),
+          degraded(entry),
+          bitErrors(entry),
           text(entry, "imagerySet"),
           names, country);
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException("link " + name + ": " + e.getMessage(), e);
     }
+  }
+
+  /** The degraded camera (F4): {@code degraded.haze} and {@code .noise} in per cent; {@code null} while it is off. */
+  private static Degrader.@Nullable Settings degraded(JsonObject entry) {
+    if (!(entry.get("degraded") instanceof JsonObject d) || !(d.get("enabled") instanceof JsonBoolean on) || !on.value()) {
+      return null;
+    }
+    return new Degrader.Settings(number(d, "haze", DEGRADED_HAZE, 0, 100) / 100, number(d, "noise", DEGRADED_NOISE, 0, 100) / 100);
+  }
+
+  /** The bit errors (F5): {@code bitErrors.every}, {@code .jitter} (s), {@code .blocks}, {@code .seed}; {@code null} while they are off. */
+  private static BitErrors.@Nullable Settings bitErrors(JsonObject entry) {
+    if (!(entry.get("bitErrors") instanceof JsonObject b) || !(b.get("enabled") instanceof JsonBoolean on) || !on.value()) {
+      return null;
+    }
+    double every = number(b, "every", 15, 2, 600);
+    double jitter = number(b, "jitter", 3, 0, 60);
+    if (jitter >= every) {
+      throw new IllegalArgumentException("the bit errors' jitter is less than their interval");
+    }
+    return new BitErrors.Settings(every, jitter, (int) whole(b, "blocks", 3, 1, 20), whole(b, "seed", 1, 0, Integer.MAX_VALUE));
+  }
+
+  /** The degraded camera's defaults, per cent: the manifest's. */
+  static final double DEGRADED_HAZE = 50;
+  static final double DEGRADED_NOISE = 30;
+
+  /**
+   * This link with the settings that change a running picture taken from {@code other} (the owner,
+   * M9.2: they apply from the next frame, without a restart): its name, sampling, haze, the
+   * degraded camera and the bit errors. Two links whose pipelines are the same are equal after it.
+   */
+  public OutLink withLookOf(OutLink other) {
+    return new OutLink(id, other.name, enabled, destination, highest, bitrateMbps, keyframeSeconds, metadataEvery, maxRateMbps, other.bilinear, other.haze,
+        other.degraded, other.bitErrors, imagerySet, classificationNames, classifyingCountry);
   }
 
   /** The destination, or {@code null} while one of its parts is not set (O1). */

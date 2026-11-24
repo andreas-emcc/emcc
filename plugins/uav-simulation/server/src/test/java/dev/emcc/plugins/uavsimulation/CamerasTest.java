@@ -28,7 +28,8 @@ class CamerasTest {
     assertThat(c.getString("platform")).isEqualTo(track.toString());
     assertThat(c.getString("platformName")).isEqualTo("Hawk 1");
     assertThat(c.getString("state")).isEqualTo("stopped");
-    assertThat(c.getObject("settings")).isEqualTo(CameraSettings.DEFAULTS.json());
+    // section 5's defaults; the sway's seed is the camera's own (criterion 23)
+    assertThat(c.getObject("settings").without("swaySeed")).isEqualTo(CameraSettings.DEFAULTS.json().without("swaySeed"));
     // Section 5: the form's default point when Track a point is chosen; longitude first, latitude ≠ longitude.
     assertThat(c.get("platformPosition")).isEqualTo(dev.emcc.sdk.testkit.TestJson.parse("[17.3, 62.4]"));
     rig.delete(track);
@@ -69,6 +70,22 @@ class CamerasTest {
     assertField(rig.post("/cameras/" + id, "{\"target\": \"" + track + "\"}"), 400, "target");
     assertField(rig.post("/cameras/" + id, "{\"target\": \"" + UUID.randomUUID() + "\"}"), 400, "target");
     assertThat(rig.camera(id).getObject("settings").getNumber("horizontalFov").doubleValue()).isEqualTo(120);
+  }
+
+  @Test
+  @DisplayName("Criterion 20 (V2, CR-0055): a new camera's overlay is false; a POST with true keeps it in settings.overlay; not a boolean is 400; without edit 403")
+  void overlaySetting() {
+    Rig rig = new Rig().started();
+    UUID id = rig.camera(rig.track(AT), "");
+    assertThat(rig.camera(id).getObject("settings").getBoolean("overlay")).isFalse();
+    Rig.answer(rig.post("/cameras/" + id, "{\"overlay\": true}"), 200);
+    assertThat(rig.camera(id).getObject("settings").getBoolean("overlay")).isTrue();
+    assertField(rig.post("/cameras/" + id, "{\"overlay\": \"true\"}"), 400, "overlay");
+    User viewer = Rig.user("plugin.simulator.view", CameraWorker.VIEW, CameraWorker.RUN);
+    assertThat(rig.post("/cameras/" + id, "{\"overlay\": false}", viewer).reply().status()).isEqualTo(403);
+    assertThat(rig.camera(id).getObject("settings").getBoolean("overlay")).as("nothing changed").isTrue();
+    UUID other = rig.camera(rig.track(Position.of(17.4, 62.5)), "\"overlay\": true");
+    assertThat(rig.camera(other).getObject("settings").getBoolean("overlay")).as("a new camera can start with it").isTrue();
   }
 
   @Test

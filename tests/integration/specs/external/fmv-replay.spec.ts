@@ -284,7 +284,9 @@ test('the replay through two udp links: day-flight\'s camera at the sensor and i
     await expect(options.filter({ hasText: LINK }), 'day-flight\'s row: its camera\'s name, format, size, bit rate, age of the last set, state, Watch').toHaveAccessibleName(/^ITA FMV H\.264 · 1280 × 720 · [34]\.\d Mbit\/s · \d+ s ago (Live|Stale) Watch$/);
     const listed = options.filter({ hasText: CLEAN_LINK });
     const title = escape(clean.title) + (clean.title === clean.name ? '' : ` ${escape(clean.name)}`);
-    await expect(listed, 'day-h264\'s row').toHaveAccessibleName(new RegExp(`^${title} H\\.264 · 1280 × 720 · [345]\\.\\d Mbit/s( · \\d+ s ago)? (Live|Stale|Waiting) Watch$`));
+    // day-h264's sets are sparse too (about 6 in its 60 s round), so its first may not have come yet:
+    // then the row says "no metadata". After the round below it must have come (checked there).
+    await expect(listed, 'day-h264\'s row').toHaveAccessibleName(new RegExp(`^${title} H\\.264 · 1280 × 720 · [345]\\.\\d Mbit/s · (\\d+ s ago|no metadata) (Live|Stale|Waiting) Watch$`));
     // Every try of the window's player (a request of the stream) and every player error, from Watch on.
     let opened = Date.now();
     const since = (t: number) => `${Math.round((t - opened) / 1000)} s`;
@@ -324,6 +326,12 @@ test('the replay through two udp links: day-flight\'s camera at the sensor and i
     expect.soft(tries.length, `a whole round and the wrap on one try (tries at ${tries.map(since).join(', ')} after Watch)`).toBe(1);
     expect.soft(errorsIn(opened), 'player errors in a whole round and the wrap').toEqual([]);
     expect.soft(roundPause.ms, 'the longest pause between two frames in the round').toBeLessThan(1_000);
+    // A whole round carries all of day-h264's sets, so emcc has read at least one by now: GET /streams
+    // has its time, and the panel's row its age instead of "no metadata".
+    const afterRound = await rowOf(CLEAN_LINK);
+    testInfo.annotations.push({ type: 'day-h264 after a round', description: JSON.stringify({ lastSet: afterRound?.lastSet, state: afterRound?.state }) });
+    expect.soft(afterRound?.lastSet, 'day-h264\'s last set in GET /streams after a whole round').toEqual(expect.any(String));
+    await expect.soft(listed, 'day-h264\'s row after a whole round: the age of its last set').toHaveAccessibleName(/ · \d+ s ago (Live|Stale) Watch$/);
 
     // A broken stretch (criterion 17: the window plays again on its own): 3 s of broken video
     // packets sent into the link between the replay's own. From its end on the window shows frames

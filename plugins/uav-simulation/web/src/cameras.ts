@@ -46,6 +46,17 @@ export interface Settings {
   readonly mission: string;
   /** The output channel's id, `plugin/link`, or null for none (function 9; C1). */
   readonly output: string | null;
+  /** The micro sway (M9.2's V3; M10 plan point 8): on or off, and its values, kept while it is off. */
+  readonly sway: boolean;
+  readonly swayAmplitude: number;
+  readonly swayMinFrequency: number;
+  readonly swayMaxFrequency: number;
+  readonly swayJoltsPerMinute: number;
+  readonly swayJoltStrength: number;
+  readonly swayJoltDecay: number;
+  readonly swaySeed: number;
+  /** `fmv` burns the camera's data into the video (CR-0055; M9.2's V2), off by default. */
+  readonly overlay: boolean;
 }
 
 export interface CameraInfo {
